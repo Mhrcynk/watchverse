@@ -34,6 +34,10 @@ if ((TOKEN || KEY || '').match(/[^\x21-\x7e]/) || /buraya|token_buraya|kopyalad/
   console.error('Token geçersiz görünüyor: komuttaki örnek metni değil, TMDB sayfasındaki "API Read Access Token" değerini (eyJ ile başlayan uzun metin) yapıştırmalısın.');
   process.exit(1);
 }
+if (TOKEN && TOKEN.length < 100) {
+  console.error(`Token çok kısa (${TOKEN.length} karakter). TMDB'deki "API Read Access Token" 200 karakterden uzundur; tamamını kopyaladığından emin ol.`);
+  process.exit(1);
+}
 const args = Object.fromEntries(process.argv.slice(2).map((a) => { const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? true]; }));
 const LIMIT = args.limit ? Number(args.limit) : Infinity;
 
@@ -50,6 +54,7 @@ async function api(p, params = {}) {
   for (let attempt = 0; attempt < 4; attempt++) {
     const res = await fetch(u, { headers: TOKEN ? { Authorization: `Bearer ${TOKEN}`, accept: 'application/json' } : { accept: 'application/json' } });
     if (res.status === 429) { await sleep(1500 * (attempt + 1)); continue; }
+    if (res.status === 401) { console.error('\nTMDB token\'ı kabul etmedi (401). Ayarlar → API sayfasındaki "API Read Access Token" değerini yeniden kopyala.'); process.exit(1); }
     if (!res.ok) throw new Error(`${res.status} ${p}`);
     return res.json();
   }
