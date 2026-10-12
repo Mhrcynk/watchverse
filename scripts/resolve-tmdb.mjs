@@ -71,6 +71,18 @@ function score(t, r, media) {
   return s;
 }
 
+// Bulunamayan yapımlar için ek arama adları: kısa film önekleri, "/" ve alt başlıksız biçimler
+function variants(t) {
+  const v = new Set();
+  const pre = { marvel: ['Marvel One-Shot: ', "Marvel's ", 'Marvel '], dc: ['DC Showcase: ', 'DC ', 'Batman: '], sw: ['LEGO Star Wars: ', 'Star Wars: '], middleearth: ['The Lord of the Rings: '] }[t.u] || [];
+  for (const p of pre) v.add(p + t.title);
+  if (t.title.includes('/')) { v.add(t.title.replace(/\//g, ' ')); v.add(t.title.replace(/\//g, ' & ')); }
+  const cut = t.title.split(/\s[–-]\s|:\s/)[0];
+  if (cut && cut !== t.title && cut.length > 3) v.add(cut);
+  v.delete(t.title);
+  return [...v];
+}
+
 async function find(t) {
   if (overrides[t.id] === 'none') return null;
   if (overrides[t.id]) {
@@ -90,6 +102,19 @@ async function find(t) {
       if (!best || s > best.score) best = { media, r, score: s };
     }
     if (best && best.score >= 80) break;
+  }
+  if (!best || best.score < 45) {
+    for (const name of variants(t)) {
+      for (const media of order) {
+        const q = { query: name, language: 'tr-TR', include_adult: false };
+        const res = await api(`/search/${media}`, q);
+        for (const r of res.results || []) {
+          const s = score({ ...t, title: name }, r, media);
+          if (!best || s > best.score) best = { media, r, score: s };
+        }
+      }
+      if (best && best.score >= 70) break;
+    }
   }
   return best;
 }
