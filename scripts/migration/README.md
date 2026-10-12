@@ -9,3 +9,4 @@
 5. Düzeltme: "Teen Titans Go! See Space Jam" dizinin bölüm verisini taşıyordu; 2021 tarihli özel yapım olarak düzeltildi.
 
 Bundan sonra kataloğu doğrudan `src/data/catalog.json` üzerinde güncelle.
+6. 12 Ekim 2026 son kontrol: 2026'da yayınlanan yeni sezonlar eklendi (Invincible 4. sezon, Strange New Worlds 4. sezon, Monarch 2. sezon). Eksik yapımlar eklendi: Stranger Things: Tales From '85, Static Shock ve "DC · Vertigo ve yetişkin uyarlamaları" rotası (The Sandman, Dead Boy Detectives, Lucifer, Preacher, Sweet Tooth, iZombie, V for Vendetta). Bölüm sayıları TVmaze'den doğrulandı. Toplam 726 yapım.

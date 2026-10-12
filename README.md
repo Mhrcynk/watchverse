@@ -2,7 +2,7 @@
 
 Sevdiğin film ve dizi evrenlerinde nerede kaldığını hatırlatan, sıradaki hikâyeni doğru sırayla öneren mobil uygulama. iPhone, iPad ve Android telefon/tablet için tek kod tabanı.
 
-- **25 evren, 717 yapım:** Marvel, DC, Star Wars, Wizarding World, Orta Dünya, Game of Thrones, The Boys, Invincible, Stranger Things, Alien, Predator, MonsterVerse, Planet of the Apes, Jurassic Park, The Matrix, Avatar, Terminator, Transformers, Star Trek, The Walking Dead, Mission: Impossible, James Bond, John Wick, Rocky & Creed, Pirates of the Caribbean
+- **25 evren, 726 yapım:** Marvel, DC, Star Wars, Wizarding World, Orta Dünya, Game of Thrones, The Boys, Invincible, Stranger Things, Alien, Predator, MonsterVerse, Planet of the Apes, Jurassic Park, The Matrix, Avatar, Terminator, Transformers, Star Trek, The Walking Dead, Mission: Impossible, James Bond, John Wick, Rocky & Creed, Pirates of the Caribbean
 - **Rotalar ve modlar:** her evrende ayrı süreklilikler (ör. MCU, X-Men, Sony); "Ana hikâye / Önerilen / Tümü" modları; "Önerilen / Yayın sırası / Kronolojik" sıralama
 - **Bölüm takibi:** sezon sezon, tek tek bölüm işaretleme; "sezonu tamamladım"
 - **Ön koşullar:** "Bundan önce" listesi ve hazırlık yüzdesi; "Büyük hikâyeye hazırlan"

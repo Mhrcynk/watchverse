@@ -13,7 +13,7 @@ Uzunluk sınırları köşeli parantez içinde. Tüm metinler kontrol edildi.
 **Alt başlık** [30]: `Evrenleri doğru sırayla izle`
 
 **Tanıtım metni** [170]:
-Marvel'dan Star Trek'e 25 evren, 717 film ve dizi. Nerede kaldığını hatırla, sıradakini bul, bölüm bölüm takip et. Hesap yok, reklam yok.
+Marvel'dan Star Trek'e 25 evren, 726 film ve dizi. Nerede kaldığını hatırla, sıradakini bul, bölüm bölüm takip et. Hesap yok, reklam yok.
 
 **Anahtar kelimeler** [100]:
 `izleme sırası,marvel,star wars,dizi takip,film listesi,mcu,dc,bölüm,izledim,watchlist,kronolojik`
@@ -25,7 +25,7 @@ Sevdiğin evrenlerde kaybolma. WatchVerse nerede kaldığını hatırlar, sırad
 DOĞRU SIRA, TEK DOKUNUŞ
 Her evren için üç sıralama: önerilen, yayın sırası ve kronolojik. Ne kadar derine inmek istediğine sen karar ver: yalnızca ana hikâye, önerilen yan yapımlar ya da her şey.
 
-25 EVREN, 717 YAPIM
+25 EVREN, 726 YAPIM
 Marvel, DC, Star Wars, Wizarding World, Orta Dünya, Game of Thrones, Star Trek, Alien, Predator, Jurassic Park, The Matrix, Avatar, Terminator, Transformers, MonsterVerse, Planet of the Apes, The Boys, Invincible, Stranger Things, The Walking Dead, Mission: Impossible, James Bond, John Wick, Rocky ve Creed, Pirates of the Caribbean.
 
 FARKLI SÜREKLİLİKLER AYRI ROTALARDA
