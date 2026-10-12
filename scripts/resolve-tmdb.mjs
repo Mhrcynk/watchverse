@@ -29,6 +29,10 @@ if (!TOKEN && !KEY) {
   console.error('TMDB_TOKEN (önerilen) ya da TMDB_API_KEY tanımlı değil.\nhttps://www.themoviedb.org/settings/api adresinden ücretsiz alabilirsin.');
   process.exit(1);
 }
+if ((TOKEN || KEY || '').match(/[^\x21-\x7e]/) || /buraya|token_buraya|kopyalad/i.test(TOKEN || KEY)) {
+  console.error('Token geçersiz görünüyor: komuttaki örnek metni değil, TMDB sayfasındaki "API Read Access Token" değerini (eyJ ile başlayan uzun metin) yapıştırmalısın.');
+  process.exit(1);
+}
 const args = Object.fromEntries(process.argv.slice(2).map((a) => { const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? true]; }));
 const LIMIT = args.limit ? Number(args.limit) : Infinity;
 
