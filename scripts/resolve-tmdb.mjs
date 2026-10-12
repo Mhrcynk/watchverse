@@ -13,6 +13,7 @@
  *
  * Seçenekler:  --force (eşleşmiş olanları da yeniden ara)  --limit=50  --only=startrek
  * Hatalı eşleşmeleri scripts/tmdb-overrides.json ile düzelt:  { "<yapım id>": "movie:12345" }
+ * Afişsiz kalsın istediğin yapım için: { "<yapım id>": "none" }
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -71,6 +72,7 @@ function score(t, r, media) {
 }
 
 async function find(t) {
+  if (overrides[t.id] === 'none') return null;
   if (overrides[t.id]) {
     const [media, id] = overrides[t.id].split(':');
     const d = await api(`/${media}/${id}`, { language: 'tr-TR' });
@@ -103,6 +105,7 @@ async function worker() {
     const t = todo[i++];
     try {
       const m = await find(t);
+      if (overrides[t.id] === 'none') { t.tmdb = { id: 0, p: null, b: null }; continue; }
       if (!m || m.score < 45) { report.missing.push(`${t.id} · ${t.title} (${t.year})`); continue; }
       t.tmdb = { id: m.r.id, m: m.media, p: m.r.poster_path || null, b: m.r.backdrop_path || null };
       if (!t.summary && m.r.overview && m.r.overview.length > 30) { t.summary = m.r.overview.trim(); t.summarySource = 'tmdb'; report.summaries++; }
