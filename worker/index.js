@@ -1,0 +1,88 @@
+/**
+ * WatchVerse ara sunucusu (Cloudflare Worker)
+ * - /tmdb/...  : TMDB isteklerini gizli anahtarla iletir (anahtar uygulamaya hiç girmez)
+ * - /sync      : cihazın bildirim aboneliğini ve takip ettiği dizileri kaydeder
+ * - /devices   : günlük bildirim görevi için kayıtlı cihazlar (yalnızca yönetici anahtarıyla)
+ * Gizli değerler: TMDB_TOKEN (Cloudflare secret). Depolama: WV (KV).
+ */
+const ALLOW = [
+  /^\/search\/(multi|movie|tv)$/,
+  /^\/(movie|tv)\/\d+$/,
+  /^\/(movie|tv)\/\d+\/(watch\/providers|videos|recommendations|credits)$/,
+  /^\/tv\/\d+\/season\/\d+$/,
+  /^\/trending\/(all|movie|tv)\/(day|week)$/,
+  /^\/discover\/(movie|tv)$/,
+  /^\/(movie|tv)\/(popular|top_rated|now_playing|upcoming|on_the_air|airing_today)$/,
+  /^\/genre\/(movie|tv)\/list$/,
+  /^\/watch\/providers\/(movie|tv)$/,
+];
+const TTL = (p) => (/trending|popular|now_playing|airing|on_the_air|discover/.test(p) ? 1800 : /season|\/tv\/\d+$/.test(p) ? 3600 : 21600);
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'content-type, x-admin' };
+const json = (o, status = 200, extra = {}) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...CORS, ...extra } });
+
+export async function adminKey(token) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${token}|watchverse-admin`));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function tmdb(url, env, ctx) {
+  const path = url.pathname.slice(5);
+  if (!ALLOW.some((re) => re.test(path))) return json({ error: 'izin verilmeyen istek' }, 404);
+  const t = new URL('https://api.themoviedb.org/3' + path);
+  for (const [k, v] of url.searchParams) if (k !== 'api_key') t.searchParams.set(k, v);
+  if (!t.searchParams.has('language')) t.searchParams.set('language', 'tr-TR');
+  const cache = typeof caches !== 'undefined' ? caches.default : null;
+  const key = new Request(t.toString());
+  let res = cache ? await cache.match(key) : null;
+  if (!res) {
+    const r = await fetch(t, { headers: { Authorization: `Bearer ${env.TMDB_TOKEN}`, accept: 'application/json' } });
+    res = new Response(r.body, { status: r.status, headers: { 'content-type': 'application/json; charset=utf-8', 'Cache-Control': `public, max-age=${TTL(path)}` } });
+    if (r.ok && cache) ctx?.waitUntil?.(cache.put(key, res.clone()));
+  }
+  const out = new Response(res.body, res);
+  for (const [k, v] of Object.entries(CORS)) out.headers.set(k, v);
+  return out;
+}
+
+async function sync(req, env) {
+  const raw = await req.text();
+  if (raw.length > 60000) return json({ error: 'çok büyük' }, 413);
+  let b; try { b = JSON.parse(raw); } catch { return json({ error: 'okunamadı' }, 400); }
+  if (!/^[a-f0-9-]{16,64}$/.test(b.id || '')) return json({ error: 'kimlik' }, 400);
+  const rec = {
+    sub: b.sub && typeof b.sub.endpoint === 'string' && /^https:\/\//.test(b.sub.endpoint) ? b.sub : null,
+    follow: Array.isArray(b.follow) ? b.follow.filter((x) => typeof x === 'string').slice(0, 40) : [],
+    tv: Array.isArray(b.tv) ? b.tv.filter((x) => Number.isInteger(x) && x > 0).slice(0, 600) : [],
+    t: Date.now(),
+  };
+  await env.WV.put('dev:' + b.id, JSON.stringify(rec), { expirationTtl: 60 * 60 * 24 * 180 });
+  return json({ ok: true });
+}
+
+async function devices(req, env) {
+  if (req.headers.get('x-admin') !== (await adminKey(env.TMDB_TOKEN))) return json({ error: 'yetki yok' }, 403);
+  const out = [];
+  let cursor;
+  do {
+    const l = await env.WV.list({ prefix: 'dev:', cursor });
+    for (const k of l.keys) { const v = await env.WV.get(k.name); if (v) out.push({ id: k.name.slice(4), ...JSON.parse(v) }); }
+    cursor = l.list_complete ? undefined : l.cursor;
+  } while (cursor);
+  return json(out);
+}
+
+export default {
+  async fetch(req, env, ctx) {
+    const url = new URL(req.url);
+    if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+    try {
+      if (url.pathname.startsWith('/tmdb/') && req.method === 'GET') return await tmdb(url, env, ctx);
+      if (url.pathname === '/sync' && req.method === 'POST') return await sync(req, env);
+      if (url.pathname === '/devices' && req.method === 'GET') return await devices(req, env);
+      if (url.pathname === '/') return json({ ok: true, name: 'watchverse' });
+      return json({ error: 'bulunamadı' }, 404);
+    } catch (e) {
+      return json({ error: 'sunucu hatası' }, 500);
+    }
+  },
+};

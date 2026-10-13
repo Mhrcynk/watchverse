@@ -183,3 +183,38 @@ export const StoryCard = memo(function StoryCard({ t, index, enter = 0, onMarkUn
     </FadeIn>
   );
 });
+
+/* ---------- TMDB afişi ve kartı ---------- */
+export function Poster({ uri, title, width, style, color = C.accent }: { uri: string | null; title: string; width: number; style?: StyleProp<ViewStyle>; color?: string }) {
+  return (
+    <View style={[{ width, aspectRatio: 2 / 3, borderRadius: R.md, overflow: 'hidden', backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line }, style]}>
+      <LinearGradient colors={[alpha(color, 0.38), C.card]} style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={{ fontFamily: F.heavy, fontSize: width * 0.46, color: alpha('#FFFFFF', 0.1) }}>{(title || '?')[0]}</Text>
+      </LinearGradient>
+      {uri && <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} recyclingKey={uri} />}
+    </View>
+  );
+}
+
+/** Afiş + ad + alt satır; isteğe bağlı ilerleme çubuğu ve rozet */
+export const MediaCard = memo(function MediaCard({ uri, title, sub, width, onPress, pct, badge, index = 0 }: { uri: string | null; title: string; sub?: string; width: number; onPress: () => void; pct?: number; badge?: string; index?: number }) {
+  return (
+    <FadeIn index={index}>
+      <Press accessibilityRole="button" accessibilityLabel={[title, sub, badge].filter(Boolean).join(', ')} onPress={onPress} style={{ width }}>
+        <View>
+          <Poster uri={uri} title={title} width={width} />
+          {!!badge && (
+            <View style={{ position: 'absolute', left: 8, top: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 99, backgroundColor: C.accent }}>
+              <Text style={{ fontFamily: F.bold, fontSize: 11, color: '#fff' }}>{badge}</Text>
+            </View>
+          )}
+          {pct != null && pct > 0 && (
+            <View style={{ position: 'absolute', left: 8, right: 8, bottom: 8 }}><Bar pct={pct * 100} height={4} /></View>
+          )}
+        </View>
+        <Text numberOfLines={2} style={{ marginTop: 8, fontFamily: F.semibold, fontSize: 14, lineHeight: 18, color: C.text }}>{title}</Text>
+        {!!sub && <Small numberOfLines={1} style={{ marginTop: 2 }}>{sub}</Small>}
+      </Press>
+    </FadeIn>
+  );
+});

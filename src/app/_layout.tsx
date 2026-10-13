@@ -2,10 +2,12 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, In
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ConfirmProvider, ToastProvider, useToast } from '@/components/ui';
+import { refreshLibrary } from '@/lib/library';
 import { syncCatalog } from '@/lib/remote';
+import { hasSyncApi, syncDevice } from '@/lib/sync';
 import { StoreProvider, useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
 
@@ -36,6 +38,34 @@ function CatalogSync({ onChange }: { onChange: () => void }) {
   return null;
 }
 
+// Kütüphanedeki dizileri tazeler ve bildirim için cihazı ara sunucuya kaydeder
+function LibrarySync() {
+  const store = useStore();
+  const { state } = store;
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  useEffect(() => {
+    let last = 0;
+    const run = () => {
+      if (Date.now() - last < 15 * 60 * 1000) return;
+      last = Date.now();
+      refreshLibrary(stateRef.current, store.libSave).catch(() => {});
+    };
+    run();
+    const onVis = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') run(); };
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
+    return () => { if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Takip listesi değişince (birkaç saniye sonra) sunucuya bildir
+  const sig = state.follow.join(',') + '|' + Object.keys(state.lib).join(',') + '|' + Object.keys(state.episodes).length;
+  useEffect(() => {
+    if (!hasSyncApi()) return;
+    const h = setTimeout(() => syncDevice(stateRef.current, store.ensureDevice()).catch(() => {}), 3000);
+    return () => clearTimeout(h);
+  }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
 function Gate({ fontsReady }: { fontsReady: boolean }) {
   const { ready } = useStore();
   const [catVersion, setCatVersion] = useState(0);
@@ -48,11 +78,13 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
       <ToastProvider><ConfirmProvider>
         <StatusBar style="light" />
         <CatalogSync onChange={bump} />
+        <LibrarySync />
         <Stack key={catVersion} screenOptions={{ headerShown: false, freezeOnBlur: true, contentStyle: { backgroundColor: C.bg }, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
           <Stack.Screen name="universe/[id]" />
           <Stack.Screen name="title/[id]" />
+          <Stack.Screen name="show/[key]" />
           <Stack.Screen name="credits" />
         </Stack>
       </ConfirmProvider></ToastProvider>

@@ -13,8 +13,9 @@ import { C, F } from '@/lib/theme';
 
 const TABS = [
   { name: 'index', title: 'Ana Sayfa', icon: 'home' },
-  { name: 'universes', title: 'Evrenler', icon: 'globe' },
   { name: 'explore', title: 'Keşfet', icon: 'search' },
+  { name: 'library', title: 'Kütüphanem', icon: 'bookmark' },
+  { name: 'universes', title: 'Evrenler', icon: 'globe' },
   { name: 'profile', title: 'Profil', icon: 'user' },
 ] as const;
 

@@ -50,6 +50,13 @@ export type Mode = 'essential' | 'recommended' | 'complete';
 export type ListView = 'main' | 'release' | 'chrono' | 'all';
 export type Order = 'recommended' | 'release' | 'chrono';
 
+/** TMDB'den eklenen yapım (kütüphane kaydı) */
+export type LibItem = {
+  m: 'movie' | 'tv'; id: number; title: string; year: number | null; p: string | null; b: string | null; added: number;
+  runtime?: number | null; seasons?: { n: number; count: number }[]; aired?: number;
+  last?: { s: number; e: number; date: string } | null; next?: { s: number; e: number; date: string } | null; at?: number;
+};
+
 export type State = {
   v: 2;
   onboarded: boolean;
@@ -73,6 +80,10 @@ export type State = {
   ratings: Record<string, number>;
   /** kısa notların */
   notes: Record<string, string>;
+  /** TMDB'den eklediğin film ve diziler: 'movie:123' / 'tv:456' */
+  lib: Record<string, LibItem>;
+  /** bu cihazın kimliği (bildirim ve eşitleme için) */
+  device?: string;
   /** son yedek zamanı (ms) */
   lastBackup?: number;
   /** varsayılan ayar sürümü (eski kayıtları yeni varsayılanlara taşımak için) */

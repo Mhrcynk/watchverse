@@ -80,8 +80,8 @@ export default function TitleDetail() {
                 label={done ? 'İzlendi · Geri al' : t.episodes ? 'Diziyi tamamladım' : 'İzledim'}
                 onPress={() => { const v = store.toggleWatched(t.id); tap(v ? 'success' : 'light'); toast(v ? 'İzlendi olarak kaydedildi' : 'İzleme işareti kaldırıldı'); }} />
               {!!t.yt && <Btn icon="youtube" kind="secondary" label="Fragman" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${t.yt}`)} />}
-              <Btn icon={inList ? 'bookmark' : 'plus'} kind="secondary" label={inList ? 'Listemde' : 'Listeme ekle'}
-                onPress={() => { const v = store.toggleList(t.id); toast(v ? 'İzleme listene eklendi' : 'Listenden kaldırıldı'); }} />
+              <Btn icon={inList ? 'bookmark' : 'plus'} kind="secondary" label={inList ? 'Kütüphanemde' : 'Kütüphaneme ekle'}
+                onPress={() => { const v = store.toggleList(t.id); toast(v ? 'Kütüphanene eklendi' : 'Kütüphaneden çıkarıldı'); }} />
             </View>
           </View>
         </View>

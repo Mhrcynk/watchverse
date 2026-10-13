@@ -11,6 +11,7 @@ export const TAB_ICONS: Record<string, [IconName, IconName]> = {
   index: ['home', 'home-outline'],
   universes: ['planet', 'planet-outline'],
   explore: ['search', 'search-outline'],
+  library: ['bookmark', 'bookmark-outline'],
   profile: ['person-circle', 'person-circle-outline'],
 };
 /** Alt menünün kapladığı yükseklik (içerik bu kadar boşluk bırakır) */
@@ -31,7 +32,7 @@ export function GlassTabBar({ state, descriptors, navigation, insets }: any) {
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: Math.max(insets.bottom - 10, 12), alignItems: 'center' }}>
       <View accessibilityRole="tablist" onLayout={(e) => setW(e.nativeEvent.layout.width)}
-        style={[{ width: '86%', maxWidth: 380, height: 60, borderRadius: 30, flexDirection: 'row', overflow: 'hidden', backgroundColor: 'rgba(26,29,38,0.62)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.16)', shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 12 }, glass]}>
+        style={[{ width: '90%', maxWidth: 420, height: 60, borderRadius: 30, flexDirection: 'row', overflow: 'hidden', backgroundColor: 'rgba(26,29,38,0.62)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.16)', shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 12 }, glass]}>
         {/* camın üst kenarındaki ışık */}
         <LinearGradient pointerEvents="none" colors={['rgba(255,255,255,0.14)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: 30 }]} />
         {itemW > 0 && (

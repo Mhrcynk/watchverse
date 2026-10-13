@@ -28,6 +28,18 @@ Sevdiğin film ve dizi evrenlerinde nerede kaldığını hatırlatan, sıradaki 
 4. **Actions → Katalogu güncelle → Run workflow** ile ilk yayını başlat. Birkaç dakika sonra site açılır.
 5. iPhone'da Safari ile siteyi aç → Paylaş → **Ana Ekrana Ekle**. Android'de Chrome → menü → **Ana ekrana ekle**.
 
+## Tüm film ve diziler (ara sunucu, bir kez)
+
+Uygulama her film ve diziyi TMDB'den arar. TMDB anahtarı uygulamaya girmez; ücretsiz bir Cloudflare Worker anahtarı saklar ve istekleri iletir (`worker/index.js`). Kurulumu GitHub görevi kendisi yapar:
+
+1. https://dash.cloudflare.com/sign-up adresinden ücretsiz hesap aç.
+2. Sağ üst profil → **My Profile → API Tokens → Create Token → "Edit Cloudflare Workers"** şablonu → Continue → Create. Çıkan anahtarı kopyala.
+3. Cloudflare ana sayfasında sağdaki **Account ID** değerini kopyala.
+4. GitHub'da iki secret ekle: `CLOUDFLARE_API_TOKEN` ve `CLOUDFLARE_ACCOUNT_ID`.
+5. **Actions → Katalogu güncelle → Run workflow.** Görev sunucuyu kurar ve uygulamayı ona bağlar.
+
+Bundan sonra bildirimler için kod kopyalamaya gerek kalmaz: Profil → Bildirimler → Bildirimleri aç yeterli. Her sabah takip ettiğin dizilerde yeni bölüm çıktıysa bildirim gelir (`.github/workflows/daily.yml`).
+
 ## Bildirimler (isteğe bağlı, bir kez)
 
 1. GitHub'da **Settings → Secrets and variables → Actions → New repository secret**: adı `VAPID_PRIVATE_KEY`, değeri sana ayrıca verilen gizli anahtar.
@@ -41,6 +53,8 @@ Haftalık güncellemede takip ettiğin evrenlere yeni bölüm, sezon ya da yapı
 - Evren listeleri: Ana hikâye · Çıkış sırası · Kronolojik · Tümü; etiket, platform ve "Neden?" açıklaması
 - Bir yapıma uzun basınca oraya kadar olanların hepsini izlendi işaretleme
 - Yakında: takip ettiğin evrenlerde çıkış tarihi belli yeni bölüm, sezon ve filmler
+- Keşfet: tüm film ve dizilerde arama, popüler, Türk dizileri ve filmleri, platformlara göre listeler
+- Kütüphanem: izliyorum / izleyeceğim / bitirdim; dizilerde bölüm bölüm takip, yeni bölüm uyarısı
 - Fragman, 5 yıldızlı puan ve kısa not; Profil'de "En sevdiklerin"
 - Dosyaya yedek (iCloud Drive) ve haftalık yedek hatırlatması
 

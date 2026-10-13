@@ -5,7 +5,8 @@ import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/components/brand';
-import { Art, PosterCard, UniverseCard } from '@/components/media';
+import { Art, MediaCard, PosterCard, UniverseCard } from '@/components/media';
+import { libraryEntries } from '@/lib/library';
 import { Btn, Chip, Empty, FadeIn, Grid, Eyebrow, H1, H2, H3, Muted, Panel, Press, Ring, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
 import { TBY, TYPE_TR, UBY, backdropUrl, daysUntil, posterPath, recentSeasons, recentlyAdded, upcomingFor, type Upcoming } from '@/lib/catalog';
 import { duration } from '@/lib/format';
@@ -31,6 +32,8 @@ export default function Home() {
   }, [state.follow]);
   const freshSeasons = useMemo(() => recentSeasons().sort((a, b) => Number(state.follow.includes(TBY[b.id].u)) - Number(state.follow.includes(TBY[a.id].u))), [state.follow]);
 
+  const libWatching = useMemo(() => libraryEntries(state).watching.filter((e) => e.key.includes(':')).sort((a, b) => Number(!!b.tag) - Number(!!a.tag)), [state]);
+  const libNew = libWatching.filter((e) => e.tag).length;
   const soon = useMemo(() => upcomingFor(state.follow), [state.follow]);
   const progressCount = Object.keys(state.watched).length + Object.keys(state.episodes).length;
   const backupDue = progressCount >= 5 && (!state.lastBackup || Date.now() - state.lastBackup > 7 * 864e5);
@@ -78,6 +81,17 @@ export default function Home() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }} style={{ marginHorizontal: -pad }} >
             <View style={{ width: pad - 14 }} />
             {cw.map((t) => <PosterCard key={t.id} t={t} width={railW} />)}
+            <View style={{ width: pad - 14 }} />
+          </ScrollView>
+        </>
+      )}
+
+      {libWatching.length > 0 && (
+        <>
+          <SectionHead title="İzlemeye devam et" note={libNew ? `${libNew} dizide yeni bölüm` : `${libWatching.length} dizi`} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }} style={{ marginHorizontal: -pad }}>
+            <View style={{ width: pad - 14 }} />
+            {libWatching.map((x, i) => <MediaCard key={x.key} index={i} uri={x.poster} title={x.title} sub={x.sub} badge={x.tag} pct={x.pct} width={railW} onPress={() => router.push(x.route as never)} />)}
             <View style={{ width: pad - 14 }} />
           </ScrollView>
         </>

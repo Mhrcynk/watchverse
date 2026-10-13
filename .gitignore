@@ -45,3 +45,4 @@ secrets/
 dist-web/
 scripts/tmdb-report.json
 dist-pages/
+worker/wrangler.toml

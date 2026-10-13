@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AppState } from 'react-native';
 import { TBY, UBY, branchesOf } from './catalog';
 import { loadCachedCatalog } from './remote';
-import type { ListView, Mode, Order, State } from './types';
+import type { LibItem, ListView, Mode, Order, State } from './types';
 
 const KEY = 'watchverse:v2';
 export const BACKUP_PREFIX = 'WATCHVERSE:';
@@ -22,12 +22,16 @@ export const initialState = (): State => ({
   view: 'main',
   ratings: {},
   notes: {},
+  lib: {},
   branches: {},
   spoiler: true,
   dv: 3,
 });
 
 /** Kayıttan gelen veriyi doğrular; katalogda olmayan kimlikleri ayıklar. */
+const isKey = (k: string) => /^(movie|tv):\d+$/.test(k);
+const known = (k: string) => !!TBY[k] || isKey(k);
+
 export function sanitize(input: unknown): State {
   const base = initialState();
   if (!input || typeof input !== 'object') return base;
@@ -37,25 +41,29 @@ export function sanitize(input: unknown): State {
   out.name = typeof s.name === 'string' ? s.name.slice(0, 40) : '';
   out.follow = Array.isArray(s.follow) ? [...new Set(s.follow.filter((u) => !!UBY[u]))] : [];
   out.list = Array.isArray(s.list) ? [...new Set(s.list.filter((id) => !!TBY[id]))] : [];
+  out.lib = {};
+  for (const [k, v] of Object.entries(s.lib || {})) if (isKey(k) && v && typeof v === 'object' && typeof (v as LibItem).title === 'string') out.lib[k] = v as LibItem;
+  out.device = typeof s.device === 'string' && /^[a-f0-9-]{16,64}$/.test(s.device) ? s.device : undefined;
   out.mode = (['essential', 'recommended', 'complete'] as Mode[]).includes(s.mode as Mode) ? (s.mode as Mode) : 'recommended';
   out.order = (['recommended', 'release', 'chrono'] as Order[]).includes(s.order as Order) ? (s.order as Order) : 'recommended';
   out.view = (['main', 'release', 'chrono', 'all'] as ListView[]).includes(s.view as ListView) ? (s.view as ListView) : 'main';
   out.spoiler = s.spoiler !== false;
   out.watched = {};
-  for (const [id, v] of Object.entries(s.watched || {})) if (TBY[id] && !TBY[id].episodes && v) out.watched[id] = typeof v === 'number' ? v : Date.now();
+  for (const [id, v] of Object.entries(s.watched || {})) if (((TBY[id] && !TBY[id].episodes) || id.startsWith('movie:')) && v) out.watched[id] = typeof v === 'number' ? v : Date.now();
   out.episodes = {};
   for (const [id, arr] of Object.entries(s.episodes || {})) {
     const t = TBY[id];
-    if (!t || !t.episodes || !Array.isArray(arr)) continue;
-    const clean = [...new Set(arr.filter((n) => Number.isInteger(n) && n >= 1 && n <= t.episodes))].sort((a, b) => a - b);
+    const max = t ? t.episodes : id.startsWith('tv:') ? 20000 : 0;
+    if (!max || !Array.isArray(arr)) continue;
+    const clean = [...new Set(arr.filter((n) => Number.isInteger(n) && n >= 1 && n <= max))].sort((a, b) => a - b);
     if (clean.length) out.episodes[id] = clean;
   }
   out.touched = {};
-  for (const [id, v] of Object.entries(s.touched || {})) if (TBY[id] && typeof v === 'number') out.touched[id] = v;
+  for (const [id, v] of Object.entries(s.touched || {})) if (known(id) && typeof v === 'number') out.touched[id] = v;
   out.ratings = {};
-  for (const [id, v] of Object.entries(s.ratings || {})) if (TBY[id] && Number.isInteger(v) && v >= 1 && v <= 5) out.ratings[id] = v;
+  for (const [id, v] of Object.entries(s.ratings || {})) if (known(id) && Number.isInteger(v) && v >= 1 && v <= 5) out.ratings[id] = v;
   out.notes = {};
-  for (const [id, v] of Object.entries(s.notes || {})) if (TBY[id] && typeof v === 'string' && v.trim()) out.notes[id] = v.slice(0, 500);
+  for (const [id, v] of Object.entries(s.notes || {})) if (known(id) && typeof v === 'string' && v.trim()) out.notes[id] = v.slice(0, 500);
   out.lastBackup = typeof s.lastBackup === 'number' ? s.lastBackup : undefined;
   out.branches = {};
   // Eski kayıtlar: ana hikâye + yayın sırası + tüm rotalar varsayılanına bir kez geçir
@@ -83,6 +91,12 @@ type Actions = {
   /** Verilen yapımların hepsini izlendi işaretler */
   markMany: (ids: string[]) => number;
   markBackup: () => void;
+  /** Kütüphane (TMDB) */
+  libSave: (key: string, item: LibItem) => void;
+  libRemove: (key: string) => void;
+  watchKey: (key: string, value: boolean) => void;
+  setEpsKey: (key: string, nums: number[], value: boolean) => void;
+  ensureDevice: () => string;
   finishOnboarding: (follow: string[], watchedIds: string[]) => void;
   exportBackup: () => string;
   importBackup: (code: string) => boolean;
@@ -204,6 +218,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return todo.length;
     },
     markBackup: () => setRaw((s) => ({ ...s, lastBackup: Date.now() })),
+    libSave: (key, item) => setRaw((s) => ({ ...s, lib: { ...s.lib, [key]: { ...s.lib[key], ...item, added: s.lib[key]?.added || item.added || Date.now() } } })),
+    libRemove: (key) => setRaw((s) => {
+      const lib = { ...s.lib }; delete lib[key];
+      const watched = { ...s.watched }; delete watched[key];
+      const episodes = { ...s.episodes }; delete episodes[key];
+      return { ...s, lib, watched, episodes };
+    }),
+    watchKey: (key, value) => setRaw((s) => {
+      const watched = { ...s.watched };
+      if (value) watched[key] = Date.now(); else delete watched[key];
+      return { ...s, watched, touched: { ...s.touched, [key]: Date.now() } };
+    }),
+    setEpsKey: (key, nums, value) => setRaw((s) => {
+      const set = new Set(s.episodes[key] || []);
+      nums.forEach((n) => (value ? set.add(n) : set.delete(n)));
+      const episodes = { ...s.episodes };
+      if (set.size) episodes[key] = [...set].filter((n) => n >= 1).sort((a, b) => a - b); else delete episodes[key];
+      return { ...s, episodes, touched: { ...s.touched, [key]: Date.now() } };
+    }),
+    ensureDevice() {
+      if (ref.current.device) return ref.current.device;
+      const id = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      setRaw((s) => ({ ...s, device: s.device || id }));
+      return id;
+    },
     finishOnboarding(follow, watchedIds) {
       setRaw((s) => {
         const now = Date.now();
@@ -234,7 +273,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     },
     reset() {
-      setRaw((s) => ({ ...initialState(), onboarded: true, follow: s.follow, name: s.name, mode: s.mode, order: s.order, view: s.view, branches: s.branches, spoiler: s.spoiler, lastBackup: s.lastBackup }));
+      setRaw((s) => ({ ...initialState(), onboarded: true, follow: s.follow, name: s.name, mode: s.mode, order: s.order, view: s.view, branches: s.branches, spoiler: s.spoiler, lastBackup: s.lastBackup, lib: s.lib, device: s.device }));
     },
   }), [setState]);
 

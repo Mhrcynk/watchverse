@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+/**
+ * Ara sunucuyu (Cloudflare Worker) kendiliğinden kurar ya da günceller.
+ * GitHub görevinde çalışır. Gerekenler (GitHub secret):
+ *   CLOUDFLARE_API_TOKEN  — Cloudflare'de "Edit Cloudflare Workers" şablonuyla oluşturulan anahtar
+ *   CLOUDFLARE_ACCOUNT_ID — Cloudflare hesap kimliği
+ *   TMDB_TOKEN            — zaten var
+ * Sonuç: sunucu adresini GITHUB_OUTPUT'a api_url olarak yazar.
+ */
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const dir = path.join(here, '..', 'worker');
+const { CLOUDFLARE_API_TOKEN: CF, CLOUDFLARE_ACCOUNT_ID: ACC, TMDB_TOKEN } = process.env;
+const out = (k, v) => process.env.GITHUB_OUTPUT && fs.appendFileSync(process.env.GITHUB_OUTPUT, `${k}=${v}\n`);
+if (!CF || !ACC) { console.log('Cloudflare bilgileri yok; ara sunucu kurulmadı (arama kapalı kalır).'); out('api_url', ''); process.exit(0); }
+if (!TMDB_TOKEN) { console.error('TMDB_TOKEN yok.'); process.exit(1); }
+
+const WRANGLER = 'wrangler@4.146.0';
+async function cf(p, init = {}) {
+  const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACC}${p}`, { ...init, headers: { Authorization: `Bearer ${CF}`, 'content-type': 'application/json', ...(init.headers || {}) } });
+  const j = await r.json().catch(() => ({}));
+  return { ok: r.ok && j.success !== false, status: r.status, j };
+}
+
+// 1) Depolama alanı
+let ns = (await cf('/storage/kv/namespaces?per_page=100')).j.result?.find((n) => n.title === 'watchverse-data');
+if (!ns) {
+  const r = await cf('/storage/kv/namespaces', { method: 'POST', body: JSON.stringify({ title: 'watchverse-data' }) });
+  if (!r.ok) { console.error('Depolama alanı oluşturulamadı:', JSON.stringify(r.j.errors || r.status)); process.exit(1); }
+  ns = r.j.result;
+}
+console.log('Depolama alanı:', ns.id);
+
+// 2) workers.dev alt alan adı (yoksa oluştur)
+let sub = (await cf('/workers/subdomain')).j.result?.subdomain;
+if (!sub) {
+  const base = (process.env.GITHUB_REPOSITORY_OWNER || 'watchverse').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  for (const cand of [base, `${base}-wv`, `${base}-${Math.floor(Math.random() * 9000 + 1000)}`]) {
+    const r = await cf('/workers/subdomain', { method: 'PUT', body: JSON.stringify({ subdomain: cand }) });
+    if (r.ok) { sub = cand; break; }
+  }
+  if (!sub) { console.error('workers.dev adresi alınamadı. Cloudflare panelinde Workers & Pages sayfasını bir kez açıp tekrar dene.'); process.exit(1); }
+}
+
+// 3) Ayar dosyası ve yayın
+fs.writeFileSync(path.join(dir, 'wrangler.toml'), `name = "watchverse"
+main = "index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "WV"
+id = "${ns.id}"
+`);
+const env = { ...process.env, CLOUDFLARE_API_TOKEN: CF, CLOUDFLARE_ACCOUNT_ID: ACC };
+execFileSync('npx', ['--yes', WRANGLER, 'deploy', '--config', path.join(dir, 'wrangler.toml')], { stdio: 'inherit', env });
+execFileSync('npx', ['--yes', WRANGLER, 'secret', 'put', 'TMDB_TOKEN', '--config', path.join(dir, 'wrangler.toml')], { input: TMDB_TOKEN, stdio: ['pipe', 'inherit', 'inherit'], env });
+
+const url = `https://watchverse.${sub}.workers.dev`;
+console.log('Ara sunucu hazır:', url);
+out('api_url', url);

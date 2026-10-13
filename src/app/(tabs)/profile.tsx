@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { pickBackupFile, saveBackupFile } from '@/lib/backup-file';
 import { copyText, enablePush, pushPermission } from '@/lib/push';
+import { hasSyncApi, syncDevice } from '@/lib/sync';
 import { Art, Wordmark, TitleRow } from '@/components/media';
 import { Btn, Divider, Empty, Eyebrow, FadeIn, H1, H3, Muted, Panel, Press, Screen, SectionHead, Segmented, Small, Bar, useLayout, useToast } from '@/components/ui';
 import { TBY, UBY, VIEWS, VIEW_TR } from '@/lib/catalog';
@@ -37,6 +38,7 @@ export default function Profile() {
   }
 
   const [pushCode, setPushCode] = useState<string | null>(null);
+  const [pushOn, setPushOn] = useState(false);
   const favs = Object.entries(state.ratings).map(([id, r]) => ({ t: TBY[id], r })).filter((x) => x.t).sort((a, b) => b.r - a.r || (state.touched[b.t.id] || 0) - (state.touched[a.t.id] || 0));
   return (
     <Screen>
@@ -129,10 +131,6 @@ export default function Profile() {
         </View>
       </Panel>
 
-      <SectionHead title="İzleme listem" note={`${list.length} yapım`} />
-      {list.length ? <Panel style={{ paddingVertical: 6 }}>{list.map((t) => <TitleRow key={t.id} t={t} showUniverse />)}</Panel>
-        : <Empty icon="bookmark" title="Listen boş." text="Bir yapımın sayfasında “Listeme ekle”ye dokunduğunda burada görünür." />}
-
       <SectionHead title="İzleme geçmişin" note={`${hist.length} kayıt`} />
       {groups.length ? groups.map((g) => (
         <View key={g.label} style={{ marginBottom: 12 }}>
@@ -143,7 +141,7 @@ export default function Profile() {
 
       <SectionHead title="Bildirimler" />
       <Panel>
-        <Muted>Takip ettiğin evrenlere yeni bölüm, sezon ya da yapım eklendiğinde haftalık güncellemeyle telefonuna bildirim gelir.</Muted>
+        <Muted>Takip ettiğin dizilerde yeni bölüm çıktığında ve evrenlerine yeni yapım eklendiğinde telefonuna bildirim gelir.</Muted>
         {pushCode ? (
           <FadeIn style={{ marginTop: 14 }}>
             <Small style={{ color: C.green }}>İzin verildi. Son adım: bu kodu kopyala ve GitHub'da PUSH_SUBSCRIPTION ayarına yapıştır. Takip ettiğin evrenleri değiştirirsen kodu yeniden al.</Small>
@@ -151,8 +149,24 @@ export default function Profile() {
             <Btn icon="copy" label="Kodu kopyala" style={{ marginTop: 10, alignSelf: 'flex-start' }} onPress={async () => toast((await copyText(pushCode)) ? 'Kod kopyalandı' : 'Kopyalanamadı; metne uzun basıp kopyala')} />
           </FadeIn>
         ) : (
-          <Btn icon="bell" label={pushPermission() === 'granted' ? 'Bildirim kodunu al' : 'Bildirimleri aç'} style={{ marginTop: 14, alignSelf: 'flex-start' }}
-            onPress={async () => { const r = await enablePush(state.follow); if (r.ok) setPushCode(r.code); else toast(r.reason); }} />
+          hasSyncApi() && (pushOn || pushPermission() === 'granted') ? (
+            <View style={{ marginTop: 14, gap: 10 }}>
+              <Small style={{ color: C.green }}>Bildirimler açık. Takip ettiğin dizilerde yeni bölüm çıkınca ve evrenlerine yeni yapım eklenince haber verilir.</Small>
+              <Btn kind="secondary" icon="refresh-cw" label="Aboneliği yenile" style={{ alignSelf: 'flex-start' }}
+                onPress={async () => { const r = await enablePush(state.follow); const ok = r.ok && (await syncDevice(state, store.ensureDevice(), true)); toast(ok ? 'Bildirim aboneliği yenilendi' : r.ok ? 'Sunucuya ulaşılamadı, sonra tekrar dene' : r.reason); }} />
+            </View>
+          ) : (
+          <Btn icon="bell" label="Bildirimleri aç" style={{ marginTop: 14, alignSelf: 'flex-start' }}
+            onPress={async () => {
+              const r = await enablePush(state.follow);
+              if (!r.ok) { toast(r.reason); return; }
+              if (hasSyncApi()) {
+                const ok = await syncDevice(state, store.ensureDevice(), true);
+                if (ok) { setPushOn(true); toast('Bildirimler açıldı'); return; }
+              }
+              setPushCode(r.code);
+            }} />
+          )
         )}
       </Panel>
 
