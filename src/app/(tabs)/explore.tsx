@@ -11,6 +11,7 @@ const PAGE = 48;
 export default function Explore() {
   const { posterCols } = useLayout();
   const [q, setQ] = useState('');
+  const [focus, setFocus] = useState(false);
   const [cat, setCat] = useState<string>('all');
   const [type, setType] = useState<'all' | 'Film' | 'Dizi' | 'Special'>('all');
   const [limit, setLimit] = useState(PAGE);
@@ -26,11 +27,12 @@ export default function Explore() {
         <Chip label={`${CATALOG.length} yapım`} />
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: R.md, paddingHorizontal: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: R.md, paddingHorizontal: 14, borderWidth: focus ? 1.5 : StyleSheet.hairlineWidth, borderColor: focus ? C.accent : C.line }}>
         <Feather name="search" size={18} color={C.muted} />
         <TextInput value={q} onChangeText={(v) => { setQ(v); setLimit(PAGE); }} placeholder="Film, dizi ya da evren ara" placeholderTextColor={C.dim}
           accessibilityLabel="Film, dizi ya da evren ara" autoCorrect={false} returnKeyType="search" clearButtonMode="while-editing"
-          style={{ flex: 1, height: 48, color: C.text, fontFamily: F.regular, fontSize: 16 }} />
+          onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
+          style={{ flex: 1, height: 48, color: C.text, fontFamily: F.regular, fontSize: 16, outlineStyle: 'none' } as any} />
         {!!q && Platform.OS !== 'ios' && (
           <Pressable accessibilityRole="button" accessibilityLabel="Aramayı temizle" hitSlop={10} onPress={() => { setQ(''); setLimit(PAGE); }}>
             <Feather name="x" size={18} color={C.muted} />

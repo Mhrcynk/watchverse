@@ -7,6 +7,7 @@ import { ND, useReducedMotion } from '@/lib/motion';
 import { alpha } from '@/lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLayout } from '@/components/ui';
+import { GlassTabBar } from '@/components/glass-tabbar';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
@@ -24,6 +25,7 @@ export default function TabsLayout() {
   if (!state.onboarded) return <Redirect href="/onboarding" />;
   return (
     <Tabs
+      tabBar={tablet ? undefined : (props) => <GlassTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         freezeOnBlur: true,

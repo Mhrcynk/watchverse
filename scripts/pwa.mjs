@@ -100,6 +100,8 @@ const head = `
       * { -webkit-tap-highlight-color: transparent; }
       body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
       input, textarea, [data-selectable] { -webkit-user-select: text; user-select: text; }
+      input:focus, textarea:focus { outline: none; }
+      textarea:focus { box-shadow: 0 0 0 1.5px #7C5CFC; }
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
       /* iPhone'da ana ekrandan açılınca alt ve üst kenarda boşluk kalmasın */
       #root { position: fixed; top: 0; right: 0; bottom: 0; left: 0; height: auto !important; background-color: #0B0D12; }

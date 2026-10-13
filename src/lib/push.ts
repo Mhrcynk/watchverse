@@ -22,11 +22,15 @@ function keyBytes(b64: string) {
 
 /** İzin ister, aboneliği oluşturur ve GitHub'a eklenecek kodu döndürür */
 export async function enablePush(follow: string[]): Promise<{ ok: true; code: string } | { ok: false; reason: string }> {
+  try { return await enable(follow); } catch (e) { return { ok: false, reason: 'Bildirimler açılamadı. Uygulamayı kapatıp yeniden açtıktan sonra tekrar dene.' }; }
+}
+async function enable(follow: string[]): Promise<{ ok: true; code: string } | { ok: false; reason: string }> {
   if (!pushSupported()) return { ok: false, reason: isIOS() ? 'Bildirim için uygulamayı ana ekrandan açmalısın.' : 'Bu tarayıcı bildirimleri desteklemiyor.' };
   if (isIOS() && !isStandalone()) return { ok: false, reason: 'iPhone\'da bildirimler yalnızca ana ekrana eklenen uygulamada çalışır. Ana ekrandaki simgeden açıp tekrar dene.' };
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') return { ok: false, reason: 'Bildirim izni verilmedi. Ayarlar → Bildirimler → WatchVerse altından açabilirsin.' };
-  const reg = await navigator.serviceWorker.ready;
+  // Uygulama arka planda güncelleniyorsa hazır olmasını en fazla 8 sn bekle
+  const reg = await Promise.race([navigator.serviceWorker.ready, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('sw')), 8000))]);
   let sub = await reg.pushManager.getSubscription();
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC) });
   const body = JSON.stringify({ s: sub.toJSON(), f: follow });

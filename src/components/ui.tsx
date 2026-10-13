@@ -29,7 +29,7 @@ export function Screen({ children, scroll = true, style, refresh }: { children: 
   const insets = useSafeAreaInsets();
   const { pad, tablet } = useLayout();
   const inner = (
-    <View style={[{ width: '100%', maxWidth: MAX_W, alignSelf: 'center', paddingLeft: pad + insets.left, paddingRight: pad + insets.right, paddingTop: insets.top + (tablet ? 28 : 14), paddingBottom: 40 + insets.bottom }, style]}>
+    <View style={[{ width: '100%', maxWidth: MAX_W, alignSelf: 'center', paddingLeft: pad + insets.left, paddingRight: pad + insets.right, paddingTop: insets.top + (tablet ? 28 : 14), paddingBottom: (tablet ? 40 : 100) + insets.bottom }, style]}>
       {children}
     </View>
   );
@@ -282,7 +282,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastCtx.Provider value={show}>
       {children}
       <Animated.View pointerEvents="none" accessibilityLiveRegion="polite"
-        style={{ position: 'absolute', alignSelf: 'center', bottom: insets.bottom + (tablet ? 28 : 92), opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
+        style={{ position: 'absolute', alignSelf: 'center', bottom: insets.bottom + (tablet ? 28 : 84), opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
         {msg && (
           <View style={{ backgroundColor: C.text, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 99, maxWidth: 420 }}>
             <Text style={{ fontFamily: F.semibold, fontSize: 14, color: C.bg, textAlign: 'center' }}>{msg}</Text>
