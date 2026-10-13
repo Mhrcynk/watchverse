@@ -11,6 +11,7 @@ import { useStore } from '@/lib/store';
 import { C, F, M, R } from '@/lib/theme';
 import { detail, img, type TDetail, type TItem } from '@/lib/tmdb';
 import { Btn, Small, tap, useToast } from './ui';
+import { itemFromTItem, useListPicker } from './lists';
 
 type Ctx = { open: (x: TItem) => void };
 const PreviewCtx = createContext<Ctx>({ open: (x) => router.push(routeOf(x.key)) });
@@ -26,6 +27,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const store = useStore();
   const toast = useToast();
+  const { pick } = useListPicker();
 
   const open = useCallback((it: TItem) => {
     const r = routeOf(it.key);
@@ -75,7 +77,8 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
                   <Btn kind="secondary" icon="check-circle" label={watched ? 'İzlendi' : 'İzledim'}
                     onPress={() => { if (!inLib) store.libSave(key, d ? libFromDetail(d) : libFromItem(x)); store.watchKey(key, !watched); tap(watched ? 'light' : 'success'); }} />
                 )}
-                {!!d?.yt && <Btn kind="secondary" icon="play" label="Fragman" accessibilityLabel="Fragmanı izle" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${d.yt}`)} />}
+                {!!d?.yt && <Btn kind="secondary" icon="play" label="" accessibilityLabel="Fragmanı izle" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${d.yt}`)} />}
+                <Btn kind="secondary" icon="list" label="" accessibilityLabel="Listeye ekle" onPress={() => { const it = itemFromTItem(x); close(() => pick(it)); }} />
               </View>
               <Pressable accessibilityRole="button" onPress={() => close(() => router.push(`/show/${key}`))}
                 style={{ marginTop: 14, marginHorizontal: 16, paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.line, flexDirection: 'row', alignItems: 'center', gap: 10 }}>

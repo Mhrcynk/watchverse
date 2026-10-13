@@ -70,6 +70,10 @@ export function mergeStates(local: State, remote: State): State {
   out.lib = { ...remote.lib };
   for (const [k, v] of Object.entries(local.lib)) { const r = out.lib[k]; out.lib[k] = !r || (v.at || 0) >= (r.at || 0) ? { ...v, added: Math.min(v.added, r?.added || v.added) } : r; }
   out.branches = { ...remote.branches, ...local.branches };
+  out.lists = { ...remote.lists };
+  for (const [k, v] of Object.entries(local.lists)) { const r = out.lists[k]; out.lists[k] = !r || v.updated >= r.updated ? v : r; }
+  out.log = { ...remote.log };
+  for (const [k, v] of Object.entries(local.log)) { const r = out.log[k]; out.log[k] = r ? { f: Math.max(v.f, r.f), e: Math.max(v.e, r.e), m: Math.max(v.m, r.m) } : v; }
   out.device = local.device;
   out.lastBackup = local.lastBackup;
   return out;

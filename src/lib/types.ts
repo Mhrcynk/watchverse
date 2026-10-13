@@ -55,7 +55,15 @@ export type LibItem = {
   m: 'movie' | 'tv'; id: number; title: string; year: number | null; p: string | null; b: string | null; added: number;
   runtime?: number | null; seasons?: { n: number; count: number }[]; aired?: number;
   last?: { s: number; e: number; date: string } | null; next?: { s: number; e: number; date: string } | null; at?: number;
+  /** türler (TMDB) */
+  g?: string[];
 };
+
+/** Kendi listendeki bir yapım: evren kimliği ya da 'movie:123' / 'tv:456' */
+export type ListItem = { k: string; t: string; p: string | null; y: number | null; at: number };
+export type UList = { id: string; name: string; items: ListItem[]; created: number; updated: number; share?: string };
+/** Aylık izleme özeti: f = film, e = bölüm, m = dakika */
+export type MonthLog = { f: number; e: number; m: number };
 
 export type State = {
   v: 2;
@@ -82,6 +90,10 @@ export type State = {
   notes: Record<string, string>;
   /** TMDB'den eklediğin film ve diziler: 'movie:123' / 'tv:456' */
   lib: Record<string, LibItem>;
+  /** kendi oluşturduğun listeler */
+  lists: Record<string, UList>;
+  /** aylık izleme özeti ('2026-10' → sayılar) */
+  log: Record<string, MonthLog>;
   /** bu cihazın kimliği (bildirim ve eşitleme için) */
   device?: string;
   /** son yedek zamanı (ms) */

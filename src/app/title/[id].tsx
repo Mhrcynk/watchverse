@@ -12,12 +12,14 @@ import { duration } from '@/lib/format';
 import { episodeLabel, fraction, isDone, nextEpisode, readiness, remaining, route, totalMinutes, watchedEps } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
+import { itemFromTitle, useListPicker } from '@/components/lists';
 
 export default function TitleDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const store = useStore();
   const { state } = store;
   const toast = useToast();
+  const { pick } = useListPicker();
   const { tablet, width } = useLayout();
   const t = TBY[id || ''];
   const seasons = useMemo(() => (t ? [...new Set(t.ep.map((e) => e[0]))] : []), [t]);
@@ -82,6 +84,7 @@ export default function TitleDetail() {
               {!!t.yt && <Btn icon="youtube" kind="secondary" label="Fragman" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${t.yt}`)} />}
               <Btn icon={inList ? 'bookmark' : 'plus'} kind="secondary" label={inList ? 'Kütüphanemde' : 'Kütüphaneme ekle'}
                 onPress={() => { const v = store.toggleList(t.id); toast(v ? 'Kütüphanene eklendi' : 'Kütüphaneden çıkarıldı'); }} />
+              <Btn icon="list" kind="secondary" label="Listeye ekle" onPress={() => pick(itemFromTitle(t))} />
             </View>
           </View>
         </View>

@@ -58,7 +58,58 @@ $$;
 revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
 
--- 3) Hata kayıtları: kimlik bilgisi tutulmaz, yalnızca hata metni
+-- 3) Paylaşılan listeler: bağlantıyı bilen herkes görebilir, yalnızca sahibi değiştirebilir
+create table if not exists public.shared_lists (
+  slug text primary key check (slug ~ '^[a-z0-9]{8,24}$'),
+  owner uuid not null references auth.users (id) on delete cascade,
+  name text not null check (length(name) <= 60),
+  owner_name text check (length(owner_name) <= 40),
+  items jsonb not null default '[]'::jsonb,
+  updated_at timestamptz not null default now()
+);
+alter table public.shared_lists enable row level security;
+revoke all on public.shared_lists from anon, authenticated;
+
+create or replace function public.share_list(p_slug text, p_name text, p_items jsonb, p_owner_name text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare uid uuid := auth.uid(); cur uuid;
+begin
+  if uid is null then raise exception 'giris gerekli'; end if;
+  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) > 1000 or pg_column_size(p_items) > 400000 then raise exception 'liste cok buyuk'; end if;
+  select owner into cur from public.shared_lists where slug = p_slug;
+  if cur is not null and cur <> uid then raise exception 'izin yok'; end if;
+  insert into public.shared_lists (slug, owner, name, owner_name, items, updated_at)
+  values (p_slug, uid, left(p_name, 60), left(nullif(p_owner_name, ''), 40), p_items, now())
+  on conflict (slug) do update set name = excluded.name, owner_name = excluded.owner_name, items = excluded.items, updated_at = now();
+end;
+$$;
+revoke all on function public.share_list(text, text, jsonb, text) from public, anon;
+grant execute on function public.share_list(text, text, jsonb, text) to authenticated;
+
+create or replace function public.unshare_list(p_slug text)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$ delete from public.shared_lists where slug = p_slug and owner = auth.uid(); $$;
+revoke all on function public.unshare_list(text) from public, anon;
+grant execute on function public.unshare_list(text) to authenticated;
+
+create or replace function public.get_shared_list(p_slug text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$ select jsonb_build_object('name', name, 'owner', owner_name, 'items', items, 'updated', updated_at) from public.shared_lists where slug = p_slug; $$;
+revoke all on function public.get_shared_list(text) from public;
+grant execute on function public.get_shared_list(text) to anon, authenticated;
+
+-- 4) Hata kayıtları: kimlik bilgisi tutulmaz, yalnızca hata metni
 create table if not exists public.app_errors (
   id bigint generated always as identity primary key,
   at timestamptz not null default now(),

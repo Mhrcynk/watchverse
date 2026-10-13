@@ -1,7 +1,13 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
+import { Text } from 'react-native';
 import { MediaCard } from '@/components/media';
+import { ListCover } from '@/components/lists';
+import { Row, useTileW } from '@/components/rows';
+import { Press } from '@/components/ui';
+import { C, F, R, alpha } from '@/lib/theme';
 import { Empty, Eyebrow, Grid, H1, Muted, Screen, Segmented, Small, useLayout } from '@/components/ui';
 import { libraryEntries } from '@/lib/library';
 import { useStore } from '@/lib/store';
@@ -19,11 +25,29 @@ export default function Library() {
   const [tab, setTab] = useState<Tab>('watching');
   const e = useMemo(() => libraryEntries(state), [state]);
   const list = e[tab];
+  const tw = useTileW();
+  const lists = Object.values(state.lists).sort((a, b) => b.updated - a.updated);
   return (
     <Screen>
       <Eyebrow>Senin listen</Eyebrow>
       <H1 style={{ marginTop: 6 }}>Kütüphanem</H1>
       <Muted style={{ marginTop: 6, marginBottom: 18 }}>Evrenlerdeki ve sonradan eklediğin tüm film ve diziler bir arada.</Muted>
+      <Row title="Listelerim" note={lists.length ? `${lists.length} liste` : undefined}>
+        {lists.map((l) => (
+          <Press key={l.id} accessibilityRole="button" accessibilityLabel={`${l.name}, ${l.items.length} yapım`} onPress={() => router.push(`/lists/${l.id}`)} scaleTo={0.95} style={{ width: tw }}>
+            <ListCover l={l} size={tw} />
+            <Text numberOfLines={1} style={{ marginTop: 6, fontFamily: F.semibold, fontSize: 13.5, color: C.text }}>{l.name}</Text>
+            <Small>{l.items.length} yapım</Small>
+          </Press>
+        ))}
+        <Press accessibilityRole="button" accessibilityLabel="Yeni liste oluştur" onPress={() => router.push('/lists/new')} scaleTo={0.95} style={{ width: tw }}>
+          <View style={{ width: tw, height: tw * 1.5, borderRadius: R.sm, borderWidth: 1, borderStyle: 'dashed', borderColor: C.line, backgroundColor: alpha(C.accent, 0.06), alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <Feather name="plus" size={24} color={C.accentSoft} />
+            <Small style={{ color: C.accentSoft }}>Yeni liste</Small>
+          </View>
+        </Press>
+      </Row>
+      <View style={{ height: 22 }} />
       <Segmented<Tab> label="Kütüphane bölümü" value={tab} onChange={setTab}
         options={[{ id: 'watching', label: `İzliyorum · ${e.watching.length}` }, { id: 'plan', label: `İzleyeceğim · ${e.plan.length}` }, { id: 'done', label: `Bitirdim · ${e.done.length}` }]} />
       <View style={{ marginTop: 20 }}>

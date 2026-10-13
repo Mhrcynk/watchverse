@@ -20,10 +20,11 @@ export default function Legal() {
             <H3 accessibilityRole="header">{s.h}</H3>
             {s.p.map((p, i) => (
               <Body key={i} style={{ marginTop: 8, color: C.muted }}>
-                {p.includes(CONTACT) && CONTACT.startsWith('http') ? (
+                {p.includes(CONTACT) ? (
                   <>
-                    {p.replace(CONTACT, '')}
-                    <Body style={{ color: C.accentSoft }} onPress={() => Linking.openURL(CONTACT)}>{CONTACT.replace(/^https?:\/\//, '')}</Body>
+                    {p.split(CONTACT)[0]}
+                    <Body style={{ color: C.accentSoft }} onPress={() => Linking.openURL(CONTACT.includes('@') ? `mailto:${CONTACT}` : CONTACT)}>{CONTACT.replace(/^https?:\/\//, '')}</Body>
+                    {p.split(CONTACT)[1]}
                   </>
                 ) : p}
               </Body>

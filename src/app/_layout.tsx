@@ -6,6 +6,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ConfirmProvider, ToastProvider, useToast } from '@/components/ui';
 import { PreviewProvider } from '@/components/preview';
+import { ListPickerProvider } from '@/components/lists';
+import { SharedListsSync } from '@/components/share';
 import { refreshLibrary } from '@/lib/library';
 import { syncCatalog } from '@/lib/remote';
 import { hasSyncApi, syncDevice } from '@/lib/sync';
@@ -81,10 +83,11 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
   if (!go) return null;
   return (
     <ThemeProvider value={theme}>
-      <AccountProvider><ToastProvider><ConfirmProvider><PreviewProvider>
+      <AccountProvider><ToastProvider><ConfirmProvider><ListPickerProvider><PreviewProvider>
         <StatusBar style="light" />
         <CatalogSync onChange={bump} />
         <LibrarySync />
+        <SharedListsSync />
         <Stack key={catVersion} screenOptions={{ headerShown: false, freezeOnBlur: true, contentStyle: { backgroundColor: C.bg }, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="welcome" options={{ animation: 'fade', gestureEnabled: false }} />
@@ -96,8 +99,10 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="credits" />
           <Stack.Screen name="account" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="legal/[doc]" />
+          <Stack.Screen name="lists/[id]" />
+          <Stack.Screen name="l/[slug]" />
         </Stack>
-      </PreviewProvider></ConfirmProvider></ToastProvider></AccountProvider>
+      </PreviewProvider></ListPickerProvider></ConfirmProvider></ToastProvider></AccountProvider>
     </ThemeProvider>
   );
 }

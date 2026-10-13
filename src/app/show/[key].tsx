@@ -12,6 +12,7 @@ import { duration } from '@/lib/format';
 import { catalogOf, libFromDetail, libProgress, routeOf, shortDate } from '@/lib/library';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
+import { itemFromDetail, useListPicker } from '@/components/lists';
 import { detail, epIndex, hasApi, img, parseKey, season as loadSeason, today, type TDetail, type TEpisode } from '@/lib/tmdb';
 
 export default function Show() {
@@ -20,6 +21,7 @@ export default function Show() {
   const store = useStore();
   const { state } = store;
   const toast = useToast();
+  const { pick } = useListPicker();
   const { tablet, width, pad } = useLayout();
   const insets = useSafeAreaInsets();
   const tileW = useTileW();
@@ -119,6 +121,7 @@ export default function Show() {
                 onPress={() => { if (!inLib) save(); store.watchKey(key, !done); tap(done ? 'light' : 'success'); toast(done ? 'İzleme işareti kaldırıldı' : 'İzlendi olarak kaydedildi'); }} />
             )}
             {!!d.yt && <Btn style={{ flex: 1 }} icon="youtube" kind="secondary" label="Fragman" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${d.yt}`)} />}
+            <Btn style={{ flex: 1 }} icon="list" kind="secondary" label="Listeye ekle" onPress={() => pick(itemFromDetail(d))} />
           </View>
         </View>
       </FadeIn>

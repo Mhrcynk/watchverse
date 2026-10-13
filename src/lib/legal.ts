@@ -1,9 +1,9 @@
 /**
  * Gizlilik / KVKK aydınlatma metni ve kullanım şartları.
- * Uygulama herkese açılacaksa: OWNER ve CONTACT alanlarını doldur, metni bir hukukçuya gözden geçirt.
+ * Uygulama herkese açılacaksa metni bir hukukçuya gözden geçirt.
  */
-export const OWNER = process.env.EXPO_PUBLIC_OWNER || 'WatchVerse geliştiricisi';
-export const CONTACT = process.env.EXPO_PUBLIC_CONTACT || 'https://github.com/Mhrcynk/watchverse/issues';
+export const OWNER = process.env.EXPO_PUBLIC_OWNER || 'Mihraç Yanık';
+export const CONTACT = process.env.EXPO_PUBLIC_CONTACT || 'watchverse.destek@gmail.com';
 export const LEGAL_UPDATED = '14 Ekim 2026';
 
 export type LegalDoc = { id: 'gizlilik' | 'sartlar'; title: string; intro: string; sections: { h: string; p: string[] }[] };
@@ -55,7 +55,7 @@ export const PRIVACY: LegalDoc = {
       h: 'Ne kadar süre saklanıyor',
       p: [
         'Hesabını silene kadar. Profil → Hesap → Hesabı sil dediğinde hesabın ve sunucudaki tüm kayıtların hemen ve kalıcı olarak silinir.',
-        'Bildirim kaydını sildirmek istersen aşağıdaki iletişim adresinden yazabilirsin.',
+        `Bildirim kaydını sildirmek istersen ${CONTACT} adresine yazabilirsin.`,
       ],
     },
     {

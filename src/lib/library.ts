@@ -24,7 +24,7 @@ export const routeOf = (key: string) => { const t = catalogOf(key); return t ? (
 export function libFromDetail(d: TDetail): LibItem {
   return {
     m: d.m, id: d.id, title: d.title, year: d.year, p: d.p, b: d.b, added: Date.now(), runtime: d.runtime,
-    seasons: d.seasons.map((s) => ({ n: s.n, count: s.count })), aired: d.m === 'tv' ? d.aired : undefined, last: d.last, next: d.next, at: d.at,
+    seasons: d.seasons.map((s) => ({ n: s.n, count: s.count })), aired: d.m === 'tv' ? d.aired : undefined, last: d.last, next: d.next, at: d.at, g: d.genres.slice(0, 4),
   };
 }
 export const libFromItem = (i: TItem): LibItem => ({ m: i.m, id: i.id, title: i.title, year: i.year, p: i.p, b: i.b, added: Date.now() });

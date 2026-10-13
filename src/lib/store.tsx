@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AppState } from 'react-native';
 import { TBY, UBY, branchesOf } from './catalog';
 import { loadCachedCatalog } from './remote';
-import type { LibItem, ListView, Mode, Order, State } from './types';
+import type { LibItem, ListItem, ListView, Mode, Order, State, UList } from './types';
 
 const KEY = 'watchverse:v2';
 export const BACKUP_PREFIX = 'WATCHVERSE:';
@@ -23,6 +23,8 @@ export const initialState = (): State => ({
   ratings: {},
   notes: {},
   lib: {},
+  lists: {},
+  log: {},
   branches: {},
   spoiler: true,
   dv: 3,
@@ -65,6 +67,15 @@ export function sanitize(input: unknown): State {
   out.notes = {};
   for (const [id, v] of Object.entries(s.notes || {})) if (known(id) && typeof v === 'string' && v.trim()) out.notes[id] = v.slice(0, 500);
   out.lastBackup = typeof s.lastBackup === 'number' ? s.lastBackup : undefined;
+  out.lists = {};
+  for (const [id, l] of Object.entries(s.lists || {})) {
+    if (!l || typeof l !== 'object' || typeof l.name !== 'string' || !/^[a-z0-9]{6,24}$/.test(id)) continue;
+    const items = (Array.isArray(l.items) ? l.items : []).filter((x) => x && typeof x.k === 'string' && known(x.k) && typeof x.t === 'string')
+      .map((x) => ({ k: x.k, t: x.t.slice(0, 200), p: typeof x.p === 'string' ? x.p : null, y: typeof x.y === 'number' ? x.y : null, at: typeof x.at === 'number' ? x.at : Date.now() }));
+    out.lists[id] = { id, name: l.name.slice(0, 60) || 'Liste', items: items.slice(0, 1000), created: Number(l.created) || Date.now(), updated: Number(l.updated) || Date.now(), share: typeof l.share === 'string' && /^[a-z0-9]{8,24}$/.test(l.share) ? l.share : undefined };
+  }
+  out.log = {};
+  for (const [mon, v] of Object.entries(s.log || {})) if (/^\d{4}-\d{2}$/.test(mon) && v && typeof v === 'object') out.log[mon] = { f: Math.max(0, Number(v.f) || 0), e: Math.max(0, Number(v.e) || 0), m: Math.max(0, Number(v.m) || 0) };
   out.branches = {};
   // Eski kayıtlar: ana hikâye + yayın sırası + tüm rotalar varsayılanına bir kez geçir
   // Eski kayıtlar: yeni sade liste görünümüne ve tüm rotalara bir kez geçir
@@ -72,6 +83,30 @@ export function sanitize(input: unknown): State {
   for (const [u, b] of Object.entries(s.branches || {})) if (UBY[u] && typeof b === 'string' && (b === 'all' || branchesOf(u).some((x) => x.id === b))) out.branches[u] = b;
   return out;
 }
+
+
+/* ---------- aylık izleme özeti ---------- */
+const monthKey = (t = Date.now()) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+/** Bir film ya da bölümün dakikası (bilinmiyorsa 0) */
+export function minutesOf(s: State, key: string, n?: number) {
+  const t = TBY[key];
+  if (t) return t.episodes ? t.ep[(n || 1) - 1]?.[2] || 0 : t.minutes || 0;
+  return s.lib[key]?.runtime || 0;
+}
+function bump(s: State, d: { f?: number; e?: number; m?: number }, at = Date.now()): State['log'] {
+  const k = monthKey(at);
+  const cur = s.log[k] || { f: 0, e: 0, m: 0 };
+  return { ...s.log, [k]: { f: Math.max(0, cur.f + (d.f || 0)), e: Math.max(0, cur.e + (d.e || 0)), m: Math.max(0, cur.m + (d.m || 0)) } };
+}
+/** Bölüm listesindeki değişimi özete yansıtır */
+function bumpEps(s: State, key: string, before: number[], after: number[]) {
+  const a = new Set(before), b = new Set(after);
+  let e = 0, m = 0;
+  for (const n of b) if (!a.has(n)) { e++; m += minutesOf(s, key, n); }
+  for (const n of a) if (!b.has(n)) { e--; m -= minutesOf(s, key, n); }
+  return e || m ? bump(s, { e, m }) : s.log;
+}
+const newId = (len = 10) => Array.from({ length: len }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join('');
 
 type Actions = {
   setState: (fn: (s: State) => State) => void;
@@ -97,6 +132,15 @@ type Actions = {
   watchKey: (key: string, value: boolean) => void;
   setEpsKey: (key: string, nums: number[], value: boolean) => void;
   ensureDevice: () => string;
+  /** Kendi listeler */
+  listCreate: (name: string, first?: ListItem | ListItem[]) => string;
+  listRename: (id: string, name: string) => void;
+  listDelete: (id: string) => void;
+  /** yapımı listeye ekler ya da çıkarır; yeni durumu döndürür */
+  listToggle: (id: string, item: ListItem) => boolean;
+  listSetShare: (id: string, share: string | undefined) => void;
+  /** dışarıdan toplu kayıt (içe aktarma) */
+  importMany: (items: { key: string; lib?: LibItem; watchedAt?: number; rating?: number; eps?: number[]; plan?: boolean }[]) => number;
   finishOnboarding: (follow: string[], watchedIds: string[]) => void;
   exportBackup: () => string;
   importBackup: (code: string) => boolean;
@@ -157,11 +201,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const episodes = { ...s.episodes };
           if (target) episodes[id] = Array.from({ length: t.episodes }, (_, i) => i + 1);
           else delete episodes[id];
-          return { ...s, episodes, touched };
+          return { ...s, episodes, touched, log: bumpEps(s, id, s.episodes[id] || [], episodes[id] || []) };
         }
         const watched = { ...s.watched };
+        let log = s.log;
+        if (target && !s.watched[id]) log = bump(s, { f: 1, m: minutesOf(s, id) });
+        if (!target && s.watched[id]) log = bump(s, { f: -1, m: -minutesOf(s, id) }, s.watched[id]);
         if (target) watched[id] = now; else delete watched[id];
-        return { ...s, watched, touched };
+        return { ...s, watched, touched, log };
       });
       return target;
     },
@@ -173,7 +220,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         set.has(n) ? set.delete(n) : set.add(n);
         const episodes = { ...s.episodes };
         if (set.size) episodes[id] = [...set].sort((a, b) => a - b); else delete episodes[id];
-        return { ...s, episodes, touched: { ...s.touched, [id]: Date.now() } };
+        return { ...s, episodes, touched: { ...s.touched, [id]: Date.now() }, log: bumpEps(s, id, s.episodes[id] || [], episodes[id] || []) };
       });
     },
     setEpisodes(id, nums, value) {
@@ -184,7 +231,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         nums.forEach((n) => (value ? set.add(n) : set.delete(n)));
         const episodes = { ...s.episodes };
         if (set.size) episodes[id] = [...set].filter((n) => n >= 1 && n <= t.episodes).sort((a, b) => a - b); else delete episodes[id];
-        return { ...s, episodes, touched: { ...s.touched, [id]: Date.now() } };
+        return { ...s, episodes, touched: { ...s.touched, [id]: Date.now() }, log: bumpEps(s, id, s.episodes[id] || [], episodes[id] || []) };
       });
     },
     toggleList(id) {
@@ -209,11 +256,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setRaw((s) => {
         const now = Date.now();
         const watched = { ...s.watched }, episodes = { ...s.episodes }, touched = { ...s.touched };
+        let cur: State = s;
         for (const t of todo) {
-          if (t.episodes) episodes[t.id] = Array.from({ length: t.episodes }, (_, i) => i + 1); else watched[t.id] = now;
+          if (t.episodes) { episodes[t.id] = Array.from({ length: t.episodes }, (_, i) => i + 1); cur = { ...cur, log: bumpEps(cur, t.id, s.episodes[t.id] || [], episodes[t.id]) }; }
+          else { watched[t.id] = now; cur = { ...cur, log: bump(cur, { f: 1, m: minutesOf(s, t.id) }) }; }
           touched[t.id] = now;
         }
-        return { ...s, watched, episodes, touched };
+        return { ...s, watched, episodes, touched, log: cur.log };
       });
       return todo.length;
     },
@@ -227,16 +276,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }),
     watchKey: (key, value) => setRaw((s) => {
       const watched = { ...s.watched };
+      let log = s.log;
+      if (value && !s.watched[key]) log = bump(s, { f: 1, m: minutesOf(s, key) });
+      if (!value && s.watched[key]) log = bump(s, { f: -1, m: -minutesOf(s, key) }, s.watched[key]);
       if (value) watched[key] = Date.now(); else delete watched[key];
-      return { ...s, watched, touched: { ...s.touched, [key]: Date.now() } };
+      return { ...s, watched, log, touched: { ...s.touched, [key]: Date.now() } };
     }),
     setEpsKey: (key, nums, value) => setRaw((s) => {
       const set = new Set(s.episodes[key] || []);
       nums.forEach((n) => (value ? set.add(n) : set.delete(n)));
       const episodes = { ...s.episodes };
       if (set.size) episodes[key] = [...set].filter((n) => n >= 1).sort((a, b) => a - b); else delete episodes[key];
-      return { ...s, episodes, touched: { ...s.touched, [key]: Date.now() } };
+      return { ...s, episodes, touched: { ...s.touched, [key]: Date.now() }, log: bumpEps(s, key, s.episodes[key] || [], episodes[key] || []) };
     }),
+    listCreate(name, first) {
+      const id = newId();
+      const now = Date.now();
+      const items = (Array.isArray(first) ? first : first ? [first] : []).map((x) => ({ ...x, at: now }));
+      setRaw((s) => ({ ...s, lists: { ...s.lists, [id]: { id, name: name.trim().slice(0, 60) || 'Yeni liste', items, created: now, updated: now } } }));
+      return id;
+    },
+    listRename: (id, name) => setRaw((s) => (s.lists[id] ? { ...s, lists: { ...s.lists, [id]: { ...s.lists[id], name: name.trim().slice(0, 60) || s.lists[id].name, updated: Date.now() } } } : s)),
+    listDelete: (id) => setRaw((s) => { const lists = { ...s.lists }; delete lists[id]; return { ...s, lists }; }),
+    listToggle(id, item) {
+      const l = ref.current.lists[id];
+      if (!l) return false;
+      const has = l.items.some((x) => x.k === item.k);
+      setRaw((s) => {
+        const cur = s.lists[id];
+        if (!cur) return s;
+        const items = has ? cur.items.filter((x) => x.k !== item.k) : [{ ...item, at: Date.now() }, ...cur.items.filter((x) => x.k !== item.k)];
+        return { ...s, lists: { ...s.lists, [id]: { ...cur, items, updated: Date.now() } } };
+      });
+      return !has;
+    },
+    listSetShare: (id, share) => setRaw((s) => (s.lists[id] ? { ...s, lists: { ...s.lists, [id]: { ...s.lists[id], share } } } : s)),
+    importMany(items) {
+      const n = items.filter((it) => known(it.key)).length;
+      setRaw((s) => {
+        const lib = { ...s.lib }, watched = { ...s.watched }, ratings = { ...s.ratings }, episodes = { ...s.episodes }, touched = { ...s.touched }, list = [...s.list];
+        let cur: State = s;
+        for (const it of items) {
+          if (!known(it.key)) continue;
+          if (it.lib && !TBY[it.key] && !lib[it.key]) lib[it.key] = it.lib;
+          if (it.plan && TBY[it.key] && !list.includes(it.key)) list.push(it.key);
+          if (it.watchedAt && !watched[it.key] && !(TBY[it.key]?.episodes)) {
+            watched[it.key] = it.watchedAt;
+            cur = { ...cur, lib, log: bump({ ...cur, lib }, { f: 1, m: minutesOf({ ...cur, lib }, it.key) }, it.watchedAt) };
+          }
+          if (it.eps?.length) {
+            const before = episodes[it.key] || [];
+            const next = [...new Set([...before, ...it.eps])].sort((a, b) => a - b);
+            episodes[it.key] = next;
+            cur = { ...cur, lib, log: bumpEps({ ...cur, lib }, it.key, before, next) };
+          }
+          if (it.rating && it.rating >= 1 && it.rating <= 5) ratings[it.key] = Math.round(it.rating);
+          touched[it.key] = Math.max(touched[it.key] || 0, it.watchedAt || Date.now());
+        }
+        return { ...s, lib, watched, ratings, episodes, touched, list, log: cur.log };
+      });
+      return n;
+    },
     ensureDevice() {
       if (ref.current.device) return ref.current.device;
       const id = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
@@ -273,7 +373,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     },
     reset() {
-      setRaw((s) => ({ ...initialState(), onboarded: true, follow: s.follow, name: s.name, mode: s.mode, order: s.order, view: s.view, branches: s.branches, spoiler: s.spoiler, lastBackup: s.lastBackup, lib: s.lib, device: s.device }));
+      setRaw((s) => ({ ...initialState(), onboarded: true, follow: s.follow, name: s.name, mode: s.mode, order: s.order, view: s.view, branches: s.branches, spoiler: s.spoiler, lastBackup: s.lastBackup, lib: s.lib, lists: s.lists, device: s.device }));
     },
   }), [setState]);
 
