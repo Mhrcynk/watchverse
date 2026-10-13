@@ -59,7 +59,7 @@ export default function TitleDetail() {
         {bd ? <Image source={{ uri: bd }} style={StyleSheet.absoluteFill} contentFit="cover" /> : (
           <LinearGradient colors={[alpha(u.color, 0.35), 'transparent']} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={StyleSheet.absoluteFill} />
         )}
-        <LinearGradient colors={['rgba(11,13,18,0.35)', 'rgba(11,13,18,0.92)']} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['rgba(0,0,0,0.35)', 'rgba(0,0,0,0.92)']} style={StyleSheet.absoluteFill} />
         <View style={{ flexDirection: tablet ? 'row' : 'column', padding: tablet ? 28 : 18, gap: tablet ? 28 : 16 }}>
           <Art t={t} size="w500" style={{ width: tablet ? 220 : 132, alignSelf: tablet ? 'flex-start' : 'flex-start' }} />
           <View style={{ flex: 1, justifyContent: 'flex-end' }}>

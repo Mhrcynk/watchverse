@@ -1,18 +1,18 @@
 // WatchVerse tasarım dili — web prototipindeki renklerin devamı.
 export const C = {
-  bg: '#0A0B10',
-  card: '#14161E',
-  raised: '#1C1F29',
-  line: '#272B37',
-  lineSoft: '#1D2029',
-  text: '#F6F7FB',
-  muted: '#A0A5B4',
-  dim: '#7D8496',
-  accent: '#7C5CFC',
-  accentSoft: '#B5A0FF',
-  green: '#62DCAC',
-  amber: '#E8B65A',
-  danger: '#F06A6A',
+  bg: '#000000',
+  card: '#121215',
+  raised: '#1B1B20',
+  line: '#2A2A31',
+  lineSoft: '#1C1C22',
+  text: '#F5F5F7',
+  muted: '#A9A9B2',
+  dim: '#80808A',
+  accent: '#E3262F',
+  accentSoft: '#FF5D65',
+  green: '#4FD6A0',
+  amber: '#F2B84B',
+  danger: '#FF6B6B',
 } as const;
 
 export const F = {

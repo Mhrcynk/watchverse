@@ -53,7 +53,8 @@ Haftalık güncellemede takip ettiğin evrenlere yeni bölüm, sezon ya da yapı
 - Evren listeleri: Ana hikâye · Çıkış sırası · Kronolojik · Tümü; etiket, platform ve "Neden?" açıklaması
 - Bir yapıma uzun basınca oraya kadar olanların hepsini izlendi işaretleme
 - Yakında: takip ettiğin evrenlerde çıkış tarihi belli yeni bölüm, sezon ve filmler
-- Keşfet: tüm film ve dizilerde arama, popüler, Türk dizileri ve filmleri, platformlara göre listeler
+- Netflix düzeninde ana sayfa: dönen vitrin, Diziler · Filmler · Kategoriler, İzlemeye devam et, Bu hafta en popüler 10, Senin için, Türk yapımları, platform ve tür sıraları; karta dokununca kısa önizleme
+- Keşfet: tüm film ve dizilerde arama, kategoriler, bu hafta en çok bakılanlar
 - Kütüphanem: izliyorum / izleyeceğim / bitirdim; dizilerde bölüm bölüm takip, yeni bölüm uyarısı
 - Fragman, 5 yıldızlı puan ve kısa not; Profil'de "En sevdiklerin"
 - Dosyaya yedek (iCloud Drive) ve haftalık yedek hatırlatması

@@ -1,5 +1,5 @@
 import { CATALOG, TBY, posterUrl } from './catalog';
-import { isDone, watchedEps } from './progress';
+import { episodeLabel, isDone, nextEpisode, watchedEps } from './progress';
 import { detail, hasApi, img, keyOf, parseKey, today, type TDetail, type TItem } from './tmdb';
 import type { LibItem, State, Title } from './types';
 
@@ -61,7 +61,7 @@ export function libraryEntries(s: State) {
     if (!t || seen.has(id)) continue;
     const e: Entry = { key: id, route: `/title/${id}`, title: t.title, year: t.year, poster: posterUrl(t), sub: '', pct: 0, touched: s.touched[id] || s.watched[id] || 0 };
     if (isDone(s, t)) done.push({ ...e, sub: 'İzlendi', pct: 1 });
-    else if (t.episodes && watchedEps(s, t.id) > 0) watching.push({ ...e, sub: `${t.episodes - watchedEps(s, t.id)} bölüm kaldı`, pct: watchedEps(s, t.id) / t.episodes });
+    else if (t.episodes && watchedEps(s, t.id) > 0) { const n = nextEpisode(s, t); watching.push({ ...e, sub: n ? `Sıradaki ${episodeLabel(t, n)}` : `${t.episodes - watchedEps(s, t.id)} bölüm kaldı`, pct: watchedEps(s, t.id) / t.episodes }); }
     else if (s.list.includes(id)) plan.push({ ...e, sub: t.episodes ? `${t.episodes} bölüm` : 'Film' });
   }
   const byTouch = (a: Entry, b: Entry) => b.touched - a.touched;

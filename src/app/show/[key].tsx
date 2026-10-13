@@ -5,7 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { MediaCard, Poster } from '@/components/media';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Row, TItemTile, useTileW } from '@/components/rows';
 import { BackLink, Bar, Btn, Chip, Empty, Eyebrow, FadeIn, H1, Muted, Panel, Pills, Press, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
 import { duration } from '@/lib/format';
 import { catalogOf, libFromDetail, libProgress, routeOf, shortDate } from '@/lib/library';
@@ -20,6 +21,8 @@ export default function Show() {
   const { state } = store;
   const toast = useToast();
   const { tablet, width, pad } = useLayout();
+  const insets = useSafeAreaInsets();
+  const tileW = useTileW();
   const [d, setD] = useState<TDetail | null>(null);
   const [err, setErr] = useState(false);
   const [sn, setSn] = useState<number | null>(null);
@@ -77,37 +80,45 @@ export default function Show() {
 
   return (
     <Screen>
-      <BackLink label="Geri" onPress={back} />
+      {/* Netflix gibi: üstte tam genişlik görsel, altında ad, bilgiler ve geniş düğmeler */}
       <FadeIn>
-        <View style={{ borderRadius: R.xl, overflow: 'hidden', backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line }}>
-          {bd && <Image source={{ uri: bd }} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} />}
-          <LinearGradient colors={['rgba(10,11,16,0.35)', 'rgba(10,11,16,0.94)']} style={StyleSheet.absoluteFill} />
-          <View style={{ flexDirection: tablet ? 'row' : 'column', padding: tablet ? 28 : 18, gap: tablet ? 28 : 16 }}>
-            <Poster uri={img(d.p, 'w500')} title={d.title} width={tablet ? 220 : 132} />
-            <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-              {!!d.genres.length && <Eyebrow>{d.genres.slice(0, 3).join(' · ')}</Eyebrow>}
-              <H1 style={{ marginTop: 8, fontSize: tablet ? 36 : 28, lineHeight: tablet ? 42 : 33 }} accessibilityRole="header">{d.title}</H1>
-              {d.orig && d.orig !== d.title && <Muted style={{ marginTop: 4 }}>{d.orig}</Muted>}
-              <Small style={{ marginTop: 10, color: '#D2D5DE' }}>{meta}</Small>
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                {d.vote > 0 && d.votes >= 20 && <Chip icon="star" label={`TMDB ${d.vote.toFixed(1)}`} color={C.amber} />}
-                {d.pl.map((x) => <Chip key={x} icon="play-circle" label={x} />)}
-                {!d.pl.length && <Chip label="Türkiye'de abonelikte yok" />}
-                {d.m === 'tv' && d.next && <Chip icon="calendar" label={`Yeni bölüm ${shortDate(d.next.date)}`} color={C.accentSoft} />}
-              </View>
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
-                <Btn icon={inLib ? 'check' : 'plus'} kind={inLib ? 'success' : 'primary'} label={inLib ? 'Kütüphanemde' : 'Kütüphaneme ekle'}
-                  onPress={() => {
-                    if (inLib) { store.libRemove(key); toast('Kütüphaneden çıkarıldı'); }
-                    else { save(); tap('success'); toast('Kütüphanene eklendi'); }
-                  }} />
-                {d.m === 'movie' && (
-                  <Btn icon="check" kind={done ? 'success' : 'secondary'} label={done ? 'İzlendi · Geri al' : 'İzledim'}
-                    onPress={() => { if (!inLib) save(); store.watchKey(key, !done); tap(done ? 'light' : 'success'); toast(done ? 'İzleme işareti kaldırıldı' : 'İzlendi olarak kaydedildi'); }} />
-                )}
-                {!!d.yt && <Btn icon="youtube" kind="secondary" label="Fragman" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${d.yt}`)} />}
-              </View>
-            </View>
+        <View style={{ marginHorizontal: -pad, marginTop: -(insets.top + (tablet ? 28 : 14)) }}>
+          <View style={{ width: '100%', aspectRatio: tablet ? 21 / 9 : 16 / 10, backgroundColor: C.card }}>
+            {(bd || d.p) && <Image source={{ uri: bd || img(d.p, 'w780')! }} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} />}
+            <LinearGradient colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', C.bg]} locations={[0, 0.25, 0.6, 1]} style={StyleSheet.absoluteFill} />
+            <Press accessibilityRole="button" accessibilityLabel="Geri" onPress={back} hitSlop={8}
+              style={{ position: 'absolute', top: insets.top + 8, left: pad - 6, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}>
+              <Feather name="chevron-left" size={24} color="#fff" />
+            </Press>
+            {!!d.yt && (
+              <Press accessibilityRole="button" accessibilityLabel="Fragmanı izle" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${d.yt}`)}
+                style={{ position: 'absolute', alignSelf: 'center', top: '38%', width: 58, height: 58, borderRadius: 29, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center' }}>
+                <Feather name="play" size={24} color="#fff" style={{ marginLeft: 3 }} />
+              </Press>
+            )}
+          </View>
+        </View>
+        <View style={{ marginTop: 4 }}>
+          <H1 style={{ fontSize: tablet ? 38 : 28, lineHeight: tablet ? 44 : 33 }} accessibilityRole="header">{d.title}</H1>
+          {d.orig && d.orig !== d.title && <Muted style={{ marginTop: 2 }}>{d.orig}</Muted>}
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+            {d.vote > 0 && d.votes >= 15 && <Text style={{ fontFamily: F.bold, fontSize: 14, color: C.amber }}>★ {d.vote.toFixed(1)}</Text>}
+            <Text style={{ fontFamily: F.medium, fontSize: 14, color: '#D0D0D6' }}>{meta}</Text>
+          </View>
+          {!!d.genres.length && <Small style={{ marginTop: 4 }}>{d.genres.slice(0, 4).join(' · ')}</Small>}
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            {d.pl.map((x) => <Chip key={x} icon="play-circle" label={x} />)}
+            {!d.pl.length && <Chip label="Türkiye'de abonelikte yok" />}
+            {d.m === 'tv' && d.next && <Chip icon="calendar" label={`Yeni bölüm ${shortDate(d.next.date)}`} color={C.accentSoft} />}
+          </View>
+          <Btn icon={inLib ? 'check' : 'plus'} kind={inLib ? 'success' : 'primary'} label={inLib ? 'Listemde' : 'Listeme ekle'} style={{ marginTop: 16 }}
+            onPress={() => { if (inLib) { store.libRemove(key); toast('Kütüphaneden çıkarıldı'); } else { save(); tap('success'); toast('Kütüphanene eklendi'); } }} />
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+            {d.m === 'movie' && (
+              <Btn style={{ flex: 1 }} icon="check" kind={done ? 'success' : 'secondary'} label={done ? 'İzlendi' : 'İzledim'}
+                onPress={() => { if (!inLib) save(); store.watchKey(key, !done); tap(done ? 'light' : 'success'); toast(done ? 'İzleme işareti kaldırıldı' : 'İzlendi olarak kaydedildi'); }} />
+            )}
+            {!!d.yt && <Btn style={{ flex: 1 }} icon="youtube" kind="secondary" label="Fragman" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${d.yt}`)} />}
           </View>
         </View>
       </FadeIn>
@@ -160,13 +171,19 @@ export default function Show() {
                     <Pressable key={n} disabled={future} accessibilityRole="checkbox" accessibilityState={{ checked: on, disabled: future }}
                       accessibilityLabel={`${e.s}. sezon ${e.e}. bölüm, ${e.name}, ${future ? 'henüz yayınlanmadı' : on ? 'izlendi' : 'izlenmedi'}`}
                       onPress={() => { if (!inLib) save(); store.setEpsKey(key, [n], !on); tap(on ? 'light' : 'success'); }}
-                      style={({ pressed }) => ({ width: `${100 / epCols - (epCols > 1 ? 2 : 0)}%` as `${number}%`, flexGrow: 1, padding: 12, borderRadius: R.md, backgroundColor: on ? alpha(C.green, 0.12) : C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: on ? alpha(C.green, 0.5) : C.line, opacity: future ? 0.5 : pressed ? 0.75 : 1 })}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <Text numberOfLines={1} style={{ fontFamily: F.bold, fontSize: 13, color: C.muted, width: 72 }}>S{String(e.s).padStart(2, '0')} · B{String(e.e).padStart(2, '0')}</Text>
-                        <Text numberOfLines={1} style={{ flex: 1, fontFamily: F.semibold, fontSize: 14, color: C.text }}>{e.name}</Text>
-                        <Feather name={future ? 'clock' : on ? 'check-circle' : 'circle'} size={18} color={on ? C.green : C.dim} />
+                      style={({ pressed }) => ({ width: `${100 / epCols - (epCols > 1 ? 2 : 0)}%` as `${number}%`, flexGrow: 1, padding: 10, borderRadius: R.md, backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.lineSoft, opacity: future ? 0.5 : pressed ? 0.75 : 1 })}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View style={{ width: 118, aspectRatio: 16 / 9, borderRadius: 6, overflow: 'hidden', backgroundColor: C.raised, alignItems: 'center', justifyContent: 'center' }}>
+                          {e.still ? <Image source={{ uri: img(e.still, 'w342')! }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <Feather name="film" size={18} color={C.dim} />}
+                          {on && <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: C.accent }} />}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text numberOfLines={2} style={{ fontFamily: F.semibold, fontSize: 14.5, lineHeight: 19, color: C.text }}>{e.e}. {e.name}</Text>
+                          <Small style={{ marginTop: 3, color: on ? C.green : C.dim }}>{future ? (e.date ? `Yayın: ${shortDate(e.date)}` : 'Tarih belli değil') : [on ? 'İzlendi' : null, e.date ? shortDate(e.date) : null, e.runtime ? duration(e.runtime) : null].filter(Boolean).join(' · ')}</Small>
+                        </View>
+                        <Feather name={future ? 'clock' : on ? 'check-circle' : 'circle'} size={22} color={on ? C.green : C.dim} />
                       </View>
-                      <Small style={{ marginTop: 3, marginLeft: 82, color: on ? C.green : C.dim }}>{future ? (e.date ? `Yayın: ${shortDate(e.date)}` : 'Tarih belli değil') : [e.date ? shortDate(e.date) : null, e.runtime ? duration(e.runtime) : null].filter(Boolean).join(' · ')}</Small>
+                      {!!e.overview && !future && <Text numberOfLines={2} style={{ marginTop: 8, fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: C.muted }}>{e.overview}</Text>}
                     </Pressable>
                   );
                 })}
@@ -176,16 +193,7 @@ export default function Show() {
         </>
       )}
 
-      {d.recs.length > 0 && (
-        <>
-          <SectionHead title="Benzer yapımlar" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }} style={{ marginHorizontal: -pad }}>
-            <View style={{ width: pad - 14 }} />
-            {d.recs.map((r, i) => <MediaCard key={r.key} index={i} uri={img(r.p, 'w342')} title={r.title} sub={[r.year, r.m === 'movie' ? 'Film' : 'Dizi'].filter(Boolean).join(' · ')} width={tablet ? 150 : 124} onPress={() => router.push(routeOf(r.key))} />)}
-            <View style={{ width: pad - 14 }} />
-          </ScrollView>
-        </>
-      )}
+      {d.recs.length > 0 && <Row title="Benzerleri">{d.recs.filter((r) => r.p).map((r, i) => <TItemTile key={r.key} x={r} width={tileW} index={i} />)}</Row>}
 
       <Small style={{ marginTop: 28 }}>Bilgiler ve görseller The Movie Database (TMDB) kaynaklıdır; platform bilgisi JustWatch verisidir.</Small>
     </Screen>

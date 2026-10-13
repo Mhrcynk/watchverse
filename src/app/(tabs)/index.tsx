@@ -2,268 +2,244 @@ import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Brand } from '@/components/brand';
-import { Art, MediaCard, PosterCard, UniverseCard } from '@/components/media';
-import { libraryEntries } from '@/lib/library';
-import { Btn, Chip, Empty, FadeIn, Grid, Eyebrow, H1, H2, H3, Muted, Panel, Press, Ring, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
-import { TBY, TYPE_TR, UBY, backdropUrl, daysUntil, posterPath, recentSeasons, recentlyAdded, upcomingFor, type Upcoming } from '@/lib/catalog';
-import { duration } from '@/lib/format';
-import { bigStory, continueWatching, episodeLabel, isDone, nextEpisode, nextUp, readiness, tonight, universeProgress } from '@/lib/progress';
+import { UniverseCard } from '@/components/media';
+import { scoreText, usePreview } from '@/components/preview';
+import { Billboard, RemoteRow, Row, Tile, TItemTile, useTileW, type BillboardItem } from '@/components/rows';
+import { Btn, FadeIn, Press, Screen, Small, tap, useLayout, useToast } from '@/components/ui';
+import { TBY, TYPE_TR, UBY, daysUntil, posterPath, posterUrl, recentlyAdded, upcomingFor, type Upcoming } from '@/lib/catalog';
+import { catalogOf, libFromItem, libraryEntries } from '@/lib/library';
+import { continueWatching, episodeLabel, fraction, isDone, nextEpisode, nextUp } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
+import { GENRES, byGenre, detail, discover, hasApi, img, keyOf, platforms, today, trendingKind, type Kind, type TItem } from '@/lib/tmdb';
+import type { State } from '@/lib/types';
+
+const HOME_GENRES = ['Aksiyon', 'Komedi', 'Dram', 'Suç', 'Bilim kurgu', 'Gerilim', 'Animasyon', 'Belgesel'];
 
 export default function Home() {
   const store = useStore();
   const { state } = store;
-  const { tablet, width, pad } = useLayout();
-  const toast = useToast();
+  const { pad, width, tablet } = useLayout();
+  const insets = useSafeAreaInsets();
+  const w = useTileW();
+  const api = hasApi();
+  const [kind, setKind] = useState<Kind>('all');
+  const [cats, setCats] = useState(false);
+  const [plats, setPlats] = useState<{ id: number; name: string; at: string }[]>([]);
+  useEffect(() => { if (api) platforms().then(setPlats).catch(() => {}); }, [api]);
 
-  const cw = useMemo(() => continueWatching(state), [state]);
-  const hero = useMemo(() => cw[0] || state.follow.map((u) => nextUp(state, u)).find(Boolean) || null, [state, cw]);
-  const big = useMemo(() => bigStory(state), [state]);
-  const night = useMemo(() => tonight(state), [state]);
-  const followed = state.follow.map((u) => UBY[u]).filter(Boolean);
-  const list = state.list.map((id) => TBY[id]).filter((t) => t && !isDone(state, t));
-  const fresh = useMemo(() => {
-    const l = recentlyAdded();
-    return [...l.filter((t) => state.follow.includes(t.u)), ...l.filter((t) => !state.follow.includes(t.u))].slice(0, 20);
-  }, [state.follow]);
-  const freshSeasons = useMemo(() => recentSeasons().sort((a, b) => Number(state.follow.includes(TBY[b.id].u)) - Number(state.follow.includes(TBY[a.id].u))), [state.follow]);
-
-  const libWatching = useMemo(() => libraryEntries(state).watching.filter((e) => e.key.includes(':')).sort((a, b) => Number(!!b.tag) - Number(!!a.tag)), [state]);
-  const libNew = libWatching.filter((e) => e.tag).length;
+  const typeOk = (t: 'movie' | 'tv') => kind === 'all' || kind === t;
+  const cont = useMemo(() => continueRow(state).filter((x) => typeOk(x.m)), [state, kind]); // eslint-disable-line react-hooks/exhaustive-deps
+  const forYou = useForYou(state, kind);
   const soon = useMemo(() => upcomingFor(state.follow), [state.follow]);
+  const fresh = useMemo(() => recentlyAdded().filter((t) => typeOk(t.type === 'Dizi' ? 'tv' : 'movie')).slice(0, 20), [kind]); // eslint-disable-line react-hooks/exhaustive-deps
+  const followed = state.follow.map((u) => UBY[u]).filter(Boolean);
   const progressCount = Object.keys(state.watched).length + Object.keys(state.episodes).length;
   const backupDue = progressCount >= 5 && (!state.lastBackup || Date.now() - state.lastBackup > 7 * 864e5);
-  const railW = tablet ? 150 : Math.min(132, (width - pad * 2 - 24) / 2.6);
-  const cardW = Math.min(290, width * 0.74);
+  const t0 = today();
+  const genreRows = HOME_GENRES.map((n) => GENRES.find((g) => g.name === n)!).filter((g) => kind === 'all' || g[kind]);
 
   return (
-    <Screen>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 26 }}>
-        <Brand />
-        <Chip
-          icon={state.spoiler ? 'lock' : 'unlock'}
-          label={state.spoiler ? 'Spoiler koruması açık' : 'Spoiler koruması kapalı'}
-          color={state.spoiler ? C.green : C.muted}
-          bg={state.spoiler ? alpha(C.green, 0.1) : C.card}
-          onPress={() => { store.setSpoiler(!state.spoiler); toast(state.spoiler ? 'Spoiler koruması kapatıldı' : 'Spoiler koruması açıldı'); }}
-        />
+    <Screen style={{ paddingTop: 0 }}>
+      {/* üst çubuk */}
+      <View style={{ paddingTop: insets.top + 10, paddingBottom: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Brand />
+          <Press accessibilityRole="button" accessibilityLabel="Ara" onPress={() => router.push('/explore')} hitSlop={8} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name="search" size={22} color={C.text} />
+          </Press>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+          <KindChip label="Diziler" on={kind === 'tv'} onPress={() => setKind(kind === 'tv' ? 'all' : 'tv')} />
+          <KindChip label="Filmler" on={kind === 'movie'} onPress={() => setKind(kind === 'movie' ? 'all' : 'movie')} />
+          {api && <KindChip label="Kategoriler" icon="chevron-down" onPress={() => setCats(true)} />}
+        </View>
       </View>
-
-      <Muted>{state.name ? `Tekrar hoş geldin, ${state.name}.` : 'Tekrar hoş geldin.'}</Muted>
-      <H1 style={{ marginTop: 2, marginBottom: 20 }}>Bir sonraki hikâyen.</H1>
 
       {backupDue && (
-        <FadeIn>
-          <Press accessibilityRole="button" onPress={() => router.push('/profile')}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginBottom: 14, borderRadius: R.lg, backgroundColor: alpha(C.amber, 0.1), borderWidth: StyleSheet.hairlineWidth, borderColor: alpha(C.amber, 0.4) }}>
-            <Feather name="shield" size={20} color={C.amber} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: F.semibold, fontSize: 14.5, color: C.text }}>İlerlemeni yedekle</Text>
-              <Small>{state.lastBackup ? 'Son yedeğin üzerinden bir haftadan fazla geçti.' : 'Telefon değişirse ilerlemen kaybolmasın.'} Dosyalar'a tek dokunuşla kaydet.</Small>
-            </View>
-            <Feather name="chevron-right" size={18} color={C.dim} />
-          </Press>
-        </FadeIn>
+        <Press accessibilityRole="button" onPress={() => router.push('/profile')}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, marginBottom: 14, borderRadius: R.md, backgroundColor: alpha(C.amber, 0.1), borderWidth: StyleSheet.hairlineWidth, borderColor: alpha(C.amber, 0.4) }}>
+          <Feather name="shield" size={18} color={C.amber} />
+          <Small style={{ flex: 1, color: C.text }}>İlerlemeni yedekle: Dosyalar'a tek dokunuşla kaydet.</Small>
+          <Feather name="chevron-right" size={18} color={C.dim} />
+        </Press>
       )}
 
-      {hero ? <FadeIn><Hero id={hero.id} /></FadeIn> : (
-        <Empty icon="check-circle" title={followed.length ? 'Takip ettiğin rotalarda her şey tamam.' : 'Yeni bir hikâyeye başla.'}
-          text="Keşfedecek başka evrenler var." action="Evrenleri keşfet" onAction={() => router.push('/universes')} />
+      {api ? <OnlineBillboard kind={kind} /> : <CatalogBillboard state={state} />}
+
+      {cont.length > 0 && (
+        <Row title="İzlemeye devam et" note={cont.some((x) => x.badge === 'Yeni bölüm') ? 'yeni bölüm var' : undefined}>
+          {cont.map((x, i) => <Tile key={x.key} index={i} uri={x.poster} title={x.title} width={w} pct={x.pct} badge={x.badge} sub={x.sub} onPress={() => router.push(x.route as never)} />)}
+        </Row>
       )}
 
-      {cw.length > 1 && (
-        <>
-          <SectionHead title="Devam ettiklerin" note={`${cw.length} dizi`} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }} style={{ marginHorizontal: -pad }} >
-            <View style={{ width: pad - 14 }} />
-            {cw.map((t) => <PosterCard key={t.id} t={t} width={railW} />)}
-            <View style={{ width: pad - 14 }} />
-          </ScrollView>
-        </>
+      {api && <RemoteRow title="Bu hafta en popüler 10" top10 load={() => trendingKind(kind)} deps={[kind]} />}
+
+      {forYou.length >= 3 && (
+        <Row title="Senin için">{forYou.map((x, i) => <TItemTile key={x.key} x={x} width={w} index={i} />)}</Row>
       )}
 
-      {libWatching.length > 0 && (
-        <>
-          <SectionHead title="İzlemeye devam et" note={libNew ? `${libNew} dizide yeni bölüm` : `${libWatching.length} dizi`} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }} style={{ marginHorizontal: -pad }}>
-            <View style={{ width: pad - 14 }} />
-            {libWatching.map((x, i) => <MediaCard key={x.key} index={i} uri={x.poster} title={x.title} sub={x.sub} badge={x.tag} pct={x.pct} width={railW} onPress={() => router.push(x.route as never)} />)}
-            <View style={{ width: pad - 14 }} />
-          </ScrollView>
-        </>
+      {api && kind !== 'movie' && <RemoteRow title="Türk dizileri" load={() => discover('tv', { with_origin_country: 'TR', sort_by: 'popularity.desc', 'vote_count.gte': 5 })} deps={[kind]} />}
+      {api && kind !== 'tv' && <RemoteRow title="Yeni Türk filmleri" load={() => discover('movie', { with_origin_country: 'TR', sort_by: 'primary_release_date.desc', 'primary_release_date.lte': t0, 'vote_count.gte': 3 })} deps={[kind]} />}
+
+      {followed.length > 0 && (
+        <Row title="Evrenlerin" onMore={() => router.push('/universes')}>
+          {followed.map((u) => <UniverseCard key={u.id} u={u} state={state} style={{ width: Math.min(280, width * 0.72) }} />)}
+        </Row>
       )}
 
-      {(fresh.length > 0 || freshSeasons.length > 0) && (
-        <>
-          <SectionHead title="Yeni eklenenler" note="son 45 gün" />
-          {fresh.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }} style={{ marginHorizontal: -pad }}>
-              <View style={{ width: pad - 14 }} />
-              {fresh.map((t) => <PosterCard key={t.id} t={t} width={railW} />)}
-              <View style={{ width: pad - 14 }} />
-            </ScrollView>
-          )}
-          {freshSeasons.length > 0 && (
-            <Panel style={{ marginTop: fresh.length ? 14 : 0, paddingVertical: 6 }}>
-              {freshSeasons.slice(0, 6).map((x, i) => (
-                <Press key={x.id + x.season} accessibilityRole="button" onPress={() => router.push(`/title/${x.id}`)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderTopWidth: i ? StyleSheet.hairlineWidth : 0, borderTopColor: C.lineSoft }}>
-                  <Feather name="plus-circle" size={18} color={C.accentSoft} />
-                  <View style={{ flex: 1 }}>
-                    <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 14.5, color: C.text }}>{TBY[x.id].title}</Text>
-                    <Small>{x.season}. sezon · {x.episodes} yeni bölüm</Small>
-                  </View>
-                  <Feather name="chevron-right" size={18} color={C.dim} />
-                </Press>
-              ))}
-            </Panel>
-          )}
-        </>
-      )}
+      {api && plats.slice(0, 5).map((p) => (
+        <RemoteRow key={p.id} title={`${p.at} popüler`} deps={[kind, p.id]}
+          load={() => discover(kind === 'movie' ? 'movie' : 'tv', { with_watch_providers: p.id, with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc' })} />
+      ))}
 
       {soon.length > 0 && (
-        <>
-          <SectionHead title="Yakında" note={state.follow.length ? 'takip ettiğin evrenlerde' : undefined} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }} style={{ marginHorizontal: -pad }}>
-            <View style={{ width: pad - 14 }} />
-            {soon.map((x, i) => <SoonCard key={x.k + x.date} x={x} width={railW} index={i} />)}
-            <View style={{ width: pad - 14 }} />
-          </ScrollView>
-        </>
+        <Row title="Yakında" note={state.follow.length ? 'evrenlerinde' : undefined}>
+          {soon.map((x, i) => <SoonCard key={x.k + x.date} x={x} width={Math.round(w * 1.1)} index={i} />)}
+        </Row>
       )}
 
-      <SectionHead title="Evrenlerine dön" action="Tümünü gör" onAction={() => router.push('/universes')} />
-      {followed.length ? (
-        tablet ? (
-          <Grid items={followed} cols={width >= 1200 ? 3 : 2} keyOf={(u) => u.id} render={(u) => <UniverseCard u={u} state={state} />} />
-        ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }} style={{ marginHorizontal: -pad }}>
-            <View style={{ width: pad - 12 }} />
-            {followed.map((u) => <UniverseCard key={u.id} u={u} state={state} style={{ width: cardW }} />)}
-            <View style={{ width: pad - 12 }} />
-          </ScrollView>
-        )
-      ) : <Muted>Henüz bir evren takip etmiyorsun.</Muted>}
+      {api && genreRows.slice(0, 4).map((g) => (
+        <RemoteRow key={g.name} title={g.name} deps={[kind]} load={() => byGenre(g, kind)} onMore={() => router.push({ pathname: '/genre/[id]', params: { id: g.name, k: kind } })} />
+      ))}
 
-      <View style={{ flexDirection: tablet ? 'row' : 'column', gap: tablet ? 18 : 0 }}>
-        {big && (
-          <View style={tablet ? { flex: 1 } : undefined}>
-            <SectionHead title="Büyük hikâyeye hazırlan" />
-            <BigStory id={big.id} />
-          </View>
-        )}
-        {night && (
-          <View style={tablet ? { flex: 1 } : undefined}>
-            <SectionHead title="Bu akşam için" note={duration(night.ep ? (night.t.ep[night.ep - 1]?.[2] || night.t.minutes) : night.t.minutes)} />
-            <Press accessibilityRole="button" onPress={() => router.push(`/title/${night.t.id}`)}>
-              <Panel style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
-                <Art t={night.t} compact size="w185" style={{ width: 62 }} />
-                <View style={{ flex: 1 }}>
-                  <H3 numberOfLines={2}>{night.t.title}</H3>
-                  <Small style={{ marginTop: 3 }}>{night.ep ? `Sıradaki: ${episodeLabel(night.t, night.ep)}` : `${night.t.year} · ${TYPE_TR[night.t.type]}`}</Small>
-                  <Small style={{ marginTop: 8, color: C.accentSoft }}>{night.ep ? 'Bir bölüm, kaldığın yerden.' : 'Tek oturuşta biter.'}</Small>
-                </View>
-                <Feather name="chevron-right" size={20} color={C.dim} />
-              </Panel>
-            </Press>
-          </View>
-        )}
-      </View>
-
-      {list.length > 0 && (
-        <>
-          <SectionHead title="Listendekiler" note={`${list.length} yapım`} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }} style={{ marginHorizontal: -pad }}>
-            <View style={{ width: pad - 14 }} />
-            {list.map((t) => <PosterCard key={t.id} t={t} width={railW} />)}
-            <View style={{ width: pad - 14 }} />
-          </ScrollView>
-        </>
+      {fresh.length > 0 && (
+        <Row title="Evrenlere yeni eklenenler">{fresh.map((t, i) => <Tile key={t.id} index={i} uri={posterUrl(t)} title={t.title} width={w} color={UBY[t.u]?.color} onPress={() => router.push(`/title/${t.id}`)} />)}</Row>
       )}
 
-      <View style={{ marginTop: 38, flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <Small>Sen izle. WatchVerse kaldığın yeri hatırlar.</Small>
-        <Small>İlerlemen bu cihazda saklanır.</Small>
-      </View>
+      {api && genreRows.slice(4).map((g) => (
+        <RemoteRow key={g.name} title={g.name} deps={[kind]} load={() => byGenre(g, kind)} onMore={() => router.push({ pathname: '/genre/[id]', params: { id: g.name, k: kind } })} />
+      ))}
+
+      {!api && (
+        <View style={{ marginTop: 30 }}>
+          <Small>Tüm film ve dizilerde arama ve listeler, ara sunucu kurulunca açılır.</Small>
+        </View>
+      )}
+
+      <CategorySheet visible={cats} kind={kind} onClose={() => setCats(false)} />
     </Screen>
   );
 }
 
-function Hero({ id }: { id: string }) {
-  const store = useStore();
-  const { state } = store;
-  const { tablet } = useLayout();
-  const toast = useToast();
-  const t = TBY[id];
-  const u = UBY[t.u];
-  const p = universeProgress(state, t.u);
-  const ep = nextEpisode(state, t);
-  const r = readiness(state, t.id);
-  const bd = backdropUrl(t);
+function KindChip({ label, on, onPress, icon }: { label: string; on?: boolean; onPress: () => void; icon?: React.ComponentProps<typeof Feather>['name'] }) {
   return (
-    <View style={{ borderRadius: R.xl, overflow: 'hidden', backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line, minHeight: tablet ? 360 : 0 }}>
-      {bd ? <Image source={{ uri: bd }} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} /> : (
-        <LinearGradient colors={[alpha(u.color, 0.42), alpha(u.color, 0.08), C.card]} start={{ x: 1, y: 0 }} end={{ x: 0.1, y: 1 }} style={StyleSheet.absoluteFill} />
-      )}
-      <LinearGradient colors={['rgba(11,13,18,0.15)', 'rgba(11,13,18,0.82)', C.card]} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
-      <View style={{ flexDirection: 'row', padding: tablet ? 30 : 20, gap: 22, alignItems: 'flex-end' }}>
-        <View style={{ flex: 1, paddingTop: tablet ? 40 : 70 }}>
-          <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: alpha('#FFFFFF', 0.25), backgroundColor: 'rgba(0,0,0,0.25)' }}>
-            <Text style={{ fontFamily: F.medium, fontSize: 11.5, color: C.text, letterSpacing: 0.4 }}>{t.phase}</Text>
-          </View>
-          <Eyebrow style={{ marginTop: 18 }}>{ep && ep > 1 ? 'Kaldığın yerden devam' : 'Senin için sıradaki'}</Eyebrow>
-          <Text style={{ fontFamily: F.bold, fontSize: tablet ? 40 : 30, lineHeight: tablet ? 46 : 35, color: C.text, letterSpacing: -1, marginTop: 8 }} numberOfLines={3}>{t.title}</Text>
-          <Small style={{ marginTop: 8, color: '#D4D6DE' }}>
-            {t.year} · {TYPE_TR[t.type]} · {t.episodes ? (ep ? `Sıradaki ${episodeLabel(t, ep)}` : `${t.episodes} bölüm`) : duration(t.minutes)}
-          </Small>
-          {t.summary && !tablet && <Muted numberOfLines={2} style={{ marginTop: 10, color: '#C9CCD6' }}>{t.summary}</Muted>}
-          {t.summary && tablet && <Muted numberOfLines={3} style={{ marginTop: 12, color: '#C9CCD6', maxWidth: 560 }}>{t.summary}</Muted>}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 18 }}>
-            <Btn icon="play" label={t.episodes ? 'Bölümlere git' : 'Ayrıntılar'} onPress={() => router.push(`/title/${t.id}`)} />
-            <Btn icon="check" kind="secondary" label={t.episodes && ep ? `${episodeLabel(t, ep)} izledim` : 'İzledim'}
-              onPress={() => {
-                if (t.episodes && ep) { store.toggleEpisode(t.id, ep); tap('success'); toast(`${episodeLabel(t, ep)} kaydedildi`); }
-                else { store.toggleWatched(t.id, true); tap('success'); toast('İzlendi olarak kaydedildi'); }
-              }} />
-          </View>
-          <Small style={{ marginTop: 14, color: r.pct === 100 ? C.green : C.muted }}>
-            {r.deps.length === 0 ? `${u.name} · ${p.done} / ${p.total} yapım tamamlandı` : r.pct === 100 ? '✓ Ön koşullar tamam. Hikâyeye hazırsın.' : `Öncesinde önerilen ${r.deps.length - r.done} yapım var.`}
-          </Small>
-        </View>
-        {tablet && (
-          <View style={{ alignItems: 'flex-end' }}>
-            <Art t={t} style={{ width: 170 }} />
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginTop: 14 }}>
-              <Text style={{ fontFamily: F.bold, fontSize: 44, color: C.text, letterSpacing: -2 }}>{p.pct}</Text>
-              <Small style={{ marginBottom: 9 }}>% {u.name}</Small>
-            </View>
-          </View>
-        )}
-      </View>
-    </View>
+    <Press accessibilityRole="button" accessibilityState={{ selected: !!on }} onPress={() => { tap(); onPress(); }}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: on ? C.text : 'transparent', borderWidth: 1, borderColor: on ? C.text : 'rgba(255,255,255,0.35)' }}>
+      <Text style={{ fontFamily: F.semibold, fontSize: 13.5, color: on ? C.bg : C.text }}>{label}</Text>
+      {icon && <Feather name={icon} size={15} color={on ? C.bg : C.text} />}
+    </Press>
   );
 }
 
-function BigStory({ id }: { id: string }) {
-  const { state } = useStore();
-  const t = TBY[id];
-  const r = readiness(state, id);
+/* ---------- vitrin ---------- */
+function OnlineBillboard({ kind }: { kind: Kind }) {
+  const store = useStore();
+  const { open } = usePreview();
+  const toast = useToast();
+  const { tablet } = useLayout();
+  const [items, setItems] = useState<TItem[]>([]);
+  useEffect(() => { let a = true; trendingKind(kind).then((r) => a && setItems(r.filter((x) => x.p && x.b && x.overview).slice(0, 6))).catch(() => {}); return () => { a = false; }; }, [kind]);
+  const bb: BillboardItem[] = items.map((x) => {
+    const inLib = !!store.state.lib[x.key] || !!catalogOf(x.key);
+    return {
+      key: x.key, title: x.title, image: img(tablet ? x.b : x.p, 'w780'), score: scoreText(x.vote, x.votes),
+      tags: [x.m === 'movie' ? 'Film' : 'Dizi', x.year].filter(Boolean).join(' · '),
+      onInfo: () => open(x),
+      actions: (
+        <>
+          <Btn icon={inLib ? 'check' : 'plus'} kind="secondary" label="Listem" style={{ minWidth: 110, backgroundColor: 'rgba(40,40,46,0.85)' }}
+            onPress={() => { if (catalogOf(x.key)) { open(x); return; } if (store.state.lib[x.key]) { store.libRemove(x.key); toast('Kütüphaneden çıkarıldı'); } else { store.libSave(x.key, libFromItem(x)); tap('success'); toast('Kütüphanene eklendi'); } }} />
+          <Btn icon="info" label="Bilgi" style={{ minWidth: 110 }} onPress={() => open(x)} />
+        </>
+      ),
+    };
+  });
+  return <FadeIn><Billboard items={bb} /></FadeIn>;
+}
+
+function CatalogBillboard({ state }: { state: State }) {
+  const { tablet } = useLayout();
+  const items: BillboardItem[] = state.follow.map((u) => nextUp(state, u)).filter(Boolean).slice(0, 5).map((t) => ({
+    key: t!.id, title: t!.title, image: tablet ? (t!.tmdb?.b ? `https://image.tmdb.org/t/p/w780${t!.tmdb.b}` : null) : (t!.tmdb?.p ? `https://image.tmdb.org/t/p/w780${t!.tmdb.p}` : null),
+    tags: [UBY[t!.u]?.name, TYPE_TR[t!.type], t!.year].filter(Boolean).join(' · '),
+    onInfo: () => router.push(`/title/${t!.id}`),
+    actions: <Btn icon="play" label="Sıradaki" style={{ minWidth: 130 }} onPress={() => router.push(`/title/${t!.id}`)} />,
+  }));
+  return <FadeIn><Billboard items={items} /></FadeIn>;
+}
+
+/* ---------- izlemeye devam et ---------- */
+type ContItem = { key: string; m: 'movie' | 'tv'; title: string; poster: string | null; pct?: number; badge?: string; sub?: string; route: string; at: number };
+function continueRow(s: State): ContItem[] {
+  const out: ContItem[] = [];
+  for (const e of libraryEntries(s).watching) {
+    const m = e.key.startsWith('movie:') ? 'movie' : 'tv';
+    out.push({ key: e.key, m, title: e.title, poster: e.poster, pct: e.pct, badge: e.tag, sub: e.sub, route: e.route, at: (e.tag ? 1e15 : 0) + e.touched });
+  }
+  const have = new Set(out.map((x) => x.key));
+  for (const t of continueWatching(s)) if (!have.has(t.id)) { const n = nextEpisode(s, t); out.push({ key: t.id, m: 'tv', title: t.title, poster: posterUrl(t), pct: fraction(s, t), sub: n ? `Sıradaki ${episodeLabel(t, n)}` : undefined, route: `/title/${t.id}`, at: s.touched[t.id] || 0 }); have.add(t.id); }
+  for (const u of s.follow) {
+    const t = nextUp(s, u);
+    if (t && !have.has(t.id) && !isDone(s, t)) { out.push({ key: t.id, m: t.type === 'Dizi' ? 'tv' : 'movie', title: t.title, poster: posterUrl(t), badge: 'Sıradaki', sub: UBY[t.u]?.name, route: `/title/${t.id}`, at: 0 }); have.add(t.id); }
+  }
+  return out.sort((a, b) => b.at - a.at).slice(0, 20);
+}
+
+/* ---------- senin için ---------- */
+function useForYou(s: State, kind: Kind) {
+  const [items, setItems] = useState<TItem[]>([]);
+  const seeds = useMemo(() => {
+    const keys: { key: string; r: number }[] = [];
+    for (const [id, r] of Object.entries(s.ratings)) {
+      if (r < 4) continue;
+      if (id.includes(':')) keys.push({ key: id, r });
+      else { const t = TBY[id]; if (t?.tmdb?.id) keys.push({ key: keyOf((t.tmdb.m || t.media) as 'movie' | 'tv', t.tmdb.id), r }); }
+    }
+    return keys.sort((a, b) => b.r - a.r).slice(0, 4).map((k) => k.key);
+  }, [s.ratings]);
+  useEffect(() => {
+    if (!hasApi() || !seeds.length) { setItems([]); return; }
+    let a = true;
+    Promise.all(seeds.map((k) => { const [m, id] = k.split(':'); return detail(m as 'movie' | 'tv', Number(id)).then((d) => d.recs).catch(() => []); })).then((lists) => {
+      if (!a) return;
+      const seen = new Set<string>(seeds);
+      const out: TItem[] = [];
+      for (let i = 0; i < 16; i++) for (const l of lists) { const x = l[i]; if (x && !seen.has(x.key) && x.p) { seen.add(x.key); out.push(x); } }
+      setItems(out);
+    });
+    return () => { a = false; };
+  }, [seeds.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  return items.filter((x) => (kind === 'all' || x.m === kind) && !s.lib[x.key] && !s.watched[x.key]).slice(0, 20);
+}
+
+/* ---------- kategoriler ---------- */
+function CategorySheet({ visible, kind, onClose }: { visible: boolean; kind: Kind; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  const list = GENRES.filter((g) => kind === 'all' || g[kind]);
   return (
-    <Press accessibilityRole="button" onPress={() => router.push(`/title/${id}`)}>
-      <Panel style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-        <Ring pct={r.pct} size={78} color={UBY[t.u].color} />
-        <View style={{ flex: 1 }}>
-          <Eyebrow lang="en" style={{ color: UBY[t.u].color }}>{UBY[t.u].name}</Eyebrow>
-          <H3 numberOfLines={2} style={{ marginTop: 4 }}>{t.title}</H3>
-          <Small style={{ marginTop: 3 }}>{r.done} / {r.deps.length} ön koşul · {duration(r.left)} kaldı</Small>
-          <Text style={{ fontFamily: F.medium, fontSize: 13.5, color: C.accentSoft, marginTop: 8 }}>Hazırlık rotasını gör</Text>
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.94)' }}>
+        <ScrollView contentContainerStyle={{ paddingTop: insets.top + 50, paddingBottom: 140, alignItems: 'center', gap: 4 }}>
+          <Text style={{ fontFamily: F.medium, fontSize: 14, color: C.muted, marginBottom: 14 }}>{kind === 'tv' ? 'Dizi kategorileri' : kind === 'movie' ? 'Film kategorileri' : 'Kategoriler'}</Text>
+          {list.map((g) => (
+            <Pressable key={g.name} accessibilityRole="button" onPress={() => { onClose(); router.push({ pathname: '/genre/[id]', params: { id: g.name, k: kind } }); }}
+              style={({ pressed }) => ({ paddingVertical: 12, paddingHorizontal: 30, opacity: pressed ? 0.6 : 1 })}>
+              <Text style={{ fontFamily: F.semibold, fontSize: 20, color: '#D6D6DC' }}>{g.name}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <View style={{ position: 'absolute', bottom: insets.bottom + 30, left: 0, right: 0, alignItems: 'center' }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Kapat" onPress={onClose} style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: C.text, alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name="x" size={26} color={C.bg} />
+          </Pressable>
         </View>
-      </Panel>
-    </Press>
+      </View>
+    </Modal>
   );
 }
 
@@ -284,7 +260,7 @@ function SoonCard({ x, width, index }: { x: Upcoming; width: number; index: numb
               <Text style={{ fontFamily: F.heavy, fontSize: width * 0.5, color: alpha('#FFFFFF', 0.12) }}>{x.title[0]}</Text>
             </LinearGradient>
           )}
-          <View style={{ position: 'absolute', left: 8, top: 8, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 99, backgroundColor: d <= 7 ? u.color : 'rgba(10,11,16,0.82)' }}>
+          <View style={{ position: 'absolute', left: 8, top: 8, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 99, backgroundColor: d <= 7 ? u.color : 'rgba(0,0,0,0.82)' }}>
             <Text style={{ fontFamily: F.bold, fontSize: 12, color: d <= 7 ? C.bg : C.text }}>{when}</Text>
           </View>
         </View>

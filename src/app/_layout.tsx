@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ConfirmProvider, ToastProvider, useToast } from '@/components/ui';
+import { PreviewProvider } from '@/components/preview';
 import { refreshLibrary } from '@/lib/library';
 import { syncCatalog } from '@/lib/remote';
 import { hasSyncApi, syncDevice } from '@/lib/sync';
@@ -75,7 +76,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
   if (!go) return null;
   return (
     <ThemeProvider value={theme}>
-      <ToastProvider><ConfirmProvider>
+      <ToastProvider><ConfirmProvider><PreviewProvider>
         <StatusBar style="light" />
         <CatalogSync onChange={bump} />
         <LibrarySync />
@@ -85,9 +86,10 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="universe/[id]" />
           <Stack.Screen name="title/[id]" />
           <Stack.Screen name="show/[key]" />
+          <Stack.Screen name="genre/[id]" />
           <Stack.Screen name="credits" />
         </Stack>
-      </ConfirmProvider></ToastProvider>
+      </PreviewProvider></ConfirmProvider></ToastProvider>
     </ThemeProvider>
   );
 }

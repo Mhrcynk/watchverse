@@ -136,3 +136,52 @@ export function epFromIndex(seasons: { n: number; count: number }[], idx: number
   for (const x of [...seasons].sort((a, b) => a.n - b.n)) { if (left <= x.count) return { s: x.n, e: left }; left -= x.count; }
   return null;
 }
+
+/* ---------- türler ---------- */
+export type Genre = { name: string; movie?: number; tv?: number };
+/** Ana sayfa ve Kategoriler için türler (TMDB tür kimlikleri) */
+export const GENRES: Genre[] = [
+  { name: 'Aksiyon', movie: 28, tv: 10759 },
+  { name: 'Komedi', movie: 35, tv: 35 },
+  { name: 'Dram', movie: 18, tv: 18 },
+  { name: 'Suç', movie: 80, tv: 80 },
+  { name: 'Bilim kurgu', movie: 878, tv: 10765 },
+  { name: 'Gerilim', movie: 53 },
+  { name: 'Gizem', movie: 9648, tv: 9648 },
+  { name: 'Korku', movie: 27 },
+  { name: 'Romantik', movie: 10749 },
+  { name: 'Fantastik', movie: 14, tv: 10765 },
+  { name: 'Macera', movie: 12, tv: 10759 },
+  { name: 'Animasyon', movie: 16, tv: 16 },
+  { name: 'Aile', movie: 10751, tv: 10751 },
+  { name: 'Belgesel', movie: 99, tv: 99 },
+  { name: 'Savaş', movie: 10752, tv: 10768 },
+  { name: 'Tarih', movie: 36 },
+];
+export type Kind = 'all' | Media;
+/** Bir türde popüler yapımlar; "hepsi" seçiliyse film ve dizi karışık */
+export async function byGenre(g: Genre, kind: Kind, page = 1): Promise<TItem[]> {
+  const q = (m: Media, id: number) => discover(m, { with_genres: id, sort_by: 'popularity.desc', 'vote_count.gte': m === 'movie' ? 150 : 60, page });
+  if (kind !== 'all') { const id = g[kind]; return id ? q(kind, id) : []; }
+  const [a, b] = await Promise.all([g.movie ? q('movie', g.movie) : Promise.resolve([]), g.tv ? q('tv', g.tv) : Promise.resolve([])]);
+  const out: TItem[] = [];
+  for (let i = 0; i < Math.max(a.length, b.length); i++) { if (a[i]) out.push(a[i]); if (b[i]) out.push(b[i]); }
+  return out;
+}
+export async function trendingKind(kind: Kind): Promise<TItem[]> {
+  return items((await get<any>(`/trending/${kind}/week`, {}, 120, true)).results, kind === 'all' ? undefined : kind);
+}
+
+/* ---------- platformlar ---------- */
+const PLAT_ORDER = ['Netflix', 'Disney+', 'Prime Video', 'HBO Max', 'TOD', 'Exxen', 'tabii', 'Gain', 'BluTV', 'Apple TV+'];
+const PLAT_AT: Record<string, string> = { Netflix: "Netflix'te", 'Disney+': "Disney+'ta", 'Prime Video': "Prime Video'da", 'HBO Max': "HBO Max'te", TOD: "TOD'da", Exxen: "Exxen'de", tabii: "tabii'de", Gain: "Gain'de", BluTV: "BluTV'de", 'Apple TV+': "Apple TV+'ta" };
+/** Türkiye'de bulunan abonelik platformları, sık kullanılandan başlayarak; "at" Türkçe ekli adı */
+export async function platforms(): Promise<{ id: number; name: string; at: string }[]> {
+  const list = await providers();
+  const out: { id: number; name: string; at: string }[] = [];
+  for (const name of PLAT_ORDER) {
+    const p = list.find((x) => niceProvider(x.name) === name && !/kids|channel|with ads|standard|basic/i.test(x.name));
+    if (p && !out.some((x) => x.id === p.id)) out.push({ id: p.id, name, at: PLAT_AT[name] || name });
+  }
+  return out;
+}

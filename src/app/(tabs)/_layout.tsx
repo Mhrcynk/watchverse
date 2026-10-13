@@ -37,7 +37,7 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontFamily: F.medium, fontSize: tablet ? 13 : 11 },
         tabBarStyle: tablet
           ? { backgroundColor: C.bg, borderRightColor: C.line, borderRightWidth: 1, width: 208, minWidth: 208, maxWidth: 208, paddingTop: insets.top + 24 }
-          : { backgroundColor: '#0D0F15', borderTopColor: C.lineSoft, height: 64 + insets.bottom, paddingTop: 8 },
+          : { backgroundColor: '#0A0A0C', borderTopColor: C.lineSoft, height: 64 + insets.bottom, paddingTop: 8 },
         tabBarActiveBackgroundColor: tablet ? C.raised : 'transparent',
         tabBarItemStyle: tablet ? { borderRadius: 12, marginHorizontal: 12, marginVertical: 2, height: 46, justifyContent: 'flex-start' } : undefined,
         sceneStyle: { backgroundColor: C.bg },

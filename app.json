@@ -7,8 +7,8 @@
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0B0D12",
-    "primaryColor": "#7C5CFC",
+    "backgroundColor": "#000000",
+    "primaryColor": "#E3262F",
     "description": "Sevdiğin film ve dizi evrenlerinde nerede kaldığını hatırla, sıradaki hikâyeni doğru sırayla bul.",
     "ios": {
       "supportsTablet": true,
@@ -24,7 +24,7 @@
     "android": {
       "package": "com.mihracyanik.watchverse",
       "adaptiveIcon": {
-        "backgroundColor": "#6A4EE0",
+        "backgroundColor": "#E3262F",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -47,7 +47,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0B0D12",
+          "backgroundColor": "#000000",
           "image": "./assets/splash-icon.png",
           "imageWidth": 160,
           "resizeMode": "contain"
