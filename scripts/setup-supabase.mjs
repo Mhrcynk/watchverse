@@ -65,8 +65,8 @@ out('supabase_key', pick.api_key);
 
 // 4) Son 7 günün hataları
 let errs = '';
-const e = await sql(`select message, count(*)::int as n, max(at) as last from public.app_errors where at > now() - interval '7 days' group by message order by n desc limit 5`);
-if (e.ok && Array.isArray(e.j)) errs = e.j.length ? ' | Son 7 gün hatalar: ' + e.j.map((r) => `${r.n}x ${String(r.message).slice(0, 80)}`).join(' ;; ') : ' | Son 7 günde hata yok';
+const e = await sql(`select message, count(*)::int as n, max(at) as last, max(screen) as screen, max(left(coalesce(stack,''),160)) as stack, max(left(platform,60)) as platform from public.app_errors where at > now() - interval '7 days' group by message order by n desc limit 5`);
+if (e.ok && Array.isArray(e.j)) errs = e.j.length ? ' | Son 7 gün hatalar: ' + e.j.map((r) => `${r.n}x ${String(r.message).slice(0, 80)} [${r.screen || '-'}] [${String(r.stack || '').replace(/\s+/g, ' ')}] [${r.platform || ''}]`).join(' ;; ') : ' | Son 7 günde hata yok';
 const users = await sql('select count(*)::int as n from auth.users');
 const n = users.ok && Array.isArray(users.j) ? users.j[0]?.n : '?';
 
