@@ -34,7 +34,7 @@ export default function Credits() {
         <Muted>Yapım bilgileri Wikipedia’dan, bölüm bilgileri TVmaze’den derlenmiştir. TVmaze verileri CC BY-SA lisansıyla kullanılır.</Muted>
         {link('https://www.tvmaze.com', 'tvmaze.com')}
         <Divider />
-        <Muted>Afiş ve arka plan görselleri The Movie Database (TMDB) üzerinden gösterilir.</Muted>
+        <Muted>Afiş ve arka plan görselleri The Movie Database (TMDB) üzerinden gösterilir. Türkiye'deki platform bilgisi JustWatch verisidir (TMDB üzerinden) ve değişebilir.</Muted>
         <Small style={{ marginTop: 6 }}>This product uses the TMDB API but is not endorsed or certified by TMDB.</Small>
         {link('https://www.themoviedb.org', 'themoviedb.org')}
         <Small style={{ marginTop: 8 }}>{posters ? `${posters} yapım için görsel eşleşmesi var.` : 'Görsel eşleşmeleri henüz yüklenmedi; yapımlar evren renginde kapaklarla gösteriliyor.'}</Small>

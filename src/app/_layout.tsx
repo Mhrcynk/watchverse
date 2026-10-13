@@ -26,7 +26,7 @@ function CatalogSync({ onChange }: { onChange: () => void }) {
       if (Date.now() - last < 30 * 60 * 1000) return;
       last = Date.now();
       const r = await syncCatalog();
-      if (r) { onChange(); toast(r.added ? `Katalog güncellendi · ${r.added} yeni yapım` : 'Katalog güncellendi'); }
+      if (r) { onChange(); if (r.added) toast(`Katalog güncellendi · ${r.added} yeni yapım`); }
     };
     run();
     const onVis = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') run(); };

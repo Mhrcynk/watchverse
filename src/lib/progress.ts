@@ -1,4 +1,4 @@
-import { CATALOG, TBY, UBY, UNIVERSES, depClosure, routeTitles, universeTitles } from './catalog';
+import { CATALOG, TBY, UBY, UNIVERSES, depClosure, universeTitles, viewTitles } from './catalog';
 import type { State, Title } from './types';
 
 export const watchedEps = (s: State, id: string) => s.episodes[id]?.length || 0;
@@ -37,7 +37,7 @@ export function totalMinutes(t: Title) {
 export const branchOf = (s: State, u: string) => s.branches[u] || UBY[u]?.defaultBranch || 'all';
 
 /** Seçili rota + modda bir evrenin listesi */
-export const route = (s: State, u: string) => routeTitles(u, branchOf(s, u), s.mode, s.order);
+export const route = (s: State, u: string) => viewTitles(u, branchOf(s, u), s.view);
 
 export function universeProgress(s: State, u: string) {
   const list = route(s, u);
@@ -56,7 +56,7 @@ export function nextUp(s: State, u: string): Title | null {
   if (!list.length) return null;
   const started = list.find((t) => isStarted(s, t));
   if (started) return started;
-  if (s.order === 'recommended') return list.find((t) => t.deps.every((d) => !TBY[d] || isDone(s, TBY[d]))) || list[0];
+  if (s.view !== 'chrono') return list.find((t) => t.deps.every((d) => !TBY[d] || isDone(s, TBY[d]))) || list[0];
   return list[0];
 }
 

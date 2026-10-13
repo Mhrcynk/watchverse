@@ -1,5 +1,6 @@
 import raw from '@/data/catalog.json';
-import type { Mode, Order, Title, Universe } from './types';
+import type { ListView, Mode, Order, Title, Universe } from './types';
+export type { ListView } from './types';
 
 export type Change = { date: string; added: string[]; seasons: { id: string; season: number; episodes: number }[] };
 export type RawCatalog = {
@@ -77,6 +78,47 @@ export const MODE_HELP: Record<Mode, string> = {
 };
 export const ORDER_TR: Record<Order, string> = { recommended: 'Önerilen', release: 'Yayın sırası', chrono: 'Kronolojik' };
 export const TIER_TR = ['Ana hikâye', 'Tavsiye', 'İsteğe bağlı'] as const;
+
+/* ---------- liste görünümleri ---------- */
+export const VIEWS: ListView[] = ['main', 'release', 'chrono', 'all'];
+export const VIEW_TR: Record<ListView, string> = { main: 'Ana hikâye', release: 'Çıkış sırası', chrono: 'Kronolojik', all: 'Tümü' };
+export const VIEW_HELP: Record<ListView, string> = {
+  main: 'Yalnızca hikâyeyi taşıyan yapımlar, çıkış sırasıyla.',
+  release: 'Ana hikâye ve tavsiye edilenler, çıkış sırasıyla.',
+  chrono: 'Ana hikâye ve tavsiye edilenler, hikâyedeki zamana göre.',
+  all: 'Animasyonlar, kısa filmler ve isteğe bağlılar dahil her şey.',
+};
+/** Animasyonlar ve isteğe bağlılar yalnızca "Tümü"nde; ana hikâyedeki animasyonlar (ör. Clone Wars) her yerde */
+export function inView(t: Title, v: ListView) {
+  if (v === 'all') return true;
+  if (t.animated && t.tier > 0) return false;
+  return v === 'main' ? t.tier === 0 : t.tier <= 1;
+}
+export function viewTitles(u: string, branch: string, v: ListView): Title[] {
+  const base = universeTitles(u).filter((t) => (branch === 'all' || t.branch === branch) && inView(t, v));
+  return sortTitles(base, v === 'chrono' ? 'chrono' : 'release');
+}
+
+/** MCU faz başlıkları */
+export function phaseOf(t: Title): string | null {
+  if (t.branch !== 'mcu') return null;
+  const y = t.year;
+  return y <= 2012 ? 'Faz 1' : y <= 2015 ? 'Faz 2' : y <= 2019 ? 'Faz 3' : y <= 2022 ? 'Faz 4' : y <= 2024 ? 'Faz 5' : 'Faz 6';
+}
+
+/** "Neden?" açıklaması: elle yazılmış not yoksa katalogdaki bağlantılardan üretilir */
+export function whyOf(t: Title): string {
+  if (t.why) return t.why;
+  const u = UBY[t.u];
+  const before = t.deps.map((d) => TBY[d]?.title).filter(Boolean).slice(0, 2);
+  const after = (AFTER[t.id] || []).map((x) => x.title).slice(0, 2);
+  const link = [before.length ? `Öncesi: ${before.join(', ')}.` : '', after.length ? `Devamı: ${after.join(', ')}.` : ''].filter(Boolean).join(' ');
+  let base: string;
+  if (t.tier === 0) base = u && t.branch !== u.defaultBranch ? `${GROUPS[t.branch] || 'Bu rota'} hikâyesinin ana parçası.` : 'Ana hikâyeyi ilerleten yapımlardan.';
+  else if (t.tier === 1) base = t.animated ? 'Sevilen bir animasyon; hikâyeyi zenginleştirir ama şart değil.' : 'Hikâyeyi zenginleştirir ama ana hikâye için şart değil.';
+  else base = t.type === 'Special' ? 'Kısa ya da özel yapım; atlanabilir.' : t.animated ? 'Animasyon ya da yan uyarlama; ana hikâye için gerekmez.' : 'Ana hikâyeyle bağı zayıf ya da ayrı bir uyarlama; atlanabilir.';
+  return link ? `${base} ${link}` : base;
+}
 
 export function universeTitles(u: string): Title[] {
   return byUniverse[u] || [];

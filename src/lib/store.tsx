@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AppState } from 'react-native';
 import { TBY, UBY, branchesOf } from './catalog';
 import { loadCachedCatalog } from './remote';
-import type { Mode, Order, State } from './types';
+import type { ListView, Mode, Order, State } from './types';
 
 const KEY = 'watchverse:v2';
 export const BACKUP_PREFIX = 'WATCHVERSE:';
@@ -19,9 +19,10 @@ export const initialState = (): State => ({
   list: [],
   mode: 'essential',
   order: 'release',
+  view: 'main',
   branches: {},
   spoiler: true,
-  dv: 2,
+  dv: 3,
 });
 
 /** Kayıttan gelen veriyi doğrular; katalogda olmayan kimlikleri ayıklar. */
@@ -36,6 +37,7 @@ export function sanitize(input: unknown): State {
   out.list = Array.isArray(s.list) ? [...new Set(s.list.filter((id) => !!TBY[id]))] : [];
   out.mode = (['essential', 'recommended', 'complete'] as Mode[]).includes(s.mode as Mode) ? (s.mode as Mode) : 'recommended';
   out.order = (['recommended', 'release', 'chrono'] as Order[]).includes(s.order as Order) ? (s.order as Order) : 'recommended';
+  out.view = (['main', 'release', 'chrono', 'all'] as ListView[]).includes(s.view as ListView) ? (s.view as ListView) : 'main';
   out.spoiler = s.spoiler !== false;
   out.watched = {};
   for (const [id, v] of Object.entries(s.watched || {})) if (TBY[id] && !TBY[id].episodes && v) out.watched[id] = typeof v === 'number' ? v : Date.now();
@@ -50,7 +52,8 @@ export function sanitize(input: unknown): State {
   for (const [id, v] of Object.entries(s.touched || {})) if (TBY[id] && typeof v === 'number') out.touched[id] = v;
   out.branches = {};
   // Eski kayıtlar: ana hikâye + yayın sırası + tüm rotalar varsayılanına bir kez geçir
-  if ((s.dv || 0) < 2) { out.mode = 'essential'; out.order = 'release'; return out; }
+  // Eski kayıtlar: yeni sade liste görünümüne ve tüm rotalara bir kez geçir
+  if ((s.dv || 0) < 3) { out.view = 'main'; return out; }
   for (const [u, b] of Object.entries(s.branches || {})) if (UBY[u] && typeof b === 'string' && (b === 'all' || branchesOf(u).some((x) => x.id === b))) out.branches[u] = b;
   return out;
 }
@@ -64,6 +67,7 @@ type Actions = {
   toggleFollow: (u: string) => void;
   setMode: (m: Mode) => void;
   setOrder: (o: Order) => void;
+  setView: (v: ListView) => void;
   setBranch: (u: string, b: string) => void;
   setSpoiler: (v: boolean) => void;
   setName: (n: string) => void;
@@ -167,6 +171,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     setMode: (mode) => setRaw((s) => ({ ...s, mode })),
     setOrder: (order) => setRaw((s) => ({ ...s, order })),
+    setView: (view) => setRaw((s) => ({ ...s, view })),
     setBranch: (u, b) => setRaw((s) => ({ ...s, branches: { ...s.branches, [u]: b } })),
     setSpoiler: (spoiler) => setRaw((s) => ({ ...s, spoiler })),
     setName: (name) => setRaw((s) => ({ ...s, name: name.slice(0, 40) })),
@@ -200,7 +205,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     },
     reset() {
-      setRaw((s) => ({ ...initialState(), onboarded: true, follow: s.follow, name: s.name, mode: s.mode, order: s.order, branches: s.branches, spoiler: s.spoiler }));
+      setRaw((s) => ({ ...initialState(), onboarded: true, follow: s.follow, name: s.name, mode: s.mode, order: s.order, view: s.view, branches: s.branches, spoiler: s.spoiler }));
     },
   }), [setState]);
 

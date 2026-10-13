@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Art, Wordmark } from '@/components/media';
 import { BackLink, Bar, Btn, Chip, Empty, Eyebrow, H1, H2, H3, Muted, Panel, Pills, Press, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
-import { AFTER, TBY, TIER_TR, TYPE_TR, UBY, backdropUrl } from '@/lib/catalog';
+import { AFTER, TBY, TIER_TR, TYPE_TR, UBY, backdropUrl, whyOf } from '@/lib/catalog';
 import { duration } from '@/lib/format';
 import { episodeLabel, fraction, isDone, nextEpisode, readiness, remaining, route, totalMinutes, watchedEps } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -70,7 +70,9 @@ export default function TitleDetail() {
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
               <Chip label={TIER_TR[t.tier]} color={t.tier === 0 ? C.accentSoft : C.muted} />
               {t.animated && <Chip label="Animasyon" />}
+              {(t.pl || []).map((x) => <Chip key={x} label={x} icon="play-circle" />)}
             </View>
+            <Small style={{ marginTop: 10, color: '#D2D5DE' }}>{whyOf(t)}</Small>
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
               <Btn icon="check" kind={done ? 'success' : 'primary'}
                 label={done ? 'İzlendi · Geri al' : t.episodes ? 'Diziyi tamamladım' : 'İzledim'}

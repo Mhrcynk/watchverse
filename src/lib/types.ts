@@ -38,9 +38,14 @@ export type Title = {
   /** TMDB eşleşmesi: scripts/resolve-tmdb.mjs doldurur */
   tmdb?: { id: number; m?: 'movie' | 'tv'; p?: string | null; b?: string | null };
   summarySource?: 'tmdb';
+  /** Türkiye'de abonelikle izlenebildiği platformlar (TMDB / JustWatch) */
+  pl?: string[];
+  /** "Neden?" açıklaması */
+  why?: string;
 };
 
 export type Mode = 'essential' | 'recommended' | 'complete';
+export type ListView = 'main' | 'release' | 'chrono' | 'all';
 export type Order = 'recommended' | 'release' | 'chrono';
 
 export type State = {
@@ -55,8 +60,11 @@ export type State = {
   /** son etkileşim zamanı — "devam ettiklerin" sırası için */
   touched: Record<string, number>;
   list: string[];
+  /** eski ayarlar, artık kullanılmıyor */
   mode: Mode;
   order: Order;
+  /** evren listelerinin görünümü */
+  view: ListView;
   branches: Record<string, string>;
   spoiler: boolean;
   /** varsayılan ayar sürümü (eski kayıtları yeni varsayılanlara taşımak için) */

@@ -2,9 +2,9 @@ import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { TYPE_TR, UBY, posterUrl } from '@/lib/catalog';
+import { TIER_TR, TYPE_TR, UBY, posterUrl, whyOf } from '@/lib/catalog';
 import { duration } from '@/lib/format';
 import { fraction, isDone, universeProgress, nextUp, watchedEps } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -133,6 +133,59 @@ export const TitleRow = memo(function TitleRow({ t, dim, showUniverse, index }: 
         style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: done ? C.green : 'transparent', borderWidth: done ? 0 : 1.5, borderColor: C.line }}>
         <Feather name={done ? 'check' : 'plus'} size={18} color={done ? C.bg : C.muted} />
       </Press>
+    </View>
+  );
+});
+
+/* ---------- evren listesi kartı ---------- */
+export const TIER_COLOR = (t: Title) => (t.tier === 0 ? UBY[t.u]?.color || C.accent : t.tier === 1 ? '#5B9BE8' : C.dim);
+
+function Tag({ label, color, filled }: { label: string; color: string; filled?: boolean }) {
+  return (
+    <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, backgroundColor: filled ? alpha(color, 0.18) : C.raised }}>
+      <Text style={{ fontFamily: F.semibold, fontSize: 12, color: filled ? color : C.muted }}>{label}</Text>
+    </View>
+  );
+}
+
+/** Numara, ad, kısa özet, etiketler (düzey · platform · neden?) ve izledim düğmesi */
+export const StoryCard = memo(function StoryCard({ t, index }: { t: Title; index: number }) {
+  const { state, toggleWatched } = useStore();
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const done = isDone(state, t);
+  const eps = watchedEps(state, t.id);
+  const col = TIER_COLOR(t);
+  const meta = [t.year, t.animated && t.type !== 'Film' ? 'Animasyon' : TYPE_TR[t.type], t.episodes ? `${t.episodes} bölüm` : t.minutes ? duration(t.minutes) : null].filter(Boolean).join(' · ');
+  return (
+    <View style={{ marginBottom: 12, borderRadius: R.lg, backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line, borderLeftWidth: t.tier < 2 ? 3 : StyleSheet.hairlineWidth, borderLeftColor: t.tier < 2 ? col : C.line, opacity: done ? 0.62 : 1 }}>
+      <View style={{ flexDirection: 'row', gap: 12, padding: 14 }}>
+        <Press accessibilityRole="button" accessibilityLabel={`${t.title} ayrıntıları`} onPress={() => router.push(`/title/${t.id}`)} style={{ flex: 1, flexDirection: 'row', gap: 12 }}>
+          <View>
+            <Art t={t} compact size="w185" style={{ width: 54, borderRadius: 8 }} />
+            <Text style={{ marginTop: 6, textAlign: 'center', fontFamily: F.semibold, fontSize: 12, color: C.dim }}>{index}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text numberOfLines={2} style={{ fontFamily: F.bold, fontSize: 16, lineHeight: 21, color: C.text }}>{t.title}</Text>
+            <Small numberOfLines={1} style={{ marginTop: 3 }}>{meta}{t.episodes && eps && !done ? ` · ${eps}/${t.episodes} izlendi` : ''}</Small>
+            {!!t.summary && <Text numberOfLines={2} style={{ marginTop: 6, fontFamily: F.regular, fontSize: 13.5, lineHeight: 19, color: C.muted }}>{t.summary}</Text>}
+          </View>
+        </Press>
+        <Press accessibilityRole="checkbox" accessibilityState={{ checked: done }} accessibilityLabel={done ? `${t.title} izlendi işaretini kaldır` : `${t.title} izlendi olarak işaretle`}
+          hitSlop={8}
+          onPress={() => { const v = toggleWatched(t.id); tap(v ? 'success' : 'light'); toast(v ? 'İzlendi olarak kaydedildi' : 'İzleme işareti kaldırıldı'); }}
+          style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: done ? col : 'transparent', borderWidth: done ? 0 : 1.5, borderColor: C.line }}>
+          {done && <Feather name="check" size={18} color={C.bg} />}
+        </Press>
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingBottom: open ? 8 : 14 }}>
+        <Tag label={TIER_TR[t.tier]} color={col} filled={t.tier < 2} />
+        {(t.pl || []).slice(0, 2).map((p) => <Tag key={p} label={p} color={C.muted} />)}
+        <Press accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen((o) => !o)} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+          <Text style={{ fontFamily: F.semibold, fontSize: 12.5, color: open ? C.text : C.dim }}>{open ? 'Gizle' : 'Neden?'}</Text>
+        </Press>
+      </View>
+      {open && <Text style={{ paddingHorizontal: 14, paddingBottom: 14, fontFamily: F.regular, fontSize: 13.5, lineHeight: 19, color: C.text }}>{whyOf(t)}</Text>}
     </View>
   );
 });

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { UniverseCard } from '@/components/media';
 import { Chip, Eyebrow, Grid, H1, Muted, Pills, Screen, SectionHead, Small, useLayout } from '@/components/ui';
-import { CATEGORIES, CATEGORY_TR, MODE_TR, UNIVERSES } from '@/lib/catalog';
+import { CATEGORIES, CATEGORY_TR, UNIVERSES, VIEW_TR } from '@/lib/catalog';
 import { universeProgress } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 
@@ -34,7 +34,7 @@ export default function Universes() {
       {mine.length > 0 && (<><SectionHead title="Takip ettiklerin" note={`${mine.length}`} />{grid(mine)}</>)}
       {rest.length > 0 && (<><SectionHead title={mine.length ? 'Diğer evrenler' : 'Tüm evrenler'} note={`${rest.length}`} />{grid(rest)}</>)}
 
-      <Small style={{ marginTop: 24 }}>İlerleme, her evrende seçtiğin rotaya ve “{MODE_TR[state.mode]}” moduna göre hesaplanır.</Small>
+      <Small style={{ marginTop: 24 }}>İlerleme, her evrenin ana rotasında “{VIEW_TR[state.view]}” görünümüne göre hesaplanır.</Small>
     </Screen>
   );
 }

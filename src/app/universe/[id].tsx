@@ -3,14 +3,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Wordmark, TitleRow } from '@/components/media';
-import { BackLink, Btn, Empty, Eyebrow, H1, H3, Muted, Panel, Pills, Ring, Screen, Segmented, Small, useLayout, useToast } from '@/components/ui';
-import { CATEGORY_TR, MODE_HELP, MODE_TR, ORDER_TR, UBY, branchesOf, inMode, routeTitles } from '@/lib/catalog';
+import { StoryCard, Wordmark } from '@/components/media';
+import { BackLink, Btn, Empty, Eyebrow, H1, H3, Muted, Panel, Pills, Press, Ring, Screen, Segmented, Small, useLayout, useToast } from '@/components/ui';
+import { CATEGORY_TR, GROUPS, UBY, VIEWS, VIEW_HELP, VIEW_TR, branchesOf, phaseOf, viewTitles } from '@/lib/catalog';
 import { duration } from '@/lib/format';
-import { nextUp, universeProgress } from '@/lib/progress';
+import { fraction, isDone, isStarted, pctOf, remaining } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
-import type { Mode, Order } from '@/lib/types';
+import type { ListView } from '@/lib/types';
 
 const PAGE = 60;
 
@@ -20,21 +20,42 @@ export default function UniverseDetail() {
   const { state } = store;
   const toast = useToast();
   const { tablet } = useLayout();
-  const [type, setType] = useState<'all' | 'Film' | 'Dizi' | 'Special'>('all');
+  const [unseen, setUnseen] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const u = UBY[id || ''];
 
   // Evren sayfası açılışta tüm rotaları gösterir; seçilen rota hatırlanır
-  const branch = u ? state.branches[u.id] || 'all' : 'all';
   const branches = useMemo(() => (u ? branchesOf(u.id) : []), [u]);
-  const all = useMemo(() => (u ? routeTitles(u.id, branch, state.mode, state.order) : []), [u, branch, state.mode, state.order]);
+  const view = state.view;
+  // Bu görünümde yapımı olan rotalar; ana rota başta
+  const visibleBranches = useMemo(() => (u ? branches.filter((b) => viewTitles(u.id, b.id, view).length).sort((a, b) => (a.id === u.defaultBranch ? -1 : b.id === u.defaultBranch ? 1 : 0)) : []), [u, branches, view]);
+  const saved = u ? state.branches[u.id] || 'all' : 'all';
+  const branch = saved !== 'all' && !visibleBranches.some((b) => b.id === saved) ? 'all' : saved;
+  const all = useMemo(() => {
+    if (!u) return [];
+    if (branch !== 'all' || visibleBranches.length < 2) return viewTitles(u.id, branch, view);
+    // Tüm rotalar: her rota kendi bölümünde; ana rota en üstte
+    return visibleBranches.flatMap((b) => viewTitles(u.id, b.id, view));
+  }, [u, branch, visibleBranches, view]);
   if (!u) return <Screen><BackLink label="Evrenler" onPress={() => router.back()} /><Empty title="Bu evren bulunamadı." action="Evrenlere dön" onAction={() => router.replace('/universes')} /></Screen>;
 
-  const p = universeProgress(state, u.id);
-  const n = nextUp(state, u.id);
+  // İlerleme ve "sıradaki" ekrandaki listeye göre
+  const doneN = all.filter((t) => isDone(state, t)).length;
+  const p = { done: doneN, total: all.length, pct: pctOf(all.reduce((x, t) => x + fraction(state, t), 0), all.length, doneN), left: all.reduce((x, t) => x + remaining(state, t), 0) };
+  const n = all.find((t) => isStarted(state, t)) || all.find((t) => !isDone(state, t)) || null;
   const following = state.follow.includes(u.id);
-  const shown = all.filter((t) => type === 'all' || t.type === type);
-  const types = (['Film', 'Dizi', 'Special'] as const).filter((k) => all.some((t) => t.type === k));
+  const numbered = all.map((t, i) => ({ t, n: i + 1 }));
+  const shown = unseen ? numbered.filter((x) => !isDone(state, x.t)) : numbered;
+  // Bölüm başlıkları: tüm rotalarda rota adı, MCU'da faz
+  const sections: { key: string; title: string; items: typeof shown }[] = [];
+  for (const x of shown.slice(0, limit)) {
+    const multi = branch === 'all' && visibleBranches.length > 1;
+    const ph = view !== 'chrono' ? phaseOf(x.t) : null;
+    const title = [multi ? GROUPS[x.t.branch] || '' : '', ph || ''].filter(Boolean).join(' · ');
+    const last = sections[sections.length - 1];
+    if (last && last.title === title) last.items.push(x);
+    else sections.push({ key: `${title}-${sections.length}`, title, items: [x] });
+  }
 
   return (
     <Screen>
@@ -47,7 +68,7 @@ export default function UniverseDetail() {
             <Wordmark u={u} />
             <H1 style={{ marginTop: 14 }}>{u.name}</H1>
             <Muted style={{ marginTop: 6 }}>{u.desc}</Muted>
-            <Small style={{ marginTop: 8 }}>{CATEGORY_TR[u.category]} · {all.length} yapım bu rotada · {duration(p.left)} kaldı</Small>
+            <Small style={{ marginTop: 8 }}>{CATEGORY_TR[u.category]} · {all.length} yapım · {duration(p.left)} kaldı</Small>
             <Btn style={{ marginTop: 16, alignSelf: 'flex-start' }} kind={following ? 'success' : 'secondary'} icon={following ? 'check' : 'plus'}
               label={following ? 'Takip ediliyor' : 'Evreni takip et'}
               onPress={() => { store.toggleFollow(u.id); toast(following ? `${u.name} takipten çıkarıldı` : `${u.name} takip ediliyor`); }} />
@@ -67,49 +88,41 @@ export default function UniverseDetail() {
         {n ? <Btn icon="play" label="Devam et" onPress={() => router.push(`/title/${n.id}`)} /> : <Feather name="award" size={26} color={C.green} />}
       </Panel>
 
-      {branches.length > 1 && (
-        <View style={{ marginTop: 24 }}>
-          <Text style={labelStyle}>İzleme rotası</Text>
+      <View style={{ marginTop: 22 }}>
+        <Segmented<ListView> label="Liste görünümü" value={view} onChange={(v) => { store.setView(v); setLimit(PAGE); }}
+          options={VIEWS.map((v) => ({ id: v, label: VIEW_TR[v] }))} />
+        <Small style={{ marginTop: 8 }}>{VIEW_HELP[view]}</Small>
+      </View>
+
+      {visibleBranches.length > 1 && (
+        <View style={{ marginTop: 14 }}>
           <Pills value={branch} onChange={(b) => { store.setBranch(u.id, b); setLimit(PAGE); }}
-            options={[{ id: 'all', label: `Tüm rotalar · ${routeTitles(u.id, 'all', null, 'release').length}` }, ...branches.map((b) => ({ id: b.id, label: `${b.name} · ${b.count}` }))]} />
+            options={[{ id: 'all', label: 'Tüm rotalar' }, ...visibleBranches.map((b) => ({ id: b.id, label: b.name }))]} />
         </View>
       )}
 
-      <View style={{ marginTop: 20, gap: 14, flexDirection: tablet ? 'row' : 'column' }}>
-        <View style={{ flex: 1 }}>
-          <Text style={labelStyle}>İzleme sırası</Text>
-          <Segmented<Order> label="İzleme sırası" value={state.order} onChange={store.setOrder}
-            options={(['recommended', 'release', 'chrono'] as Order[]).map((o) => ({ id: o, label: ORDER_TR[o] }))} />
+      <Press accessibilityRole="switch" accessibilityState={{ checked: unseen }} onPress={() => { setUnseen((x) => !x); setLimit(PAGE); }}
+        style={{ marginTop: 16, marginBottom: 6, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ width: 22, height: 22, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: unseen ? u.color : 'transparent', borderWidth: unseen ? 0 : 1.5, borderColor: C.line }}>
+          {unseen && <Feather name="check" size={14} color={C.bg} />}
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={labelStyle}>İzleme modu</Text>
-          <Segmented<Mode> label="İzleme modu" value={state.mode} onChange={store.setMode}
-            options={(['essential', 'recommended', 'complete'] as Mode[]).map((m) => ({ id: m, label: MODE_TR[m] }))} />
+        <Text style={{ flex: 1, fontFamily: F.medium, fontSize: 14, color: C.text }}>Sadece izlemediklerim</Text>
+        <Small>{shown.length} yapım</Small>
+      </Press>
+
+      {sections.length ? sections.map((sec) => (
+        <View key={sec.key} style={{ marginTop: 18 }}>
+          {!!sec.title && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <Text style={{ fontFamily: F.semibold, fontSize: 15, color: C.muted }}>{sec.title}</Text>
+              <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: C.line }} />
+            </View>
+          )}
+          {sec.items.map(({ t, n }) => <StoryCard key={t.id} t={t} index={n} />)}
         </View>
-      </View>
-      <Small style={{ marginTop: 10 }}>
-        {MODE_HELP[state.mode]} {state.order === 'chrono' ? 'Evren içindeki zamanı belli olan yapımlar önce gelir; belirsiz olanlar yayın sırasıyla sona eklenir.' : state.order === 'recommended' ? 'Önerilen sırada, sıradaki öneri ön koşulları gözetir.' : ''}
-      </Small>
-
-      {types.length > 1 && (
-        <View style={{ marginTop: 20 }}>
-          <Pills value={type} onChange={(v) => { setType(v); setLimit(PAGE); }}
-            options={[{ id: 'all' as const, label: 'Tümü' }, ...types.map((k) => ({ id: k, label: k === 'Film' ? 'Filmler' : k === 'Dizi' ? 'Diziler' : 'Özel yapımlar' }))]} />
-        </View>
-      )}
-
-      <View style={{ marginTop: 10 }}>
-        {shown.length ? shown.slice(0, limit).map((t, i) => (
-          <View key={t.id} style={{ borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.lineSoft }}>
-            <TitleRow t={t} index={i + 1} dim={!inMode(t, state.mode)} />
-          </View>
-        )) : <Empty title="Bu filtrede yapım yok." text="Başka bir rota ya da tür seç." />}
-      </View>
-      {shown.length > limit && <Btn kind="secondary" label={`Daha fazla göster (${shown.length - limit})`} style={{ marginTop: 18 }} onPress={() => setLimit((l) => l + PAGE)} />}
-
-      <Small style={{ marginTop: 22 }}>Farklı süreklilikler ayrı rotalarda yer alır. Soluk görünen yapımlar seçili modun dışında; ilerleme yüzdesine katılmaz.</Small>
+      )) : <Empty title={unseen ? 'Bu listede izlemediğin yapım kalmadı.' : 'Bu görünümde yapım yok.'} text={unseen ? undefined : 'Tümü görünümünü dene.'} />}
+      {shown.length > limit && <Btn kind="secondary" label={`Daha fazla göster (${shown.length - limit})`} style={{ marginTop: 6 }} onPress={() => setLimit((l) => l + PAGE)} />}
     </Screen>
   );
 }
 
-const labelStyle = { fontFamily: F.medium, fontSize: 13, color: C.muted, marginBottom: 8 } as const;

@@ -4,13 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Wordmark, TitleRow } from '@/components/media';
 import { Btn, Divider, Empty, Eyebrow, H1, H3, Muted, Panel, Press, Screen, SectionHead, Segmented, Small, Bar, useLayout, useToast } from '@/components/ui';
-import { MODE_TR, ORDER_TR, TBY, UBY } from '@/lib/catalog';
+import { TBY, UBY, VIEWS, VIEW_TR } from '@/lib/catalog';
 import { confirm } from '@/lib/confirm';
 import { monthLabel } from '@/lib/format';
 import { history, stats, universeProgress } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
-import type { Mode, Order } from '@/lib/types';
+import type { ListView } from '@/lib/types';
 
 export default function Profile() {
   const store = useStore();
@@ -54,7 +54,7 @@ export default function Profile() {
         ))}
       </View>
 
-      <SectionHead title="Evren istatistiklerin" note={MODE_TR[state.mode]} />
+      <SectionHead title="Evren istatistiklerin" note={VIEW_TR[state.view]} />
       <Panel>
         {state.follow.length ? state.follow.map((id, i) => {
           const u = UBY[id]; const p = universeProgress(state, id);
@@ -77,7 +77,7 @@ export default function Profile() {
             <Panel key={u.id} style={{ flexBasis: tablet ? '30%' : '46%', flexGrow: 1, borderColor: alpha(u.color, 0.5) }}>
               <Feather name="award" size={22} color={u.color} />
               <H3 style={{ marginTop: 10 }}>{u.badge}</H3>
-              <Small style={{ marginTop: 2 }}>{u.name} · {MODE_TR[state.mode]} rotası tamamlandı</Small>
+              <Small style={{ marginTop: 2 }}>{u.name} · {VIEW_TR[state.view]} tamamlandı</Small>
             </Panel>
           ))}
         </View>
@@ -98,10 +98,8 @@ export default function Profile() {
           <Switch value={state.spoiler} onValueChange={store.setSpoiler} trackColor={{ true: C.accent, false: C.line }} thumbColor="#fff" accessibilityLabel="Spoiler koruması" />
         </View>
         <Divider />
-        <Text style={label}>Varsayılan izleme modu</Text>
-        <Segmented<Mode> label="İzleme modu" value={state.mode} onChange={store.setMode} options={(['essential', 'recommended', 'complete'] as Mode[]).map((m) => ({ id: m, label: MODE_TR[m] }))} />
-        <Text style={[label, { marginTop: 16 }]}>Varsayılan izleme sırası</Text>
-        <Segmented<Order> label="İzleme sırası" value={state.order} onChange={store.setOrder} options={(['recommended', 'release', 'chrono'] as Order[]).map((o) => ({ id: o, label: ORDER_TR[o] }))} />
+        <Text style={label}>Evren listelerinin görünümü</Text>
+        <Segmented<ListView> label="Liste görünümü" value={state.view} onChange={store.setView} options={VIEWS.map((v) => ({ id: v, label: VIEW_TR[v] }))} />
         <Divider />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flex: 1 }}><H3>Evrenlerini ve başlangıç noktanı düzenle</H3><Small>Takip ettiklerini seç, izlediklerini topluca işaretle.</Small></View>
