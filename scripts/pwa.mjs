@@ -74,6 +74,12 @@ self.addEventListener('fetch', (e) => {
 `);
 
 const head = `
+    <meta name="color-scheme" content="dark">
+    <style id="wv-pwa">
+      html, body { background: #0B0D12; color-scheme: dark; }
+      html, body, #root { height: 100%; min-height: 100dvh; }
+      body { overscroll-behavior: none; }
+    </style>
     <link rel="manifest" href="${at('manifest.webmanifest')}">
     <link rel="apple-touch-icon" href="${at('apple-touch-icon.png')}">
     <meta name="theme-color" content="#0B0D12">
