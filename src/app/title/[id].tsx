@@ -6,17 +6,11 @@ import { useMemo, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Art, Wordmark } from '@/components/media';
 import { BackLink, Bar, Btn, Chip, Empty, Eyebrow, H1, H2, H3, Muted, Panel, Pills, Press, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
-import { TBY, TIER_TR, TYPE_TR, UBY, backdropUrl } from '@/lib/catalog';
+import { AFTER, TBY, TIER_TR, TYPE_TR, UBY, backdropUrl } from '@/lib/catalog';
 import { duration } from '@/lib/format';
 import { episodeLabel, fraction, isDone, nextEpisode, readiness, remaining, route, totalMinutes, watchedEps } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
-import type { Title } from '@/lib/types';
-
-// Her yapımdan sonra gelenler: bir kez hesaplanır
-const AFTER: Record<string, Title[]> = {};
-for (const x of Object.values(TBY)) for (const d of x.deps) (AFTER[d] ||= []).push(x);
-for (const k of Object.keys(AFTER)) AFTER[k] = AFTER[k].sort((a, b) => a.release - b.release).slice(0, 6);
 
 export default function TitleDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();

@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Linking, View } from 'react-native';
 import { BackLink, Body, Divider, H1, H3, Muted, Panel, Press, Screen, SectionHead, Small } from '@/components/ui';
-import { CATALOG, SCOPE, UNIVERSES, UPDATED } from '@/lib/catalog';
+import { CATALOG, META, UNIVERSES } from '@/lib/catalog';
 import { C, F } from '@/lib/theme';
 
 const link = (url: string, text: string) => (
@@ -17,8 +17,8 @@ export default function Credits() {
 
       <Panel style={{ marginTop: 20 }}>
         <H3>{CATALOG.length} yapım · {UNIVERSES.length} evren</H3>
-        <Muted style={{ marginTop: 8 }}>{SCOPE}</Muted>
-        <Muted style={{ marginTop: 8 }}>Katalog tarihi: {UPDATED}. Yeni yayınlar uygulama güncellemeleriyle eklenir. Bölüm ve tarih bilgileri eksik olabilir.</Muted>
+        <Muted style={{ marginTop: 8 }}>{META.scope}</Muted>
+        <Muted style={{ marginTop: 8 }}>Son güncelleme: {META.updated}. Yeni yapımlar ve sezonlar haftada bir kendiliğinden eklenir. Bölüm ve tarih bilgileri eksik olabilir.</Muted>
       </Panel>
 
       <SectionHead title="Modlar" />

@@ -7,7 +7,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/components/brand';
 import { Art, PosterCard, UniverseCard } from '@/components/media';
 import { Btn, Chip, Empty, Grid, Eyebrow, H1, H2, H3, Muted, Panel, Press, Ring, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
-import { TBY, TYPE_TR, UBY, backdropUrl } from '@/lib/catalog';
+import { TBY, TYPE_TR, UBY, backdropUrl, recentSeasons, recentlyAdded } from '@/lib/catalog';
 import { duration } from '@/lib/format';
 import { bigStory, continueWatching, episodeLabel, isDone, nextEpisode, nextUp, readiness, tonight, universeProgress } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -25,6 +25,11 @@ export default function Home() {
   const night = useMemo(() => tonight(state), [state]);
   const followed = state.follow.map((u) => UBY[u]).filter(Boolean);
   const list = state.list.map((id) => TBY[id]).filter((t) => t && !isDone(state, t));
+  const fresh = useMemo(() => {
+    const l = recentlyAdded();
+    return [...l.filter((t) => state.follow.includes(t.u)), ...l.filter((t) => !state.follow.includes(t.u))].slice(0, 20);
+  }, [state.follow]);
+  const freshSeasons = useMemo(() => recentSeasons().sort((a, b) => Number(state.follow.includes(TBY[b.id].u)) - Number(state.follow.includes(TBY[a.id].u))), [state.follow]);
 
   const railW = tablet ? 150 : Math.min(132, (width - pad * 2 - 24) / 2.6);
   const cardW = Math.min(290, width * 0.74);
@@ -58,6 +63,34 @@ export default function Home() {
             {cw.map((t) => <PosterCard key={t.id} t={t} width={railW} />)}
             <View style={{ width: pad - 14 }} />
           </ScrollView>
+        </>
+      )}
+
+      {(fresh.length > 0 || freshSeasons.length > 0) && (
+        <>
+          <SectionHead title="Yeni eklenenler" note="son 45 gün" />
+          {fresh.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }} style={{ marginHorizontal: -pad }}>
+              <View style={{ width: pad - 14 }} />
+              {fresh.map((t) => <PosterCard key={t.id} t={t} width={railW} />)}
+              <View style={{ width: pad - 14 }} />
+            </ScrollView>
+          )}
+          {freshSeasons.length > 0 && (
+            <Panel style={{ marginTop: fresh.length ? 14 : 0, paddingVertical: 6 }}>
+              {freshSeasons.slice(0, 6).map((x, i) => (
+                <Press key={x.id + x.season} accessibilityRole="button" onPress={() => router.push(`/title/${x.id}`)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderTopWidth: i ? StyleSheet.hairlineWidth : 0, borderTopColor: C.lineSoft }}>
+                  <Feather name="plus-circle" size={18} color={C.accentSoft} />
+                  <View style={{ flex: 1 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 14.5, color: C.text }}>{TBY[x.id].title}</Text>
+                    <Small>{x.season}. sezon · {x.episodes} yeni bölüm</Small>
+                  </View>
+                  <Feather name="chevron-right" size={18} color={C.dim} />
+                </Press>
+              ))}
+            </Panel>
+          )}
         </>
       )}
 

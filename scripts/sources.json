@@ -1,0 +1,46 @@
+{
+  "_note": "Her evren için yeni yapımların nereden aranacağı. collection: TMDB film serisi adı; keyword: TMDB anahtar kelimesi; company: yapım şirketi. 'must' eşleşen adın içinde geçmesi gereken kelime (yanlış eşleşmeyi önler). 'branch' yeni yapımın hangi rotaya gireceği. Dizi sezonları ayrıca, katalogdaki her dizi için kontrol edilir.",
+  "sources": [
+    { "u": "marvel", "keyword": "marvel cinematic universe (mcu)", "must": "marvel cinematic", "media": ["movie", "tv"], "branch": "mcu", "tier": 1 },
+    { "u": "marvel", "company": "Marvel Studios", "must": "marvel studios", "media": ["movie", "tv"], "branch": "mcu", "tier": 1 },
+    { "u": "marvel", "company": "Marvel Animation", "must": "marvel animation", "media": ["tv", "movie"], "branch": "marvelanimation", "tier": 2 },
+    { "u": "marvel", "keyword": "sony's spider-man universe", "must": "spider-man universe", "media": ["movie", "tv"], "branch": "sony", "tier": 2 },
+
+    { "u": "dc", "company": "DC Studios", "must": "dc studios", "media": ["movie", "tv"], "branch": "dcu", "tier": 1 },
+    { "u": "dc", "keyword": "dc universe (dcu)", "must": "dcu", "media": ["movie", "tv"], "branch": "dcu", "tier": 1 },
+    { "u": "dc", "keyword": "dc comics", "must": "dc comics", "media": ["movie", "tv"], "branch": "dcclassic", "tier": 2, "minVotes": 20 },
+
+    { "u": "sw", "company": "Lucasfilm Ltd.", "must": "lucasfilm", "media": ["movie", "tv"], "branch": "swcanon", "tier": 1, "skipIfTitleHas": ["indiana", "willow", "documentary", "making of", "light & magic"] },
+    { "u": "sw", "collection": "Star Wars", "must": "star wars", "branch": "swcanon", "tier": 0 },
+
+    { "u": "wizard", "keyword": "wizarding world", "must": "wizarding", "media": ["movie", "tv"], "branch": "hp", "tier": 0 },
+    { "u": "wizard", "collection": "Harry Potter", "must": "harry potter", "branch": "hp", "tier": 0 },
+    { "u": "wizard", "collection": "Fantastic Beasts", "must": "fantastic beasts", "branch": "hp", "tier": 0 },
+
+    { "u": "middle", "keyword": "middle-earth (tolkien)", "must": "middle-earth", "media": ["movie", "tv"], "branch": "peterjackson", "tier": 1 },
+    { "u": "middle", "collection": "The Lord of the Rings", "must": "lord of the rings", "branch": "peterjackson", "tier": 0 },
+
+    { "u": "got", "keyword": "a song of ice and fire", "must": "ice and fire", "media": ["tv", "movie"], "branch": "got-main", "tier": 1 },
+    { "u": "boys", "keyword": "the boys universe", "must": "boys", "media": ["tv", "movie"], "branch": "boys-extra", "tier": 1 },
+    { "u": "strangerthings", "keyword": "stranger things", "must": "stranger things", "media": ["tv", "movie"], "branch": "st-main", "tier": 2 },
+    { "u": "alien", "collection": "Alien", "must": "alien", "branch": "alien-main", "tier": 0 },
+    { "u": "predator", "collection": "Predator", "must": "predator", "branch": "predator-main", "tier": 0 },
+    { "u": "monsterverse", "collection": "MonsterVerse", "must": "monsterverse", "branch": "monster-main", "tier": 0 },
+    { "u": "monsterverse", "keyword": "monsterverse", "must": "monsterverse", "media": ["movie", "tv"], "branch": "monster-main", "tier": 1 },
+    { "u": "apes", "collection": "Planet of the Apes (Reboot)", "must": "apes", "branch": "apes-modern", "tier": 0 },
+    { "u": "jurassic", "collection": "Jurassic Park", "must": "jurassic", "branch": "jp-main", "tier": 0 },
+    { "u": "matrix", "collection": "The Matrix", "must": "matrix", "branch": "matrix-main", "tier": 0 },
+    { "u": "avatar", "collection": "Avatar", "must": "avatar", "branch": "avatar-main", "tier": 0 },
+    { "u": "terminator", "collection": "The Terminator", "must": "terminator", "branch": "term-main", "tier": 0 },
+    { "u": "transformers", "collection": "Transformers", "must": "transformers", "branch": "tf-new", "tier": 0 },
+    { "u": "startrek", "keyword": "star trek", "must": "star trek", "media": ["tv", "movie"], "branch": "trek-modern", "tier": 1 },
+    { "u": "twd", "keyword": "the walking dead", "must": "walking dead", "media": ["tv"], "branch": "twd-spin", "tier": 2 },
+    { "u": "mi", "collection": "Mission: Impossible", "must": "mission", "branch": "mi-main", "tier": 0 },
+    { "u": "bond", "collection": "James Bond", "must": "bond", "branch": "bond-craig", "tier": 0 },
+    { "u": "johnwick", "collection": "John Wick", "must": "wick", "branch": "jw-main", "tier": 0 },
+    { "u": "johnwick", "keyword": "john wick", "must": "john wick", "media": ["movie", "tv"], "branch": "jw-extra", "tier": 1 },
+    { "u": "rocky", "collection": "Rocky", "must": "rocky", "branch": "rocky-main", "tier": 0 },
+    { "u": "rocky", "collection": "Creed", "must": "creed", "branch": "rocky-creed", "tier": 0 },
+    { "u": "pirates", "collection": "Pirates of the Caribbean", "must": "pirates", "branch": "pirates-main", "tier": 0 }
+  ]
+}

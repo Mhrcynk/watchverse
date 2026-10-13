@@ -1,0 +1,80 @@
+# Haftada bir (pazartesi sabahı) yeni bölüm, sezon ve yapımları ekler, siteyi yeniden yayınlar.
+# Elle çalıştırmak için: GitHub → Actions → "Katalogu güncelle" → Run workflow
+name: Katalogu güncelle
+
+on:
+  schedule:
+    - cron: '17 4 * * 1'   # her pazartesi 07:17 (Türkiye saati)
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Yeni bölüm, sezon ve yapımları bul
+        if: github.event_name != 'push'
+        env:
+          TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
+        run: node scripts/update-catalog.mjs
+
+      - name: Eksik afiş ve Türkçe özetleri tamamla
+        if: github.event_name != 'push'
+        env:
+          TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
+        run: node scripts/resolve-tmdb.mjs || true
+
+      - name: Katalogu kaydet
+        if: github.event_name != 'push'
+        run: |
+          if ! git diff --quiet src/data/catalog.json; then
+            git config user.name "watchverse-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/data/catalog.json
+            git commit -m "Katalog güncellendi ($(date +%F))"
+            git push
+          elif [ $(( $(date +%s) - $(git log -1 --format=%ct) )) -gt 3888000 ]; then
+            # GitHub, 60 gün hareketsiz kalan depolarda zamanlanmış görevi durdurur; bunu önlemek için
+            git config user.name "watchverse-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "Haftalık kontrol: değişiklik yok"
+            git push
+          fi
+
+      - name: Web uygulamasını hazırla
+        env:
+          CI: 1
+          EXPO_BASE_URL: /${{ github.event.repository.name }}
+          EXPO_PUBLIC_CATALOG_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/catalog.json
+        run: |
+          npx expo export --platform web --output-dir dist
+          node scripts/pwa.mjs dist "$EXPO_BASE_URL"
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deploy
+        uses: actions/deploy-pages@v4

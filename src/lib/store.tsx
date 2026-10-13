@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { TBY, UBY, branchesOf } from './catalog';
+import { loadCachedCatalog } from './remote';
 import type { Mode, Order, State } from './types';
 
 const KEY = 'watchverse:v2';
@@ -81,7 +82,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Açılışta kaydı oku
   useEffect(() => {
     let alive = true;
-    AsyncStorage.getItem(KEY)
+    // Önce indirilmiş katalog yüklenir; yoksa kayıt temizlenirken yeni yapımların işaretleri silinirdi
+    loadCachedCatalog()
+      .then(() => AsyncStorage.getItem(KEY))
       .then((txt) => { if (alive && txt) setRaw(sanitize(JSON.parse(txt))); })
       .catch(() => {})
       .finally(() => alive && setReady(true));

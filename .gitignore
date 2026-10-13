@@ -44,3 +44,4 @@ yarn-error.*
 secrets/
 dist-web/
 scripts/tmdb-report.json
+dist-pages/
