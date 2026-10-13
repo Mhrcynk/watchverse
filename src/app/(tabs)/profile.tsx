@@ -1,9 +1,12 @@
 import Feather from '@expo/vector-icons/Feather';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { Wordmark, TitleRow } from '@/components/media';
-import { Btn, Divider, Empty, Eyebrow, H1, H3, Muted, Panel, Press, Screen, SectionHead, Segmented, Small, Bar, useLayout, useToast } from '@/components/ui';
+import { Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { pickBackupFile, saveBackupFile } from '@/lib/backup-file';
+import { copyText, enablePush, pushPermission } from '@/lib/push';
+import { Art, Wordmark, TitleRow } from '@/components/media';
+import { Btn, Divider, Empty, Eyebrow, FadeIn, H1, H3, Muted, Panel, Press, Screen, SectionHead, Segmented, Small, Bar, useLayout, useToast } from '@/components/ui';
 import { TBY, UBY, VIEWS, VIEW_TR } from '@/lib/catalog';
 import { confirm } from '@/lib/confirm';
 import { monthLabel } from '@/lib/format';
@@ -33,6 +36,8 @@ export default function Profile() {
     g ? g.items.push(h) : groups.push({ label, items: [h] });
   }
 
+  const [pushCode, setPushCode] = useState<string | null>(null);
+  const favs = Object.entries(state.ratings).map(([id, r]) => ({ t: TBY[id], r })).filter((x) => x.t).sort((a, b) => b.r - a.r || (state.touched[b.t.id] || 0) - (state.touched[a.t.id] || 0));
   return (
     <Screen>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 8 }}>
@@ -69,6 +74,23 @@ export default function Profile() {
           );
         }) : <Muted>Evren takip ederek yolculuğuna başla.</Muted>}
       </Panel>
+
+      {favs.length > 0 && (
+        <>
+          <SectionHead title="En sevdiklerin" note={`${favs.length} puanlı yapım`} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 8 }}>
+            {favs.slice(0, 20).map(({ t, r }) => (
+              <Press key={t.id} accessibilityRole="button" accessibilityLabel={`${t.title}, ${r} yıldız`} onPress={() => router.push(`/title/${t.id}`)} style={{ width: 112 }}>
+                <Art t={t} size="w185" style={{ width: 112, borderRadius: R.md }} />
+                <Text numberOfLines={1} style={{ marginTop: 6, fontFamily: F.semibold, fontSize: 13, color: C.text }}>{t.title}</Text>
+                <View style={{ flexDirection: 'row', gap: 1, marginTop: 2 }}>
+                  {[1, 2, 3, 4, 5].map((n) => <Ionicons key={n} name={n <= r ? 'star' : 'star-outline'} size={12} color={n <= r ? C.amber : C.dim} />)}
+                </View>
+              </Press>
+            ))}
+          </ScrollView>
+        </>
+      )}
 
       <SectionHead title="Rozetlerin" note={`${s.completed.length} / ${state.follow.length || 25}`} />
       {s.completed.length ? (
@@ -119,12 +141,36 @@ export default function Profile() {
         </View>
       )) : <Empty icon="clock" title="Henüz bir şey izlemedin." text="İşaretlediğin yapımlar ay ay burada birikir." />}
 
+      <SectionHead title="Bildirimler" />
+      <Panel>
+        <Muted>Takip ettiğin evrenlere yeni bölüm, sezon ya da yapım eklendiğinde haftalık güncellemeyle telefonuna bildirim gelir.</Muted>
+        {pushCode ? (
+          <FadeIn style={{ marginTop: 14 }}>
+            <Small style={{ color: C.green }}>İzin verildi. Son adım: bu kodu kopyala ve GitHub'da PUSH_SUBSCRIPTION ayarına yapıştır. Takip ettiğin evrenleri değiştirirsen kodu yeniden al.</Small>
+            <Text selectable numberOfLines={3} style={{ marginTop: 10, padding: 12, borderRadius: R.md, backgroundColor: C.bg, color: C.muted, fontFamily: F.regular, fontSize: 12 }}>{pushCode}</Text>
+            <Btn icon="copy" label="Kodu kopyala" style={{ marginTop: 10, alignSelf: 'flex-start' }} onPress={async () => toast((await copyText(pushCode)) ? 'Kod kopyalandı' : 'Kopyalanamadı; metne uzun basıp kopyala')} />
+          </FadeIn>
+        ) : (
+          <Btn icon="bell" label={pushPermission() === 'granted' ? 'Bildirim kodunu al' : 'Bildirimleri aç'} style={{ marginTop: 14, alignSelf: 'flex-start' }}
+            onPress={async () => { const r = await enablePush(state.follow); if (r.ok) setPushCode(r.code); else toast(r.reason); }} />
+        )}
+      </Panel>
+
       <SectionHead title="Yedekleme" />
       <Panel>
-        <Muted>İlerlemen yalnızca bu cihazda tutulur. Telefon değiştirirken ya da uygulamayı silmeden önce yedek kodunu al, yeni cihazda yapıştır.</Muted>
+        <Muted>İlerlemen, puanların ve notların yalnızca bu cihazda tutulur. Dosyaya yedekle; iPhone'da açılan sayfada “Dosyalar'a Kaydet”i seçip iCloud Drive'a kaydedersen telefon değişse bile kaybolmaz.</Muted>
+        <Small style={{ marginTop: 8, color: state.lastBackup ? C.green : C.amber }}>{state.lastBackup ? `Son yedek: ${new Date(state.lastBackup).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Henüz yedek almadın.'}</Small>
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-          <Btn icon="share" kind="secondary" label="Yedek kodunu paylaş" onPress={() => Share.share({ message: store.exportBackup() }).catch(() => {})} />
-          <Btn icon="download" kind="secondary" label="Yedekten yükle" onPress={() => setImporting((v) => !v)} />
+          <Btn icon="upload-cloud" label="Dosyaya yedekle" onPress={async () => { const ok = await saveBackupFile(store.exportBackup()); if (ok) { store.markBackup(); toast('Yedek hazırlandı'); } }} />
+          <Btn icon="download" kind="secondary" label="Dosyadan geri yükle" onPress={async () => {
+            const txt = await pickBackupFile();
+            if (txt === null) { if (Platform.OS !== 'web') setImporting(true); return; }
+            confirm('Yedek geri yüklensin mi?', 'Bu cihazdaki mevcut ilerlemenin yerine yedekteki ilerleme gelir.', 'Geri yükle', () => {
+              const ok = store.importBackup(txt);
+              toast(ok ? 'Yedek geri yüklendi' : 'Dosya okunamadı. WatchVerse yedeği olduğundan emin ol.');
+            });
+          }} />
+          <Btn kind="quiet" label={importing ? 'Kodu gizle' : 'Kodla geri yükle'} onPress={() => setImporting((v) => !v)} />
         </View>
         {importing && (
           <View style={{ marginTop: 14 }}>

@@ -37,9 +37,22 @@ async function providers(m, id) {
   return null;
 }
 
+/** Resmî YouTube fragmanı; yoksa boş metin (bir daha aranmaz) */
+async function trailer(m, id) {
+  for (const lang of ['tr-TR', 'en-US']) {
+    const res = await fetch(`https://api.themoviedb.org/3/${m}/${id}/videos?language=${lang}`, { headers: { Authorization: `Bearer ${TOKEN}`, accept: 'application/json' } });
+    if (res.status === 429) { await sleep(2000); return null; }
+    if (!res.ok) return null;
+    const v = (await res.json()).results?.filter((x) => x.site === 'YouTube' && /Trailer|Teaser/.test(x.type)) || [];
+    v.sort((a, b) => (b.official - a.official) || ((a.type === 'Trailer' ? 0 : 1) - (b.type === 'Trailer' ? 0 : 1)) || (b.size || 0) - (a.size || 0));
+    if (v[0]) return v[0].key;
+  }
+  return '';
+}
+
 const d = JSON.parse(fs.readFileSync(FILE, 'utf8'));
 const list = d.catalog.filter((t) => t.tmdb?.id > 0);
-let changed = 0, found = 0, i = 0;
+let changed = 0, found = 0, trailers = 0, i = 0;
 async function worker() {
   while (i < list.length) {
     const t = list[i++];
@@ -49,8 +62,9 @@ async function worker() {
     const before = JSON.stringify(t.pl || []);
     if (pl.length) t.pl = pl; else delete t.pl;
     if (JSON.stringify(t.pl || []) !== before) changed++;
+    if (t.yt === undefined) { const y = await trailer(t.tmdb.m || t.media, t.tmdb.id); if (y !== null) { t.yt = y; if (y) trailers++; changed++; } }
   }
 }
 await Promise.all(Array.from({ length: 8 }, worker));
 if (changed) { d.rev = new Date().toISOString(); fs.writeFileSync(FILE, JSON.stringify(d)); }
-console.log(`Platform bilgisi: ${found}/${list.length} yapımda var, ${changed} değişti.`);
+console.log(`Platform bilgisi: ${found}/${list.length} yapımda var. Yeni fragman: ${trailers}. Değişen: ${changed}.`);

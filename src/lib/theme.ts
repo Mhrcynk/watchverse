@@ -1,13 +1,13 @@
 // WatchVerse tasarım dili — web prototipindeki renklerin devamı.
 export const C = {
-  bg: '#0B0D12',
-  card: '#151821',
-  raised: '#1C202B',
-  line: '#262B38',
-  lineSoft: '#1E222D',
+  bg: '#0A0B10',
+  card: '#14161E',
+  raised: '#1C1F29',
+  line: '#272B37',
+  lineSoft: '#1D2029',
   text: '#F6F7FB',
   muted: '#A0A5B4',
-  dim: '#6E7486',
+  dim: '#7D8496',
   accent: '#7C5CFC',
   accentSoft: '#B5A0FF',
   green: '#62DCAC',
@@ -24,6 +24,9 @@ export const F = {
 } as const;
 
 export const R = { sm: 8, md: 12, lg: 16, xl: 22 } as const;
+
+/** Hareket süreleri (ms): dokunma tepkisi, küçük geçiş, giriş, liste aralığı */
+export const M = { press: 110, fast: 180, base: 260, enter: 340, stagger: 45 } as const;
 
 // Tablet eşiği ve içerik genişliği
 export const TABLET = 768;

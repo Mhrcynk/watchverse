@@ -20,6 +20,8 @@ export const initialState = (): State => ({
   mode: 'essential',
   order: 'release',
   view: 'main',
+  ratings: {},
+  notes: {},
   branches: {},
   spoiler: true,
   dv: 3,
@@ -50,6 +52,11 @@ export function sanitize(input: unknown): State {
   }
   out.touched = {};
   for (const [id, v] of Object.entries(s.touched || {})) if (TBY[id] && typeof v === 'number') out.touched[id] = v;
+  out.ratings = {};
+  for (const [id, v] of Object.entries(s.ratings || {})) if (TBY[id] && Number.isInteger(v) && v >= 1 && v <= 5) out.ratings[id] = v;
+  out.notes = {};
+  for (const [id, v] of Object.entries(s.notes || {})) if (TBY[id] && typeof v === 'string' && v.trim()) out.notes[id] = v.slice(0, 500);
+  out.lastBackup = typeof s.lastBackup === 'number' ? s.lastBackup : undefined;
   out.branches = {};
   // Eski kayıtlar: ana hikâye + yayın sırası + tüm rotalar varsayılanına bir kez geçir
   // Eski kayıtlar: yeni sade liste görünümüne ve tüm rotalara bir kez geçir
@@ -71,6 +78,11 @@ type Actions = {
   setBranch: (u: string, b: string) => void;
   setSpoiler: (v: boolean) => void;
   setName: (n: string) => void;
+  setRating: (id: string, v: number) => void;
+  setNote: (id: string, v: string) => void;
+  /** Verilen yapımların hepsini izlendi işaretler */
+  markMany: (ids: string[]) => number;
+  markBackup: () => void;
   finishOnboarding: (follow: string[], watchedIds: string[]) => void;
   exportBackup: () => string;
   importBackup: (code: string) => boolean;
@@ -175,6 +187,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setBranch: (u, b) => setRaw((s) => ({ ...s, branches: { ...s.branches, [u]: b } })),
     setSpoiler: (spoiler) => setRaw((s) => ({ ...s, spoiler })),
     setName: (name) => setRaw((s) => ({ ...s, name: name.slice(0, 40) })),
+    setRating: (id, v) => setRaw((s) => { const ratings = { ...s.ratings }; if (v >= 1 && v <= 5 && ratings[id] !== v) ratings[id] = v; else delete ratings[id]; return { ...s, ratings }; }),
+    setNote: (id, v) => setRaw((s) => { const notes = { ...s.notes }; if (v.length) notes[id] = v.slice(0, 500); else delete notes[id]; return { ...s, notes }; }),
+    markMany(ids) {
+      const todo = ids.map((id) => TBY[id]).filter((t) => t && !(t.episodes ? (ref.current.episodes[t.id]?.length || 0) === t.episodes : ref.current.watched[t.id]));
+      if (!todo.length) return 0;
+      setRaw((s) => {
+        const now = Date.now();
+        const watched = { ...s.watched }, episodes = { ...s.episodes }, touched = { ...s.touched };
+        for (const t of todo) {
+          if (t.episodes) episodes[t.id] = Array.from({ length: t.episodes }, (_, i) => i + 1); else watched[t.id] = now;
+          touched[t.id] = now;
+        }
+        return { ...s, watched, episodes, touched };
+      });
+      return todo.length;
+    },
+    markBackup: () => setRaw((s) => ({ ...s, lastBackup: Date.now() })),
     finishOnboarding(follow, watchedIds) {
       setRaw((s) => {
         const now = Date.now();
@@ -205,7 +234,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     },
     reset() {
-      setRaw((s) => ({ ...initialState(), onboarded: true, follow: s.follow, name: s.name, mode: s.mode, order: s.order, view: s.view, branches: s.branches, spoiler: s.spoiler }));
+      setRaw((s) => ({ ...initialState(), onboarded: true, follow: s.follow, name: s.name, mode: s.mode, order: s.order, view: s.view, branches: s.branches, spoiler: s.spoiler, lastBackup: s.lastBackup }));
     },
   }), [setState]);
 

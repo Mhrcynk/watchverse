@@ -40,6 +40,8 @@ export type Title = {
   summarySource?: 'tmdb';
   /** Türkiye'de abonelikle izlenebildiği platformlar (TMDB / JustWatch) */
   pl?: string[];
+  /** YouTube fragman kimliği */
+  yt?: string;
   /** "Neden?" açıklaması */
   why?: string;
 };
@@ -67,6 +69,12 @@ export type State = {
   view: ListView;
   branches: Record<string, string>;
   spoiler: boolean;
+  /** 1-5 puanların */
+  ratings: Record<string, number>;
+  /** kısa notların */
+  notes: Record<string, string>;
+  /** son yedek zamanı (ms) */
+  lastBackup?: number;
   /** varsayılan ayar sürümü (eski kayıtları yeni varsayılanlara taşımak için) */
   dv?: number;
 };

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { UniverseCard } from '@/components/media';
-import { Chip, Eyebrow, Grid, H1, Muted, Pills, Screen, SectionHead, Small, useLayout } from '@/components/ui';
+import { Chip, Eyebrow, Grid, H1, Muted, Pills, Screen, SectionHead, Small, useLayout , FadeIn } from '@/components/ui';
 import { CATEGORIES, CATEGORY_TR, UNIVERSES, VIEW_TR } from '@/lib/catalog';
 import { universeProgress } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -18,7 +18,7 @@ export default function Universes() {
     .sort((a, b) => pcts[b.id] - pcts[a.id] || a.name.localeCompare(b.name, 'tr'));
 
   const grid = (arr: typeof UNIVERSES) => (
-    <Grid items={arr} cols={cols} keyOf={(u) => u.id} render={(u) => <UniverseCard u={u} state={state} />} />
+    <Grid items={arr} cols={cols} keyOf={(u) => u.id} render={(u) => <FadeIn index={arr.indexOf(u)}><UniverseCard u={u} state={state} /></FadeIn>} />
   );
 
   return (

@@ -10,7 +10,7 @@ import { fraction, isDone, universeProgress, nextUp, watchedEps } from '@/lib/pr
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
 import type { State, Title, Universe } from '@/lib/types';
-import { Bar, H3, Press, Small, tap, useToast } from './ui';
+import { Bar, CheckButton, FadeIn, H3, Press, Small, tap, useToast } from './ui';
 
 const hash = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); };
 
@@ -127,12 +127,8 @@ export const TitleRow = memo(function TitleRow({ t, dim, showUniverse, index }: 
           <Small style={{ marginTop: 2, color: done ? C.green : t.episodes && eps ? C.accentSoft : C.dim }}>{status}{dim ? ' · Seçili modun dışında' : ''}</Small>
         </View>
       </Press>
-      <Press accessibilityRole="checkbox" accessibilityState={{ checked: done }} accessibilityLabel={done ? `${t.title} izlendi işaretini kaldır` : `${t.title} izlendi olarak işaretle`}
-        hitSlop={8}
-        onPress={() => { const v = toggleWatched(t.id); tap(v ? 'success' : 'light'); toast(v ? 'İzlendi olarak kaydedildi' : 'İzleme işareti kaldırıldı'); }}
-        style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: done ? C.green : 'transparent', borderWidth: done ? 0 : 1.5, borderColor: C.line }}>
-        <Feather name={done ? 'check' : 'plus'} size={18} color={done ? C.bg : C.muted} />
-      </Press>
+      <CheckButton done={done} color={C.green} label={done ? `${t.title} izlendi işaretini kaldır` : `${t.title} izlendi olarak işaretle`}
+        onPress={() => { const v = toggleWatched(t.id); tap(v ? 'success' : 'light'); toast(v ? 'İzlendi olarak kaydedildi' : 'İzleme işareti kaldırıldı'); }} />
     </View>
   );
 });
@@ -149,7 +145,7 @@ function Tag({ label, color, filled }: { label: string; color: string; filled?: 
 }
 
 /** Numara, ad, kısa özet, etiketler (düzey · platform · neden?) ve izledim düğmesi */
-export const StoryCard = memo(function StoryCard({ t, index }: { t: Title; index: number }) {
+export const StoryCard = memo(function StoryCard({ t, index, enter = 0, onMarkUntil }: { t: Title; index: number; enter?: number; onMarkUntil?: (t: Title) => void }) {
   const { state, toggleWatched } = useStore();
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -158,9 +154,11 @@ export const StoryCard = memo(function StoryCard({ t, index }: { t: Title; index
   const col = TIER_COLOR(t);
   const meta = [t.year, t.animated && t.type !== 'Film' ? 'Animasyon' : TYPE_TR[t.type], t.episodes ? `${t.episodes} bölüm` : t.minutes ? duration(t.minutes) : null].filter(Boolean).join(' · ');
   return (
-    <View style={{ marginBottom: 12, borderRadius: R.lg, backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line, borderLeftWidth: t.tier < 2 ? 3 : StyleSheet.hairlineWidth, borderLeftColor: t.tier < 2 ? col : C.line, opacity: done ? 0.62 : 1 }}>
-      <View style={{ flexDirection: 'row', gap: 12, padding: 14 }}>
-        <Press accessibilityRole="button" accessibilityLabel={`${t.title} ayrıntıları`} onPress={() => router.push(`/title/${t.id}`)} style={{ flex: 1, flexDirection: 'row', gap: 12 }}>
+    <FadeIn index={enter} style={{ marginBottom: 12, borderRadius: R.lg, backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line, borderLeftWidth: t.tier < 2 ? 3 : StyleSheet.hairlineWidth, borderLeftColor: t.tier < 2 ? col : C.line, opacity: done ? 0.62 : 1 }}>
+      <View style={{ flexDirection: 'row', gap: 10, padding: 14, paddingRight: 8 }}>
+        <Press accessibilityRole="button" accessibilityLabel={`${t.title} ayrıntıları`} accessibilityHint={onMarkUntil ? 'Uzun basınca buraya kadar olanları izlendi işaretler' : undefined}
+          onPress={() => router.push(`/title/${t.id}`)} onLongPress={onMarkUntil ? () => { tap('success'); onMarkUntil(t); } : undefined} delayLongPress={450}
+          scaleTo={0.985} style={{ flex: 1, flexDirection: 'row', gap: 12, userSelect: 'none', WebkitTouchCallout: 'none' } as any}>
           <View>
             <Art t={t} compact size="w185" style={{ width: 54, borderRadius: 8 }} />
             <Text style={{ marginTop: 6, textAlign: 'center', fontFamily: F.semibold, fontSize: 12, color: C.dim }}>{index}</Text>
@@ -171,12 +169,8 @@ export const StoryCard = memo(function StoryCard({ t, index }: { t: Title; index
             {!!t.summary && <Text numberOfLines={2} style={{ marginTop: 6, fontFamily: F.regular, fontSize: 13.5, lineHeight: 19, color: C.muted }}>{t.summary}</Text>}
           </View>
         </Press>
-        <Press accessibilityRole="checkbox" accessibilityState={{ checked: done }} accessibilityLabel={done ? `${t.title} izlendi işaretini kaldır` : `${t.title} izlendi olarak işaretle`}
-          hitSlop={8}
-          onPress={() => { const v = toggleWatched(t.id); tap(v ? 'success' : 'light'); toast(v ? 'İzlendi olarak kaydedildi' : 'İzleme işareti kaldırıldı'); }}
-          style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: done ? col : 'transparent', borderWidth: done ? 0 : 1.5, borderColor: C.line }}>
-          {done && <Feather name="check" size={18} color={C.bg} />}
-        </Press>
+        <CheckButton done={done} color={col} label={done ? `${t.title} izlendi işaretini kaldır` : `${t.title} izlendi olarak işaretle`}
+          onPress={() => { const v = toggleWatched(t.id); tap(v ? 'success' : 'light'); toast(v ? 'İzlendi olarak kaydedildi' : 'İzleme işareti kaldırıldı'); }} />
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingBottom: open ? 8 : 14 }}>
         <Tag label={TIER_TR[t.tier]} color={col} filled={t.tier < 2} />
@@ -185,7 +179,7 @@ export const StoryCard = memo(function StoryCard({ t, index }: { t: Title; index
           <Text style={{ fontFamily: F.semibold, fontSize: 12.5, color: open ? C.text : C.dim }}>{open ? 'Gizle' : 'Neden?'}</Text>
         </Press>
       </View>
-      {open && <Text style={{ paddingHorizontal: 14, paddingBottom: 14, fontFamily: F.regular, fontSize: 13.5, lineHeight: 19, color: C.text }}>{whyOf(t)}</Text>}
-    </View>
+      {open && <FadeIn from={-6}><Text style={{ paddingHorizontal: 14, paddingBottom: 14, fontFamily: F.regular, fontSize: 13.5, lineHeight: 19, color: C.text }}>{whyOf(t)}</Text></FadeIn>}
+    </FadeIn>
   );
 });

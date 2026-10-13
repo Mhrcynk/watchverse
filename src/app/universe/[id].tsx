@@ -10,7 +10,8 @@ import { duration } from '@/lib/format';
 import { fraction, isDone, isStarted, pctOf, remaining } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
-import type { ListView } from '@/lib/types';
+import type { ListView, Title } from '@/lib/types';
+import { confirm } from '@/lib/confirm';
 
 const PAGE = 60;
 
@@ -44,6 +45,15 @@ export default function UniverseDetail() {
   const p = { done: doneN, total: all.length, pct: pctOf(all.reduce((x, t) => x + fraction(state, t), 0), all.length, doneN), left: all.reduce((x, t) => x + remaining(state, t), 0) };
   const n = all.find((t) => isStarted(state, t)) || all.find((t) => !isDone(state, t)) || null;
   const following = state.follow.includes(u.id);
+  const markUntil = (t: Title) => {
+    const upto = all.slice(0, all.findIndex((x) => x.id === t.id) + 1);
+    const left = upto.filter((x) => !isDone(state, x)).length;
+    if (!left) { toast('Bunlar zaten izlendi'); return; }
+    confirm('Buraya kadar izledim', `“${t.title}” ve öncesi, toplam ${left} yapım izlendi olarak işaretlensin mi?`, 'İşaretle', () => {
+      const n = store.markMany(upto.map((x) => x.id));
+      toast(`${n} yapım izlendi olarak işaretlendi`);
+    });
+  };
   const numbered = all.map((t, i) => ({ t, n: i + 1 }));
   const shown = unseen ? numbered.filter((x) => !isDone(state, x.t)) : numbered;
   // Bölüm başlıkları: tüm rotalarda rota adı, MCU'da faz
@@ -89,7 +99,7 @@ export default function UniverseDetail() {
       </Panel>
 
       <View style={{ marginTop: 22 }}>
-        <Segmented<ListView> label="Liste görünümü" value={view} onChange={(v) => { store.setView(v); setLimit(PAGE); }}
+        <Segmented<ListView> label="Liste görünümü" color={u.color} value={view} onChange={(v) => { store.setView(v); setLimit(PAGE); }}
           options={VIEWS.map((v) => ({ id: v, label: VIEW_TR[v] }))} />
         <Small style={{ marginTop: 8 }}>{VIEW_HELP[view]}</Small>
       </View>
@@ -109,6 +119,7 @@ export default function UniverseDetail() {
         <Text style={{ flex: 1, fontFamily: F.medium, fontSize: 14, color: C.text }}>Sadece izlemediklerim</Text>
         <Small>{shown.length} yapım</Small>
       </Press>
+      <Small style={{ marginBottom: 4 }}>İpucu: bir yapıma uzun basarak oraya kadar olanların hepsini izlendi işaretleyebilirsin.</Small>
 
       {sections.length ? sections.map((sec) => (
         <View key={sec.key} style={{ marginTop: 18 }}>
@@ -118,7 +129,7 @@ export default function UniverseDetail() {
               <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: C.line }} />
             </View>
           )}
-          {sec.items.map(({ t, n }) => <StoryCard key={t.id} t={t} index={n} />)}
+          {sec.items.map(({ t, n }, i) => <StoryCard key={t.id} t={t} index={n} enter={i} onMarkUntil={markUntil} />)}
         </View>
       )) : <Empty title={unseen ? 'Bu listede izlemediğin yapım kalmadı.' : 'Bu görünümde yapım yok.'} text={unseen ? undefined : 'Tümü görünümünü dene.'} />}
       {shown.length > limit && <Btn kind="secondary" label={`Daha fazla göster (${shown.length - limit})`} style={{ marginTop: 6 }} onPress={() => setLimit((l) => l + PAGE)} />}

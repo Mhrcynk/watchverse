@@ -12,7 +12,10 @@ export type RawCatalog = {
   scope: string;
   excluded?: { title: string; reason: string }[];
   changes?: Change[];
+  upcoming?: Upcoming[];
 };
+/** Çıkış tarihi belli yakında gelecekler */
+export type Upcoming = { k: string; id?: string; u: string; title: string; kind: 'season' | 'episode' | 'film' | 'series'; season?: number; episode?: number; date: string; p: string | null };
 
 /*
  * Katalog uygulama açıkken yenilenebilir. Diğer dosyalar bu nesnelerin kendisini içe aktarır;
@@ -23,6 +26,7 @@ export const GROUPS: Record<string, string> = {};
 export const UNIVERSES: Universe[] = [];
 export const CATALOG: Title[] = [];
 export const CHANGES: Change[] = [];
+export const UPCOMING: Upcoming[] = [];
 export const UBY: Record<string, Universe> = {};
 export const TBY: Record<string, Title> = {};
 /** Bir yapıma doğrudan bağlanan sonraki yapımlar */
@@ -36,6 +40,7 @@ export function applyCatalog(d: RawCatalog) {
   UNIVERSES.length = 0; UNIVERSES.push(...d.universes);
   CATALOG.length = 0; CATALOG.push(...d.catalog);
   CHANGES.length = 0; CHANGES.push(...(d.changes || []));
+  UPCOMING.length = 0; UPCOMING.push(...(d.upcoming || []));
   clear(UBY); for (const u of UNIVERSES) UBY[u.id] = u;
   clear(TBY); for (const t of CATALOG) TBY[t.id] = t;
   clear(byUniverse); for (const t of CATALOG) (byUniverse[t.u] ||= []).push(t);
@@ -187,6 +192,19 @@ export function search(q: string, category: string | null): Title[] {
 export const displayTitle = (t: Title) => t.title;
 export const posterUrl = (t: Title, size: 'w185' | 'w342' | 'w500' = 'w342') =>
   t.tmdb?.p ? `https://image.tmdb.org/t/p/${size}${t.tmdb.p}` : null;
+/** Bugünden itibaren yakında çıkacaklar; takip edilen evrenler önce */
+export function upcomingFor(follow: string[], limit = 14): Upcoming[] {
+  const today = new Date().toISOString().slice(0, 10);
+  const list = UPCOMING.filter((x) => x.date >= today && UBY[x.u]);
+  const mine = follow.length ? list.filter((x) => follow.includes(x.u)) : list;
+  return (mine.length ? mine : list).slice(0, limit);
+}
+export function daysUntil(date: string) {
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const d = new Date(date + 'T00:00:00');
+  return Math.round((d.getTime() - t.getTime()) / 864e5);
+}
+export const posterPath = (p: string | null, size: 'w185' | 'w342' = 'w185') => (p ? `https://image.tmdb.org/t/p/${size}${p}` : null);
 export const backdropUrl = (t: Title) => (t.tmdb?.b ? `https://image.tmdb.org/t/p/w780${t.tmdb.b}` : null);
 
 // Uygulamayla gelen katalog: ilk açılışta ve çevrimdışıyken kullanılır

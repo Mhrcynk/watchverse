@@ -52,6 +52,14 @@ jobs:
           TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
         run: node scripts/providers.mjs || true
 
+      - name: Yenilikleri telefona bildir
+        if: github.event_name != 'push'
+        env:
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        run: node scripts/notify.mjs || true
+
       - name: Katalogu kaydet
         if: github.event_name != 'push'
         run: |

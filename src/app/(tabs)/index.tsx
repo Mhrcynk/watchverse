@@ -3,11 +3,11 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/components/brand';
 import { Art, PosterCard, UniverseCard } from '@/components/media';
-import { Btn, Chip, Empty, Grid, Eyebrow, H1, H2, H3, Muted, Panel, Press, Ring, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
-import { TBY, TYPE_TR, UBY, backdropUrl, recentSeasons, recentlyAdded } from '@/lib/catalog';
+import { Btn, Chip, Empty, FadeIn, Grid, Eyebrow, H1, H2, H3, Muted, Panel, Press, Ring, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
+import { TBY, TYPE_TR, UBY, backdropUrl, daysUntil, posterPath, recentSeasons, recentlyAdded, upcomingFor, type Upcoming } from '@/lib/catalog';
 import { duration } from '@/lib/format';
 import { bigStory, continueWatching, episodeLabel, isDone, nextEpisode, nextUp, readiness, tonight, universeProgress } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -31,6 +31,9 @@ export default function Home() {
   }, [state.follow]);
   const freshSeasons = useMemo(() => recentSeasons().sort((a, b) => Number(state.follow.includes(TBY[b.id].u)) - Number(state.follow.includes(TBY[a.id].u))), [state.follow]);
 
+  const soon = useMemo(() => upcomingFor(state.follow), [state.follow]);
+  const progressCount = Object.keys(state.watched).length + Object.keys(state.episodes).length;
+  const backupDue = progressCount >= 5 && (!state.lastBackup || Date.now() - state.lastBackup > 7 * 864e5);
   const railW = tablet ? 150 : Math.min(132, (width - pad * 2 - 24) / 2.6);
   const cardW = Math.min(290, width * 0.74);
 
@@ -50,7 +53,21 @@ export default function Home() {
       <Muted>{state.name ? `Tekrar hoş geldin, ${state.name}.` : 'Tekrar hoş geldin.'}</Muted>
       <H1 style={{ marginTop: 2, marginBottom: 20 }}>Bir sonraki hikâyen.</H1>
 
-      {hero ? <Hero id={hero.id} /> : (
+      {backupDue && (
+        <FadeIn>
+          <Press accessibilityRole="button" onPress={() => router.push('/profile')}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginBottom: 14, borderRadius: R.lg, backgroundColor: alpha(C.amber, 0.1), borderWidth: StyleSheet.hairlineWidth, borderColor: alpha(C.amber, 0.4) }}>
+            <Feather name="shield" size={20} color={C.amber} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: F.semibold, fontSize: 14.5, color: C.text }}>İlerlemeni yedekle</Text>
+              <Small>{state.lastBackup ? 'Son yedeğin üzerinden bir haftadan fazla geçti.' : 'Telefon değişirse ilerlemen kaybolmasın.'} Dosyalar'a tek dokunuşla kaydet.</Small>
+            </View>
+            <Feather name="chevron-right" size={18} color={C.dim} />
+          </Press>
+        </FadeIn>
+      )}
+
+      {hero ? <FadeIn><Hero id={hero.id} /></FadeIn> : (
         <Empty icon="check-circle" title={followed.length ? 'Takip ettiğin rotalarda her şey tamam.' : 'Yeni bir hikâyeye başla.'}
           text="Keşfedecek başka evrenler var." action="Evrenleri keşfet" onAction={() => router.push('/universes')} />
       )}
@@ -91,6 +108,17 @@ export default function Home() {
               ))}
             </Panel>
           )}
+        </>
+      )}
+
+      {soon.length > 0 && (
+        <>
+          <SectionHead title="Yakında" note={state.follow.length ? 'takip ettiğin evrenlerde' : undefined} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }} style={{ marginHorizontal: -pad }}>
+            <View style={{ width: pad - 14 }} />
+            {soon.map((x, i) => <SoonCard key={x.k + x.date} x={x} width={railW} index={i} />)}
+            <View style={{ width: pad - 14 }} />
+          </ScrollView>
         </>
       )}
 
@@ -222,5 +250,33 @@ function BigStory({ id }: { id: string }) {
         </View>
       </Panel>
     </Press>
+  );
+}
+
+const MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+function SoonCard({ x, width, index }: { x: Upcoming; width: number; index: number }) {
+  const u = UBY[x.u];
+  const d = daysUntil(x.date);
+  const when = d <= 0 ? 'Bugün' : d === 1 ? 'Yarın' : d < 60 ? `${d} gün` : `${Number(x.date.slice(8, 10))} ${MONTHS[Number(x.date.slice(5, 7)) - 1]} ${x.date.slice(0, 4)}`;
+  const what = x.kind === 'season' ? `${x.season}. sezon başlıyor` : x.kind === 'episode' ? `S${String(x.season).padStart(2, '0')} · B${String(x.episode).padStart(2, '0')}` : x.kind === 'film' ? 'Yeni film' : 'Yeni dizi';
+  const img = posterPath(x.p, 'w342');
+  const go = () => (x.id ? router.push(`/title/${x.id}`) : Linking.openURL(`https://www.themoviedb.org/${x.k.startsWith('tv') ? 'tv' : 'movie'}/${x.k.split(':')[1]}`));
+  return (
+    <FadeIn index={index}>
+      <Press accessibilityRole="button" accessibilityLabel={`${x.title}, ${what}, ${when}`} onPress={go} style={{ width }}>
+        <View style={{ width, aspectRatio: 2 / 3, borderRadius: R.md, overflow: 'hidden', backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line }}>
+          {img ? <Image source={{ uri: img }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : (
+            <LinearGradient colors={[alpha(u.color, 0.5), C.card]} style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+              <Text style={{ fontFamily: F.heavy, fontSize: width * 0.5, color: alpha('#FFFFFF', 0.12) }}>{x.title[0]}</Text>
+            </LinearGradient>
+          )}
+          <View style={{ position: 'absolute', left: 8, top: 8, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 99, backgroundColor: d <= 7 ? u.color : 'rgba(10,11,16,0.82)' }}>
+            <Text style={{ fontFamily: F.bold, fontSize: 12, color: d <= 7 ? C.bg : C.text }}>{when}</Text>
+          </View>
+        </View>
+        <Text numberOfLines={2} style={{ marginTop: 8, fontFamily: F.semibold, fontSize: 14, lineHeight: 18, color: C.text }}>{x.title}</Text>
+        <Small numberOfLines={1} style={{ marginTop: 2, color: u.color }}>{what}</Small>
+      </Press>
+    </FadeIn>
   );
 }

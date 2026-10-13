@@ -1,9 +1,10 @@
 import Feather from '@expo/vector-icons/Feather';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Art, Wordmark } from '@/components/media';
 import { BackLink, Bar, Btn, Chip, Empty, Eyebrow, H1, H2, H3, Muted, Panel, Pills, Press, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
 import { AFTER, TBY, TIER_TR, TYPE_TR, UBY, backdropUrl, whyOf } from '@/lib/catalog';
@@ -77,6 +78,7 @@ export default function TitleDetail() {
               <Btn icon="check" kind={done ? 'success' : 'primary'}
                 label={done ? 'İzlendi · Geri al' : t.episodes ? 'Diziyi tamamladım' : 'İzledim'}
                 onPress={() => { const v = store.toggleWatched(t.id); tap(v ? 'success' : 'light'); toast(v ? 'İzlendi olarak kaydedildi' : 'İzleme işareti kaldırıldı'); }} />
+              {!!t.yt && <Btn icon="youtube" kind="secondary" label="Fragman" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${t.yt}`)} />}
               <Btn icon={inList ? 'bookmark' : 'plus'} kind="secondary" label={inList ? 'Listemde' : 'Listeme ekle'}
                 onPress={() => { const v = store.toggleList(t.id); toast(v ? 'İzleme listene eklendi' : 'Listenden kaldırıldı'); }} />
             </View>
@@ -90,6 +92,24 @@ export default function TitleDetail() {
           <Text style={{ fontFamily: F.regular, fontSize: 16, lineHeight: 25, color: C.text, marginTop: 8 }}>{t.summary}</Text>
         </Panel>
       ) : null}
+
+      <Panel style={{ marginTop: 14 }}>
+        <Eyebrow>Senin değerlendirmen</Eyebrow>
+        <View accessibilityRole="adjustable" accessibilityLabel={`Puan: ${state.ratings[t.id] || 0} / 5`} style={{ flexDirection: 'row', gap: 4, marginTop: 8 }}>
+          {[1, 2, 3, 4, 5].map((n) => {
+            const on = (state.ratings[t.id] || 0) >= n;
+            return (
+              <Press key={n} accessibilityRole="button" accessibilityLabel={`${n} yıldız`} scaleTo={0.85} hitSlop={4}
+                onPress={() => { store.setRating(t.id, n); tap(); }} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={on ? 'star' : 'star-outline'} size={28} color={on ? C.amber : C.dim} />
+              </Press>
+            );
+          })}
+        </View>
+        <TextInput value={state.notes[t.id] || ''} onChangeText={(v) => store.setNote(t.id, v)}
+          placeholder="Kısa bir not ekle (sadece sen görürsün)" placeholderTextColor={C.dim} multiline maxLength={500} accessibilityLabel="Not"
+          style={{ marginTop: 10, minHeight: 64, padding: 12, borderRadius: R.md, backgroundColor: C.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line, color: C.text, fontFamily: F.regular, fontSize: 16, lineHeight: 22, textAlignVertical: 'top' }} />
+      </Panel>
 
       {t.episodes > 0 && (
         <>

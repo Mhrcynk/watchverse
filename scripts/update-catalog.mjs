@@ -34,6 +34,10 @@ const MAX_NEW = Number(args.max || 30);
 const TODAY = (process.env.TODAY || new Date().toISOString()).slice(0, 10);
 const SINCE = new Date(Date.parse(TODAY) - DAYS * 864e5).toISOString().slice(0, 10);
 const RECENT = new Date(Date.parse(TODAY) - 120 * 864e5).toISOString().slice(0, 10);
+const TOMORROW = new Date(Date.parse(TODAY) + 864e5).toISOString().slice(0, 10);
+const HORIZON = new Date(Date.parse(TODAY) + 400 * 864e5).toISOString().slice(0, 10);
+/** Yakında: çıkış tarihi belli yeni bölüm, sezon, film ve diziler */
+const upcoming = [];
 
 const data = JSON.parse(fs.readFileSync(FILE, 'utf8'));
 const { sources } = JSON.parse(fs.readFileSync(SOURCES, 'utf8'));
@@ -75,6 +79,10 @@ async function updateSeries() {
   for (const t of list) {
     const r = await api(`/tv/${t.tmdb.id}`, { language: 'en-US' });
     if (!r) continue;
+    const nx = r.next_episode_to_air;
+    if (nx?.air_date && nx.air_date > TODAY && nx.air_date <= HORIZON) {
+      upcoming.push({ k: `tv:${t.tmdb.id}`, id: t.id, u: t.u, title: t.title, kind: nx.episode_number === 1 ? 'season' : 'episode', season: nx.season_number, episode: nx.episode_number, date: nx.air_date, p: t.tmdb.p || null });
+    }
     const last = r.last_episode_to_air;
     if (!last || !last.season_number || last.air_date > TODAY) continue;
     // Yalnızca son aylarda yeni bölümü çıkan dizilere dokun; eski dizilerde TMDB'nin farklı sayımı yanlış ekleme yapar
@@ -254,8 +262,50 @@ async function findNew() {
   }
 }
 
+async function findUpcoming() {
+  log('Yakında çıkacaklar aranıyor');
+  const seen = new Set(upcoming.map((x) => x.k));
+  for (const src of sources) {
+    const ref = await resolveSource(src);
+    if (!ref) continue;
+    const found = [];
+    if (ref.kind === 'collection') {
+      const c = await api(`/collection/${ref.id}`, { language: 'en-US' });
+      for (const p of c?.parts || []) if (p.release_date && p.release_date > TODAY && p.release_date <= HORIZON) found.push({ m: 'movie', r: p });
+    } else if ((src.tier ?? 1) <= 1) {
+      for (const m of src.media || ['movie', 'tv']) {
+        const dateField = m === 'movie' ? 'primary_release_date' : 'first_air_date';
+        const r = await api(`/discover/${m}`, {
+          [ref.kind === 'keyword' ? 'with_keywords' : 'with_companies']: ref.id,
+          [`${dateField}.gte`]: TOMORROW, [`${dateField}.lte`]: HORIZON,
+          without_genres: m === 'movie' ? '99' : '99,10767,10763,10764', include_adult: false, sort_by: 'popularity.desc', page: 1,
+        });
+        for (const x of r?.results || []) if ((x.popularity || 0) >= 3) found.push({ m, r: x });
+      }
+    }
+    for (const { m, r } of found) {
+      const k = `${m}:${r.id}`;
+      const name = m === 'movie' ? r.title : r.name;
+      const date = m === 'movie' ? r.release_date : r.first_air_date;
+      if (!date || seen.has(k) || ignore.has(k) || known.has(k)) continue;
+      if ((src.skipIfTitleHas || []).some((w) => norm(name).includes(norm(w)))) continue;
+      seen.add(k);
+      upcoming.push({ k, u: src.u, title: name, kind: m === 'movie' ? 'film' : 'series', date, p: r.poster_path || null });
+    }
+  }
+}
+
 await updateSeries();
 await findNew();
+await findUpcoming();
+upcoming.sort((a, b) => a.date.localeCompare(b.date));
+const upNew = upcoming.slice(0, 80);
+const upChanged = JSON.stringify(upNew) !== JSON.stringify(data.upcoming || []);
+log(`Yakında: ${upNew.length} kayıt${upChanged ? ' (değişti)' : ''}.`);
+if (upChanged && !DRY) {
+  data.upcoming = upNew;
+  if (!(change.added.length + change.seasons.length)) { data.rev = new Date().toISOString(); fs.writeFileSync(FILE, JSON.stringify(data)); }
+}
 
 const changed = change.added.length + change.seasons.length > 0;
 log(`\nSonuç: ${change.added.length} yeni yapım, ${change.seasons.length} sezon güncellemesi.`);

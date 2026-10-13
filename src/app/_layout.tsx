@@ -4,7 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ToastProvider, useToast } from '@/components/ui';
+import { ConfirmProvider, ToastProvider, useToast } from '@/components/ui';
 import { syncCatalog } from '@/lib/remote';
 import { StoreProvider, useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
@@ -45,7 +45,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
   if (!go) return null;
   return (
     <ThemeProvider value={theme}>
-      <ToastProvider>
+      <ToastProvider><ConfirmProvider>
         <StatusBar style="light" />
         <CatalogSync onChange={bump} />
         <Stack key={catVersion} screenOptions={{ headerShown: false, freezeOnBlur: true, contentStyle: { backgroundColor: C.bg }, animation: 'slide_from_right' }}>
@@ -55,7 +55,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="title/[id]" />
           <Stack.Screen name="credits" />
         </Stack>
-      </ToastProvider>
+      </ConfirmProvider></ToastProvider>
     </ThemeProvider>
   );
 }

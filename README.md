@@ -16,7 +16,7 @@ Sevdiğin film ve dizi evrenlerinde nerede kaldığını hatırlatan, sıradaki 
 - Her pazartesi sabahı GitHub'da kendiliğinden bir görev çalışır (`.github/workflows/update.yml`):
   1. Katalogdaki her dizi için yayınlanmış yeni bölüm ve sezonlara bakar.
   2. `scripts/sources.json` içindeki seriler, anahtar kelimeler ve yapım şirketlerinden son 6 ayda yayınlanmış, katalogda olmayan film ve dizileri bulur.
-  3. Afiş ve Türkçe özetleri ekler, kataloğu kaydeder, siteyi yeniden yayınlar.
+  3. Afiş, Türkçe özet, Türkiye'deki platform, fragman ve yakında çıkacakları ekler; kataloğu kaydeder, siteyi yeniden yayınlar ve istersen bildirim gönderir.
 - Uygulama açıldığında güncel kataloğu çeker; değişiklik varsa "Katalog güncellendi" der.
 - İzleme ilerlemen telefonunda kalır; GitHub'a hiçbir kişisel bilgi gitmez. Telefon değiştirirken Profil → Yedek kodu'nu kullan.
 
@@ -27,6 +27,22 @@ Sevdiğin film ve dizi evrenlerinde nerede kaldığını hatırlatan, sıradaki 
 3. **Settings → Pages → Source: GitHub Actions**.
 4. **Actions → Katalogu güncelle → Run workflow** ile ilk yayını başlat. Birkaç dakika sonra site açılır.
 5. iPhone'da Safari ile siteyi aç → Paylaş → **Ana Ekrana Ekle**. Android'de Chrome → menü → **Ana ekrana ekle**.
+
+## Bildirimler (isteğe bağlı, bir kez)
+
+1. GitHub'da **Settings → Secrets and variables → Actions → New repository secret**: adı `VAPID_PRIVATE_KEY`, değeri sana ayrıca verilen gizli anahtar.
+2. iPhone'da uygulamayı **ana ekrandaki simgeden** aç → Profil → Bildirimler → **Bildirimleri aç** → izin ver.
+3. Çıkan kodu kopyala; yeni secret: adı `PUSH_SUBSCRIPTION`, değeri bu kod. (Takip ettiğin evrenleri değiştirirsen kodu yeniden alıp güncelle.)
+
+Haftalık güncellemede takip ettiğin evrenlere yeni bölüm, sezon ya da yapım eklenirse bildirim gelir.
+
+## Uygulamada neler var
+
+- Evren listeleri: Ana hikâye · Çıkış sırası · Kronolojik · Tümü; etiket, platform ve "Neden?" açıklaması
+- Bir yapıma uzun basınca oraya kadar olanların hepsini izlendi işaretleme
+- Yakında: takip ettiğin evrenlerde çıkış tarihi belli yeni bölüm, sezon ve filmler
+- Fragman, 5 yıldızlı puan ve kısa not; Profil'de "En sevdiklerin"
+- Dosyaya yedek (iCloud Drive) ve haftalık yedek hatırlatması
 
 ## Yanlış eklenen yapım olursa
 

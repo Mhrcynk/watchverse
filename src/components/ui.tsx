@@ -2,12 +2,14 @@ import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
+  Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
   type PressableProps, type StyleProp, type TextProps, type TextStyle, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
-import { C, F, MAX_W, R, TABLET, alpha } from '@/lib/theme';
+import { setConfirmHandler } from '@/lib/confirm';
+import { EASE_OUT, ND, useEnter, useReducedMotion } from '@/lib/motion';
+import { C, F, M, MAX_W, R, TABLET, alpha } from '@/lib/theme';
 
 export type IconName = React.ComponentProps<typeof Feather>['name'];
 
@@ -69,11 +71,45 @@ export function tap(kind: 'light' | 'success' = 'light') {
   else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 }
 
-export function Press({ style, children, ...p }: PressableProps & { style?: StyleProp<ViewStyle>; children: ReactNode }) {
+const APress = Animated.createAnimatedComponent(Pressable);
+/** Dokununca hafifçe küçülen ve sönükleşen basılabilir alan; yerleşimi kaydırmaz */
+export function Press({ style, children, scaleTo = 0.97, onPressIn, onPressOut, ...p }: PressableProps & { style?: StyleProp<ViewStyle>; children: ReactNode; scaleTo?: number }) {
+  const a = useRef(new Animated.Value(0)).current;
+  const to = (v: number) => Animated.timing(a, { toValue: v, duration: v ? M.press : M.fast, easing: EASE_OUT, useNativeDriver: ND }).start();
   return (
-    <Pressable {...p} style={({ pressed }) => [style, pressed && { opacity: 0.72, transform: [{ scale: 0.985 }] }]}>
+    <APress {...p}
+      onPressIn={(e) => { to(1); onPressIn?.(e); }}
+      onPressOut={(e) => { to(0); onPressOut?.(e); }}
+      style={[style as any, { opacity: a.interpolate({ inputRange: [0, 1], outputRange: [1, 0.78] }), transform: [{ scale: a.interpolate({ inputRange: [0, 1], outputRange: [1, scaleTo] }) }] }]}>
       {children}
-    </Pressable>
+    </APress>
+  );
+}
+
+/** Ekrana girerken yumuşakça beliren kapsayıcı */
+export function FadeIn({ index = 0, children, style, from = 14 }: { index?: number; children: ReactNode; style?: StyleProp<ViewStyle>; from?: number }) {
+  const v = useEnter(index);
+  return <Animated.View style={[style, { opacity: v, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [from, 0] }) }] }]}>{children}</Animated.View>;
+}
+
+/** İzledim düğmesi: işaretlenince küçük bir "pop" */
+export function CheckButton({ done, color, onPress, label, size = 38 }: { done: boolean; color: string; onPress: () => void; label: string; size?: number }) {
+  const pop = useRef(new Animated.Value(1)).current;
+  const reduced = useReducedMotion();
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    if (reduced || !done) return;
+    pop.setValue(0.6);
+    Animated.spring(pop, { toValue: 1, friction: 4, tension: 220, useNativeDriver: ND }).start();
+  }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <Press accessibilityRole="checkbox" accessibilityState={{ checked: done }} accessibilityLabel={label} hitSlop={8} scaleTo={0.9} onPress={onPress}
+      style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: done ? color : 'transparent', borderWidth: done ? 0 : 1.5, borderColor: C.line, transform: [{ scale: pop }] }}>
+        {done ? <Feather name="check" size={size * 0.48} color={C.bg} /> : <Feather name="plus" size={size * 0.42} color={C.dim} />}
+      </Animated.View>
+    </Press>
   );
 }
 
@@ -108,14 +144,28 @@ export function Chip({ label, icon, color = C.muted, bg = C.card, onPress, activ
   return onPress ? <Press accessibilityRole="button" accessibilityState={{ selected: !!active }} onPress={() => { tap(); onPress(); }}>{content}</Press> : content;
 }
 
-export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void; label: string }) {
+export function Segmented<T extends string>({ value, options, onChange, label, color }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void; label: string; color?: string }) {
+  // Seçili sekmenin arkasında kayan gösterge
+  const [w, setW] = useState(0);
+  const idx = Math.max(0, options.findIndex((o) => o.id === value));
+  const x = useRef(new Animated.Value(idx)).current;
+  const reduced = useReducedMotion();
+  useEffect(() => {
+    if (reduced) x.setValue(idx);
+    else Animated.spring(x, { toValue: idx, friction: 9, tension: 120, useNativeDriver: ND }).start();
+  }, [idx, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  const segW = w ? (w - 8) / options.length : 0;
   return (
-    <View accessibilityRole="tablist" accessibilityLabel={label} style={{ flexDirection: 'row', backgroundColor: C.card, borderRadius: R.md, padding: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line }}>
+    <View accessibilityRole="tablist" accessibilityLabel={label} onLayout={(e) => setW(e.nativeEvent.layout.width)}
+      style={{ flexDirection: 'row', backgroundColor: C.card, borderRadius: R.md, padding: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line }}>
+      {segW > 0 && (
+        <Animated.View pointerEvents="none" style={{ position: 'absolute', top: 4, bottom: 4, left: 4, width: segW, borderRadius: R.sm, backgroundColor: color ? alpha(color, 0.2) : C.raised, borderWidth: StyleSheet.hairlineWidth, borderColor: color ? alpha(color, 0.5) : C.line, transform: [{ translateX: x.interpolate({ inputRange: [0, 1], outputRange: [0, segW] }) }] }} />
+      )}
       {options.map((o) => {
         const on = o.id === value;
         return (
           <Pressable key={o.id} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => { tap(); onChange(o.id); }}
-            style={{ flex: 1, paddingVertical: 9, borderRadius: R.sm, backgroundColor: on ? C.raised : 'transparent', alignItems: 'center' }}>
+            style={{ flex: 1, minHeight: 40, justifyContent: 'center', paddingHorizontal: 2, borderRadius: R.sm, alignItems: 'center' }}>
             <Text numberOfLines={1} style={{ fontFamily: on ? F.semibold : F.medium, fontSize: 13, color: on ? C.text : C.muted }}>{o.label}</Text>
           </Pressable>
         );
@@ -141,14 +191,21 @@ export function Bar({ pct, color = C.accent, height = 5 }: { pct: number; color?
   );
 }
 
+const ACircle = Animated.createAnimatedComponent(Circle);
 export function Ring({ pct, size = 86, color = C.accent, label }: { pct: number; size?: number; color?: string; label?: string }) {
   const sw = Math.max(6, size * 0.085), r = (size - sw) / 2, c = 2 * Math.PI * r;
+  const reduced = useReducedMotion();
+  const v = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reduced) v.setValue(pct);
+    else Animated.timing(v, { toValue: pct, duration: 700, easing: EASE_OUT, useNativeDriver: false }).start();
+  }, [pct, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <View accessibilityLabel={`Yüzde ${pct}${label ? ' ' + label : ''}`} style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} style={{ position: 'absolute' }}>
         <Circle cx={size / 2} cy={size / 2} r={r} stroke={C.line} strokeWidth={sw} fill="none" />
-        <Circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={sw} fill="none" strokeLinecap="round"
-          strokeDasharray={`${c} ${c}`} strokeDashoffset={c * (1 - pct / 100)} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+        <ACircle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={sw} fill="none" strokeLinecap="round"
+          strokeDasharray={`${c} ${c}`} strokeDashoffset={v.interpolate({ inputRange: [0, 100], outputRange: [c, 0] }) as any} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
       </Svg>
       <Text style={{ fontFamily: F.bold, fontSize: size * 0.24, color: C.text, letterSpacing: -0.5 }}>{pct}%</Text>
       {label && <Text style={{ fontFamily: F.regular, fontSize: Math.max(10, size * 0.11), color: C.muted }}>{label}</Text>}
@@ -238,5 +295,37 @@ export function Grid<T>({ items, cols, gap = 14, rowGap, render, keyOf }: {
     <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: gap, rowGap: rowGap ?? gap }}>
       {cw > 0 && items.map((it) => <View key={keyOf(it)} style={{ width: cw }}>{render(it, cw)}</View>)}
     </View>
+  );
+}
+
+/* ---------- onay penceresi ---------- */
+export function ConfirmProvider({ children }: { children: ReactNode }) {
+  const [q, setQ] = useState<{ title: string; message: string; ok: string; onOk: () => void } | null>(null);
+  const a = useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    setConfirmHandler((title, message, ok, onOk) => { setQ({ title, message, ok, onOk }); });
+    return () => setConfirmHandler(null);
+  }, []);
+  useEffect(() => { if (q) { a.setValue(0); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
+  const close = (then?: () => void) => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setQ(null); then?.(); });
+  return (
+    <>
+      {children}
+      <Modal transparent visible={!!q} animationType="none" onRequestClose={() => close()}>
+        <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.62)', opacity: a, justifyContent: 'flex-end' }}>
+          <Pressable accessibilityLabel="Kapat" style={StyleSheet.absoluteFill} onPress={() => close()} />
+          <Animated.View accessibilityViewIsModal style={{ alignSelf: 'center', width: '100%', maxWidth: 520, backgroundColor: C.raised, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, padding: 22, paddingBottom: 22 + insets.bottom, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) }] }}>
+            <Text accessibilityRole="header" style={{ fontFamily: F.bold, fontSize: 19, color: C.text }}>{q?.title}</Text>
+            <Text style={{ marginTop: 8, fontFamily: F.regular, fontSize: 15, lineHeight: 22, color: C.muted }}>{q?.message}</Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
+              <Btn kind="secondary" label="Vazgeç" style={{ flex: 1 }} onPress={() => close()} />
+              <Btn label={q?.ok || 'Tamam'} style={{ flex: 1 }} onPress={() => { const f = q?.onOk; close(f); }} />
+            </View>
+          </Animated.View>
+        </Animated.View>
+      </Modal>
+    </>
   );
 }

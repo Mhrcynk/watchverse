@@ -61,6 +61,24 @@ async function cacheFirst(req, name) {
   if (r.ok || r.type === 'opaque') c.put(req, r.clone());
   return r;
 }
+// Bildirimler: haftalık görev yeni bölüm ve yapımları gönderir
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'WatchVerse', {
+    body: d.body || 'Takip ettiğin evrenlerde yenilikler var.',
+    icon: ${JSON.stringify(at('icon-192.png'))}, badge: ${JSON.stringify(at('icon-192.png'))},
+    data: { url: d.url || ${JSON.stringify(at(''))} }, tag: d.tag || 'watchverse',
+  }));
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || ${JSON.stringify(at(''))};
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((ws) => {
+    for (const w of ws) if ('focus' in w) { w.navigate ? w.navigate(url) : null; return w.focus(); }
+    return self.clients.openWindow(url);
+  }));
+});
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -79,6 +97,10 @@ const head = `
       html, body { background-color: #0B0D12 !important; color-scheme: dark; margin: 0; }
       html { height: 100vh; height: -webkit-fill-available; }
       body { min-height: 100vh; overscroll-behavior: none; }
+      * { -webkit-tap-highlight-color: transparent; }
+      body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+      input, textarea, [data-selectable] { -webkit-user-select: text; user-select: text; }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
       /* iPhone'da ana ekrandan açılınca alt ve üst kenarda boşluk kalmasın */
       #root { position: fixed; top: 0; right: 0; bottom: 0; left: 0; height: auto !important; background-color: #0B0D12; }
     </style>
