@@ -113,7 +113,7 @@ const head = `
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="WatchVerse">
-    <script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register(${JSON.stringify(at('sw.js'))},{scope:${JSON.stringify(at(''))}}));</script>
+    <script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register(${JSON.stringify(at('sw.js'))},{scope:${JSON.stringify(at(''))}}).catch(()=>{}));</script>
   `;
 const idx = path.join(out, 'index.html');
 let html = fs.readFileSync(idx, 'utf8');
