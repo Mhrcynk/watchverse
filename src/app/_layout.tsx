@@ -10,8 +10,13 @@ import { refreshLibrary } from '@/lib/library';
 import { syncCatalog } from '@/lib/remote';
 import { hasSyncApi, syncDevice } from '@/lib/sync';
 import { StoreProvider, useStore } from '@/lib/store';
+import { AccountProvider } from '@/lib/account';
+import { installErrorTracking, reportError } from '@/lib/errors';
+import { Text, View } from 'react-native';
+import type { ErrorBoundaryProps } from 'expo-router';
 import { C } from '@/lib/theme';
 
+installErrorTracking();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 SplashScreen.setOptions({ duration: 300, fade: true });
 
@@ -76,7 +81,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
   if (!go) return null;
   return (
     <ThemeProvider value={theme}>
-      <ToastProvider><ConfirmProvider><PreviewProvider>
+      <AccountProvider><ToastProvider><ConfirmProvider><PreviewProvider>
         <StatusBar style="light" />
         <CatalogSync onChange={bump} />
         <LibrarySync />
@@ -88,9 +93,23 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="show/[key]" />
           <Stack.Screen name="genre/[id]" />
           <Stack.Screen name="credits" />
+          <Stack.Screen name="account" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="legal/[doc]" />
         </Stack>
-      </PreviewProvider></ConfirmProvider></ToastProvider>
+      </PreviewProvider></ConfirmProvider></ToastProvider></AccountProvider>
     </ThemeProvider>
+  );
+}
+
+/** Beklenmeyen bir hata olursa: kaydı gönder, sade bir ekran göster */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => { reportError(error, 'ekran'); }, [error]);
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', padding: 28 }}>
+      <Text style={{ fontSize: 22, fontWeight: '700', color: C.text, textAlign: 'center' }}>Bir şeyler ters gitti</Text>
+      <Text style={{ marginTop: 10, fontSize: 15, lineHeight: 22, color: C.muted, textAlign: 'center', maxWidth: 340 }}>Kayıtların güvende; sorun kaydedildi. Tekrar denemek için aşağıdaki düğmeye dokun.</Text>
+      <Text accessibilityRole="button" onPress={() => retry()} style={{ marginTop: 22, paddingHorizontal: 22, paddingVertical: 13, borderRadius: 12, overflow: 'hidden', backgroundColor: C.accent, color: '#fff', fontSize: 15, fontWeight: '600' }}>Tekrar dene</Text>
+    </View>
   );
 }
 

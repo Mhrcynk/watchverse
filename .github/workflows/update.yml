@@ -88,10 +88,23 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: node scripts/deploy-worker.mjs
 
+      - name: Üyelik ve veritabanını kur ya da güncelle
+        id: supa
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        run: node scripts/setup-supabase.mjs
+
       - name: Web uygulamasını hazırla
         env:
           CI: 1
           EXPO_PUBLIC_API_URL: ${{ steps.worker.outputs.api_url }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ steps.supa.outputs.supabase_url }}
+          EXPO_PUBLIC_SUPABASE_KEY: ${{ steps.supa.outputs.supabase_key }}
+          EXPO_PUBLIC_BUILD: ${{ github.sha }}
           EXPO_BASE_URL: /${{ github.event.repository.name }}
           EXPO_PUBLIC_CATALOG_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/catalog.json
         run: |

@@ -40,6 +40,18 @@ Uygulama her film ve diziyi TMDB'den arar. TMDB anahtarı uygulamaya girmez; üc
 
 Bundan sonra bildirimler için kod kopyalamaya gerek kalmaz: Profil → Bildirimler → Bildirimleri aç yeterli. Her sabah takip ettiğin dizilerde yeni bölüm çıktıysa bildirim gelir (`.github/workflows/daily.yml`).
 
+## Üyelik ve veritabanı (isteğe bağlı, bir kez)
+
+Hesap açılınca kayıtlar her cihazda aynı görünür. Supabase kullanılır; kurulumu GitHub görevi kendisi yapar.
+
+1. supabase.com'da hesap aç, **New project** de. Bölge olarak **Frankfurt (eu-central-1)** seç.
+2. Account → **Access Tokens** → yeni anahtar oluştur. GitHub'da `SUPABASE_ACCESS_TOKEN` adıyla kaydet.
+3. Proje adresindeki 20 harflik kimliği `SUPABASE_PROJECT_REF` adıyla kaydet.
+4. Google ile giriş için (isteğe bağlı): Google Cloud'da bir "OAuth client ID" (Web) oluştur, yönlendirme adresine `https://<proje-kimliği>.supabase.co/auth/v1/callback` yaz. Kimliği `GOOGLE_CLIENT_ID`, gizli anahtarı `GOOGLE_CLIENT_SECRET` adıyla kaydet.
+5. Actions → "Katalogu güncelle" → Run workflow.
+
+Tablolar `supabase/schema.sql` dosyasındadır. Uygulama hataları `app_errors` tablosunda tutulur (kimlik bilgisi olmadan, 60 gün); son 7 günün özeti her görev çalışmasında not olarak görünür.
+
 ## Bildirimler (isteğe bağlı, bir kez)
 
 1. GitHub'da **Settings → Secrets and variables → Actions → New repository secret**: adı `VAPID_PRIVATE_KEY`, değeri sana ayrıca verilen gizli anahtar.

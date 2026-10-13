@@ -13,6 +13,7 @@ import { confirm } from '@/lib/confirm';
 import { monthLabel } from '@/lib/format';
 import { history, stats, universeProgress } from '@/lib/progress';
 import { useStore } from '@/lib/store';
+import { useAccount } from '@/lib/account';
 import { C, F, R, alpha } from '@/lib/theme';
 import type { ListView } from '@/lib/types';
 
@@ -20,6 +21,7 @@ export default function Profile() {
   const store = useStore();
   const { state } = store;
   const toast = useToast();
+  const acc = useAccount();
   const { tablet } = useLayout();
   const s = useMemo(() => stats(state), [state]);
   const hist = useMemo(() => history(state, 30), [state]);
@@ -60,6 +62,8 @@ export default function Profile() {
           </Panel>
         ))}
       </View>
+
+      <AccountPanel />
 
       <SectionHead title="Evren istatistiklerin" note={VIEW_TR[state.view]} />
       <Panel>
@@ -172,7 +176,7 @@ export default function Profile() {
 
       <SectionHead title="Yedekleme" />
       <Panel>
-        <Muted>İlerlemen, puanların ve notların yalnızca bu cihazda tutulur. Dosyaya yedekle; iPhone'da açılan sayfada “Dosyalar'a Kaydet”i seçip iCloud Drive'a kaydedersen telefon değişse bile kaybolmaz.</Muted>
+        <Muted>{acc.user ? 'Kayıtların hesabında güvende. İstersen ayrıca bir dosya yedeği de alabilirsin.' : "İlerlemen, puanların ve notların yalnızca bu cihazda tutulur. Hesap açarsan kaybolmaz. Ya da dosyaya yedekle: iPhone'da açılan sayfada “Dosyalar'a Kaydet”i seçip iCloud Drive'a kaydet."}</Muted>
         <Small style={{ marginTop: 8, color: state.lastBackup ? C.green : C.amber }}>{state.lastBackup ? `Son yedek: ${new Date(state.lastBackup).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Henüz yedek almadın.'}</Small>
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
           <Btn icon="upload-cloud" label="Dosyaya yedekle" onPress={async () => { const ok = await saveBackupFile(store.exportBackup()); if (ok) { store.markBackup(); toast('Yedek hazırlandı'); } }} />
@@ -203,7 +207,11 @@ export default function Profile() {
           onPress={() => confirm('Tüm ilerleme silinsin mi?', 'İzlediklerin, listen ve geçmişin silinir. Takip ettiğin evrenler ve tercihlerin kalır.', 'Sıfırla', () => { store.reset(); toast('İlerleme sıfırlandı'); })} />
       </Panel>
 
-      <Press accessibilityRole="button" onPress={() => router.push('/credits')} style={{ marginTop: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 18, marginTop: 28 }}>
+        <Press accessibilityRole="link" onPress={() => router.push('/legal/gizlilik')} hitSlop={6}><Small style={{ color: C.muted }}>Gizlilik ve KVKK</Small></Press>
+        <Press accessibilityRole="link" onPress={() => router.push('/legal/sartlar')} hitSlop={6}><Small style={{ color: C.muted }}>Kullanım şartları</Small></Press>
+      </View>
+      <Press accessibilityRole="button" onPress={() => router.push('/credits')} style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Small>WatchVerse 1.0 · Katalog, kaynaklar ve haklar</Small>
         <Feather name="chevron-right" size={18} color={C.dim} />
       </Press>
@@ -212,3 +220,63 @@ export default function Profile() {
 }
 
 const label = { fontFamily: F.medium, fontSize: 13, color: C.muted, marginBottom: 8 } as const;
+
+function ago(t: number | null) {
+  if (!t) return '';
+  const m = Math.round((Date.now() - t) / 60000);
+  return m < 1 ? 'az önce' : m < 60 ? `${m} dk önce` : `${Math.round(m / 60)} sa önce`;
+}
+
+/** Hesap kartı: giriş yoksa davet, varsa eşitleme durumu ve hesap işlemleri */
+function AccountPanel() {
+  const acc = useAccount();
+  const toast = useToast();
+  const [, tick] = useState(0);
+  useEffect(() => { const h = setInterval(() => tick((n) => n + 1), 30000); return () => clearInterval(h); }, []);
+  if (!acc.enabled) return null;
+  if (!acc.user) {
+    return (
+      <Panel style={{ marginTop: 22, borderColor: alpha(C.accent, 0.45) }}>
+        <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+          <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: alpha(C.accent, 0.18), alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name="cloud" size={20} color={C.accentSoft} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <H3>Kayıtların kaybolmasın</H3>
+            <Small>Hesap açarsan izlediklerin her cihazda aynı görünür, telefon değişse de kaybolmaz.</Small>
+          </View>
+        </View>
+        <Btn label="Giriş yap ya da hesap aç" style={{ marginTop: 14 }} onPress={() => router.push('/account')} />
+      </Panel>
+    );
+  }
+  const st = acc.status;
+  const color = st === 'ok' ? C.green : st === 'syncing' ? C.muted : C.amber;
+  const text = st === 'syncing' ? 'Eşitleniyor…' : st === 'ok' ? `Eşitlendi · ${ago(acc.lastSync)}` : st === 'offline' ? 'İnternet yok; bağlanınca eşitlenecek' : st === 'error' ? 'Eşitlenemedi; tekrar denenecek' : 'Bekliyor';
+  return (
+    <>
+      <SectionHead title="Hesap" />
+      <Panel>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Ionicons name={acc.user.google ? 'logo-google' : 'mail-outline'} size={18} color={C.muted} />
+          <View style={{ flex: 1 }}>
+            <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 15, color: C.text }}>{acc.user.email || 'Hesabın'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+              <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: color }} />
+              <Small style={{ color }}>{text}</Small>
+            </View>
+          </View>
+          <Btn kind="secondary" icon="refresh-cw" label="Eşitle" onPress={() => acc.syncNow()} />
+        </View>
+        <Divider />
+        <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap' }}>
+          <Btn kind="quiet" label="Çıkış yap" onPress={() => confirm('Çıkış yapılsın mı?', 'Kayıtların hesabında kalır. Bu cihazdaki kayıtlar da silinmez.', 'Çıkış yap', async () => { await acc.signOut(); toast('Çıkış yapıldı'); })} />
+          <Btn kind="quiet" label="Hesabı sil" onPress={() => confirm('Hesabın kalıcı olarak silinsin mi?', 'Hesabın ve sunucudaki tüm kayıtların hemen silinir; geri alınamaz. Bu cihazdaki kayıtlar kalır.', 'Hesabı sil', async () => {
+            const r = await acc.deleteAccount();
+            toast(r ? r : 'Hesabın silindi');
+          })} />
+        </View>
+      </Panel>
+    </>
+  );
+}
