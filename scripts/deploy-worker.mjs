@@ -16,7 +16,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const dir = path.join(here, '..', 'worker');
 const { CLOUDFLARE_API_TOKEN: CF, CLOUDFLARE_ACCOUNT_ID: ACC, TMDB_TOKEN } = process.env;
 const out = (k, v) => process.env.GITHUB_OUTPUT && fs.appendFileSync(process.env.GITHUB_OUTPUT, `${k}=${v}\n`);
-if (!CF || !ACC) { console.log('Cloudflare bilgileri yok; ara sunucu kurulmadı (arama kapalı kalır).'); out('api_url', ''); process.exit(0); }
+if (!CF || !ACC) { console.log('::warning::Cloudflare bilgileri yok; ara sunucu kurulmadı (arama kapalı kalır).'); out('api_url', ''); process.exit(0); }
 if (!TMDB_TOKEN) { console.error('TMDB_TOKEN yok.'); process.exit(1); }
 
 const WRANGLER = 'wrangler@4.146.0';
@@ -30,7 +30,7 @@ async function cf(p, init = {}) {
 let ns = (await cf('/storage/kv/namespaces?per_page=100')).j.result?.find((n) => n.title === 'watchverse-data');
 if (!ns) {
   const r = await cf('/storage/kv/namespaces', { method: 'POST', body: JSON.stringify({ title: 'watchverse-data' }) });
-  if (!r.ok) { console.error('Depolama alanı oluşturulamadı:', JSON.stringify(r.j.errors || r.status)); process.exit(1); }
+  if (!r.ok) { console.error('::error::Depolama alanı oluşturulamadı:', JSON.stringify(r.j.errors || r.status)); process.exit(1); }
   ns = r.j.result;
 }
 console.log('Depolama alanı:', ns.id);
@@ -43,7 +43,7 @@ if (!sub) {
     const r = await cf('/workers/subdomain', { method: 'PUT', body: JSON.stringify({ subdomain: cand }) });
     if (r.ok) { sub = cand; break; }
   }
-  if (!sub) { console.error('workers.dev adresi alınamadı. Cloudflare panelinde Workers & Pages sayfasını bir kez açıp tekrar dene.'); process.exit(1); }
+  if (!sub) { console.error('::error::workers.dev adresi alınamadı. Cloudflare panelinde Workers & Pages sayfasını bir kez açıp tekrar dene.'); process.exit(1); }
 }
 
 // 3) Ayar dosyası ve yayın
@@ -61,5 +61,16 @@ execFileSync('npx', ['--yes', WRANGLER, 'deploy', '--config', path.join(dir, 'wr
 execFileSync('npx', ['--yes', WRANGLER, 'secret', 'put', 'TMDB_TOKEN', '--config', path.join(dir, 'wrangler.toml')], { input: TMDB_TOKEN, stdio: ['pipe', 'inherit', 'inherit'], env });
 
 const url = `https://watchverse.${sub}.workers.dev`;
-console.log('Ara sunucu hazır:', url);
+// 4) Kısa deneme: sunucu ve TMDB bağlantısı çalışıyor mu
+let test = 'deneme yapılamadı';
+for (let i = 0; i < 6; i++) {
+  try {
+    const r = await fetch(`${url}/tmdb/search/multi?query=yarg%C4%B1`);
+    const j = await r.json();
+    test = r.ok ? `TMDB aramasi calisiyor (${j.results?.length ?? 0} sonuc)` : `TMDB hatasi ${r.status}`;
+    if (r.ok) break;
+  } catch (e) { test = 'sunucuya ulasilamadi'; }
+  await new Promise((res) => setTimeout(res, 5000));
+}
+console.log(`::notice::Ara sunucu hazir: ${url} | ${test}`);
 out('api_url', url);
