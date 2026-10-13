@@ -1,4 +1,5 @@
 import Feather from '@expo/vector-icons/Feather';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
@@ -39,6 +40,13 @@ export function Screen({ children, scroll = true, style, refresh }: { children: 
       {refresh}
       {inner}
     </ScrollView>
+    {insets.top > 0 && (
+      // Saat ve pil çubuğunun arkası: kaydırılan içerik altına girince okunur kalsın
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+        <View style={{ height: insets.top, backgroundColor: alpha(C.bg, 0.94) }} />
+        <LinearGradient colors={[alpha(C.bg, 0.94), alpha(C.bg, 0)]} style={{ height: 14 }} />
+      </View>
+    )}
     </KeyboardAvoidingView>
   );
 }

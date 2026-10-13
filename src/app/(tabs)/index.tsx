@@ -137,13 +137,13 @@ export default function Home() {
 
       <View style={{ flexDirection: tablet ? 'row' : 'column', gap: tablet ? 18 : 0 }}>
         {big && (
-          <View style={{ flex: 1 }}>
+          <View style={tablet ? { flex: 1 } : undefined}>
             <SectionHead title="Büyük hikâyeye hazırlan" />
             <BigStory id={big.id} />
           </View>
         )}
         {night && (
-          <View style={{ flex: 1 }}>
+          <View style={tablet ? { flex: 1 } : undefined}>
             <SectionHead title="Bu akşam için" note={duration(night.ep ? (night.t.ep[night.ep - 1]?.[2] || night.t.minutes) : night.t.minutes)} />
             <Press accessibilityRole="button" onPress={() => router.push(`/title/${night.t.id}`)}>
               <Panel style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>

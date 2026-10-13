@@ -28,6 +28,7 @@ export default function TitleDetail() {
     return t.ep[firstOpen >= 0 ? firstOpen : 0][0];
   });
   const [showAfter, setShowAfter] = useState(false);
+  const [showAllDeps, setShowAllDeps] = useState(false);
 
   if (!t) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><Empty title="Bu yapım bulunamadı." action="Ana sayfaya dön" onAction={() => router.replace('/')} /></Screen>;
 
@@ -35,7 +36,7 @@ export default function TitleDetail() {
   const done = isDone(state, t);
   const inList = state.list.includes(t.id);
   const r = readiness(state, t.id);
-  const directDeps = t.deps.map((d) => TBY[d]).filter(Boolean);
+  const missing = r.deps.filter((d) => !isDone(state, d));
   const list = route(state, t.u);
   const pos = list.findIndex((x) => x.id === t.id);
   const prev = pos > 0 ? list[pos - 1] : null;
@@ -154,23 +155,31 @@ export default function TitleDetail() {
       )}
 
       <View style={{ flexDirection: tablet ? 'row' : 'column', gap: tablet ? 18 : 0 }}>
-        <View style={{ flex: 1 }}>
-          <SectionHead title="Bundan önce" />
+        <View style={tablet ? { flex: 1 } : undefined}>
+          <SectionHead title="İzlemeden önce" />
           <Panel>
-            {r.deps.length ? (
+            {!r.deps.length ? (
+              <Muted>Bu yapımı anlamak için önce izlemen gereken bir şey yok. Doğrudan başlayabilirsin.</Muted>
+            ) : !missing.length ? (
               <>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <Small>{r.done} / {r.deps.length} hazırlık yapımı · {r.pct === 100 ? 'hazırsın' : `${duration(r.left)} kaldı`}</Small>
-                  <Chip label={r.pct === 100 ? '✓ Hazırsın' : `%${r.pct} hazır`} color={r.pct === 100 ? C.green : C.amber} bg={r.pct === 100 ? alpha(C.green, 0.1) : alpha(C.amber, 0.1)} />
-                </View>
-                {(r.deps.length > 8 ? directDeps : r.deps).map((d) => <DepLine key={d.id} id={d.id} />)}
-                {r.deps.length > 8 && <Small style={{ marginTop: 8 }}>Doğrudan bağlı yapımlar gösteriliyor. Zincirin tamamı {r.deps.length} yapım.</Small>}
+                <Row icon="check-circle" color={C.green} text="Hazırsın. Bundan önce izlenmesi gerekenlerin hepsini izledin." />
+                <Small style={{ marginTop: 8 }}>{r.deps.length} yapımın hepsi tamam.</Small>
               </>
-            ) : <Muted>Bu yapım için tanımlı bir ön koşul yok. Doğrudan başlayabilirsin.</Muted>}
+            ) : (
+              <>
+                <Text style={{ fontFamily: F.semibold, fontSize: 15.5, lineHeight: 22, color: C.text }}>
+                  {missing.length === 1 ? 'Önce şu yapımı izlemen önerilir:' : `Önce şu ${missing.length} yapımı izlemen önerilir:`}
+                </Text>
+                <View style={{ marginTop: 6 }}>{missing.slice(0, showAllDeps ? 99 : 5).map((d) => <DepLine key={d.id} id={d.id} />)}</View>
+                {missing.length > 5 && <Btn kind="quiet" label={showAllDeps ? 'Daha az göster' : `${missing.length - 5} tane daha göster`} onPress={() => setShowAllDeps((v) => !v)} style={{ alignSelf: 'flex-start' }} />}
+                <View style={{ marginTop: 10 }}><Bar pct={(r.done / r.deps.length) * 100} color={C.green} /></View>
+                <Small style={{ marginTop: 8 }}>Gereken {r.deps.length} yapımın {r.done} tanesini izledin · yaklaşık {duration(missing.reduce((n, d) => n + remaining(state, d), 0))} kaldı</Small>
+              </>
+            )}
           </Panel>
         </View>
-        <View style={{ flex: 1 }}>
-          <SectionHead title="Bundan sonra" />
+        <View style={tablet ? { flex: 1 } : undefined}>
+          <SectionHead title="Bunu izledikten sonra" />
           <Panel>
             {after.length === 0 ? <Muted>Bu yapıma doğrudan bağlanan başka bir yapım tanımlı değil.</Muted> : hideAfter ? (
               <>
@@ -200,8 +209,8 @@ export default function TitleDetail() {
   );
 }
 
-function Row({ icon, text }: { icon: React.ComponentProps<typeof Feather>['name']; text: string }) {
-  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><Feather name={icon} size={16} color={C.muted} /><Muted style={{ flex: 1 }}>{text}</Muted></View>;
+function Row({ icon, text, color = C.muted }: { icon: React.ComponentProps<typeof Feather>['name']; text: string; color?: string }) {
+  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><Feather name={icon} size={18} color={color} /><Text style={{ flex: 1, fontFamily: F.medium, fontSize: 15, lineHeight: 21, color: color === C.muted ? C.muted : C.text }}>{text}</Text></View>;
 }
 
 function DepLine({ id }: { id: string }) {
@@ -215,7 +224,7 @@ function DepLine({ id }: { id: string }) {
         <Text numberOfLines={1} style={{ fontFamily: F.medium, fontSize: 14.5, color: C.text }}>{d.title}</Text>
         <Small>{d.year} · {TYPE_TR[d.type]}{d.u !== TBY[id].u ? '' : ''}</Small>
       </View>
-      <Small style={{ color: ok ? C.green : C.dim }}>{ok ? 'İzlendi' : 'Önerilen'}</Small>
+      <Small style={{ color: ok ? C.green : d.tier === 0 ? UBY[d.u].color : C.dim }}>{ok ? 'İzlendi' : TIER_TR[d.tier]}</Small>
     </Press>
   );
 }
