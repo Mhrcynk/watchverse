@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { BackLink, Btn, FadeIn, H1, Muted, Panel, Press, Screen, Small, useToast } from '@/components/ui';
 import { useAccount } from '@/lib/account';
+import { confirm } from '@/lib/confirm';
 import { C, F, R, alpha } from '@/lib/theme';
 
 type Mode = 'signin' | 'signup' | 'reset' | 'newpass';
@@ -51,6 +52,7 @@ export default function Account() {
   const [consentSaved, setConsentSaved] = useState(false);
   const [busy, setBusy] = useState<null | 'mail' | 'google'>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mailError, setMailError] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
   const pwRef = useRef<TextInput>(null);
   const wasIn = useRef(!!acc.user);
@@ -81,7 +83,8 @@ export default function Account() {
 
   async function submit() {
     setError(null); setInfo(null);
-    if (mode !== 'newpass' && !okMail(email)) { setError('Geçerli bir mail adresi yaz.'); return; }
+    setMailError(false);
+    if (mode !== 'newpass' && !okMail(email)) { setMailError(true); setError('Geçerli bir mail adresi yaz.'); return; }
     if (mode !== 'reset' && pw.length < 8) { setError('Şifre en az 8 karakter olmalı.'); return; }
     if (mode === 'signup' && !consent) { setError('Devam etmek için aydınlatma metnini onaylaman gerekiyor.'); return; }
     setBusy('mail');
@@ -94,9 +97,12 @@ export default function Account() {
     if (r) (r.startsWith('Mailine') ? setInfo : setError)(r);
   }
 
-  async function google() {
+  async function google(agreed = consent) {
     setError(null);
-    if (!consent) { setError('Google ile devam etmeden önce aydınlatma metnini onayla.'); return; }
+    if (!agreed) {
+      confirm('Devam etmeden önce', 'Aydınlatma metnini ve kullanım şartlarını kabul ediyor, hesabının ve kayıtlarının yurt dışındaki (AB) sunucularda saklanmasına açık rıza veriyor musun?', 'Kabul ediyorum', () => { setConsent(true); google(true); });
+      return;
+    }
     remember();
     setBusy('google');
     const r = await acc.google();
@@ -118,7 +124,7 @@ export default function Account() {
 
         {(mode === 'signin' || mode === 'signup') && (
           <>
-            <Press accessibilityRole="button" accessibilityLabel="Google ile devam et" onPress={google} disabled={!!busy}
+            <Press accessibilityRole="button" accessibilityLabel="Google ile devam et" onPress={() => google()} disabled={!!busy}
               style={{ marginTop: 24, height: 50, borderRadius: R.md, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: busy && busy !== 'google' ? 0.5 : 1 }}>
               {busy === 'google' ? <ActivityIndicator color="#111" /> : <Ionicons name="logo-google" size={18} color="#111" />}
               <Text style={{ fontFamily: F.semibold, fontSize: 15.5, color: '#111' }}>Google ile devam et</Text>
@@ -132,9 +138,9 @@ export default function Account() {
         )}
 
         {mode !== 'newpass' && (
-          <Field label="Mail adresi" value={email} onChangeText={setEmail} placeholder="ornek@mail.com" autoCapitalize="none" autoCorrect={false}
+          <Field label="Mail adresi" value={email} onChangeText={(v) => { setEmail(v); setMailError(false); }} placeholder="ornek@mail.com" autoCapitalize="none" autoCorrect={false}
             keyboardType="email-address" autoComplete="email" textContentType="emailAddress" inputMode="email" returnKeyType="next"
-            onSubmitEditing={() => (mode === 'reset' ? submit() : pwRef.current?.focus())} error={error && !okMail(email) ? error : null} />
+            onSubmitEditing={() => (mode === 'reset' ? submit() : pwRef.current?.focus())} error={mailError ? 'x' : null} />
         )}
         {mode !== 'reset' && (
           <View>
