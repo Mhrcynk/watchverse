@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { BackLink, Btn, FadeIn, H1, Muted, Panel, Press, Screen, Small, useToast } from '@/components/ui';
@@ -44,7 +44,9 @@ function Check({ value, onChange, children }: { value: boolean; onChange: (v: bo
 export default function Account() {
   const acc = useAccount();
   const toast = useToast();
-  const [mode, setMode] = useState<Mode>(acc.recovery ? 'newpass' : 'signin');
+  const params = useLocalSearchParams<{ mode?: string; from?: string }>();
+  const fromWelcome = params.from === 'welcome';
+  const [mode, setMode] = useState<Mode>(acc.recovery ? 'newpass' : params.mode === 'signup' ? 'signup' : 'signin');
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [show, setShow] = useState(false);
@@ -62,19 +64,19 @@ export default function Account() {
   // Giriş tamamlanınca profile dön
   useEffect(() => {
     if (acc.user && !acc.recovery && mode !== 'newpass') {
-      if (!wasIn.current) toast('Giriş yapıldı. Kayıtların eşitleniyor.');
-      router.canGoBack() ? router.back() : router.replace('/profile');
+      if (!wasIn.current) toast(mode === 'signup' ? 'Hesabın açıldı' : 'Giriş yapıldı');
+      if (fromWelcome || !router.canGoBack()) router.replace('/'); else router.back();
     }
   }, [acc.user, acc.recovery]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
+  const back = () => (router.canGoBack() ? router.back() : router.replace(fromWelcome ? '/welcome' : '/profile'));
   const switchTo = (m: Mode) => { setMode(m); setError(null); setInfo(null); };
   const remember = () => { if (!consentSaved) AsyncStorage.setItem(CONSENT, String(Date.now())).catch(() => {}); };
 
   if (!acc.enabled) {
     return (
       <Screen>
-        <BackLink label="Profil" onPress={back} />
+        <BackLink label={fromWelcome ? 'Geri' : 'Profil'} onPress={back} />
         <H1>Hesap</H1>
         <Panel style={{ marginTop: 20 }}><Muted>Üyelik henüz açılmadı. Kurulum tamamlanınca buradan hesap açabileceksin. O zamana kadar her şey bu cihazda saklanır.</Muted></Panel>
       </Screen>
@@ -115,7 +117,7 @@ export default function Account() {
 
   return (
     <Screen>
-      <BackLink label="Profil" onPress={back} />
+      <BackLink label={fromWelcome ? 'Geri' : 'Profil'} onPress={back} />
       <View style={{ width: '100%', maxWidth: 440, alignSelf: 'center' }}>
         <H1>{title}</H1>
         <Muted style={{ marginTop: 8 }}>

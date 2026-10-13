@@ -9,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLayout } from '@/components/ui';
 import { GlassTabBar } from '@/components/glass-tabbar';
 import { useStore } from '@/lib/store';
+import { useAccount } from '@/lib/account';
+import { ActivityIndicator } from 'react-native';
 import { C, F } from '@/lib/theme';
 
 const TABS = [
@@ -23,6 +25,14 @@ export default function TabsLayout() {
   const { state } = useStore();
   const { tablet } = useLayout();
   const insets = useSafeAreaInsets();
+  const acc = useAccount();
+  // Açılış: önce tanıtım ve giriş, sonra evren seçimi
+  if (!acc.ready) return <View style={{ flex: 1, backgroundColor: C.bg }} />;
+  if (!acc.user && !acc.guest) return <Redirect href="/welcome" />;
+  if (!state.onboarded && acc.user && !acc.firstSync) {
+    // Hesabın başka cihazdaki kaydı gelirken bekle
+    return <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={C.accent} /></View>;
+  }
   if (!state.onboarded) return <Redirect href="/onboarding" />;
   return (
     <Tabs

@@ -87,6 +87,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
         <LibrarySync />
         <Stack key={catVersion} screenOptions={{ headerShown: false, freezeOnBlur: true, contentStyle: { backgroundColor: C.bg }, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="welcome" options={{ animation: 'fade', gestureEnabled: false }} />
           <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
           <Stack.Screen name="universe/[id]" />
           <Stack.Screen name="title/[id]" />

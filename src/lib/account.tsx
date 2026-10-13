@@ -9,12 +9,20 @@ import type { State } from './types';
 sb();
 
 const META = 'watchverse:sync';
+const GUEST = 'watchverse:guest';
 type Meta = { uid?: string; rev?: number; hash?: string; at?: number };
 export type SyncStatus = 'off' | 'syncing' | 'ok' | 'offline' | 'error';
 export type AccountUser = { id: string; email: string | null; google: boolean };
 
 type Ctx = {
   enabled: boolean;
+  /** oturum bilgisi okundu mu (açılışta kısa bir an) */
+  ready: boolean;
+  /** hesap açmadan devam etmeyi seçti */
+  guest: boolean;
+  setGuest: (v: boolean) => void;
+  /** girişten sonraki ilk eşitleme bitti mi */
+  firstSync: boolean;
   user: AccountUser | null;
   status: SyncStatus;
   lastSync: number | null;
@@ -80,6 +88,17 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SyncStatus>('off');
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [recovery, setRecovery] = useState(false);
+  const [ready, setReady] = useState(!enabled);
+  const [guest, setGuestRaw] = useState(false);
+  const [guestLoaded, setGuestLoaded] = useState(false);
+  const [firstSync, setFirstSync] = useState(false);
+  useEffect(() => {
+    AsyncStorage.getItem(GUEST).then((v) => setGuestRaw(v === '1')).catch(() => {}).finally(() => setGuestLoaded(true));
+  }, []);
+  const setGuest = useCallback((v: boolean) => {
+    setGuestRaw(v);
+    (v ? AsyncStorage.setItem(GUEST, '1') : AsyncStorage.removeItem(GUEST)).catch(() => {});
+  }, []);
   const stateRef = useRef(store.state);
   stateRef.current = store.state;
   const meta = useRef<Meta>({});
@@ -159,6 +178,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         const offline = /fetch|network|failed/i.test(String((e as Error)?.message || e));
         setStatus(offline ? 'offline' : 'error');
       }
+      setFirstSync(true);
     });
     busy.current = job;
     return job;
@@ -174,17 +194,20 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     loadMeta().then((m) => { meta.current = m; });
     const toUser = (u: { id: string; email?: string | null; app_metadata?: { provider?: string; providers?: string[] } } | null | undefined): AccountUser | null =>
       u ? { id: u.id, email: u.email || null, google: !!u.app_metadata?.providers?.includes('google') || u.app_metadata?.provider === 'google' } : null;
+    const fallback = setTimeout(() => alive && setReady(true), 4000);
     const { data: sub } = c.auth.onAuthStateChange((event, session) => {
       if (!alive) return;
+      setReady(true);
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       const u = toUser(session?.user);
       const changed = (u?.id || null) !== uidRef.current;
       uidRef.current = u?.id || null;
       setUser(u);
-      if (!u) { setStatus('off'); return; }
+      if (!u) { setStatus('off'); setFirstSync(false); return; }
+      if (changed) setFirstSync(false);
       if (changed) setTimeout(() => { loadMeta().then((m) => { meta.current = m; syncNow(); }); }, 0);
     });
-    return () => { alive = false; sub.subscription.unsubscribe(); };
+    return () => { alive = false; clearTimeout(fallback); sub.subscription.unsubscribe(); };
   }, [syncNow]);
 
   // Değişiklikleri birkaç saniye sonra sunucuya yaz
@@ -211,7 +234,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   }, [user, syncNow, run, push]);
 
   const value = useMemo<Ctx>(() => ({
-    enabled, user, status, lastSync, recovery, syncNow,
+    enabled, ready: ready && guestLoaded, guest, setGuest, firstSync, user, status, lastSync, recovery, syncNow,
     async signIn(email, pw) {
       const { error } = await sb()!.auth.signInWithPassword({ email: email.trim(), password: pw });
       return error ? authError(error) : null;
@@ -240,6 +263,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     async signOut() {
       await run(push).catch(() => {});
       await sb()!.auth.signOut({ scope: 'local' }).catch(() => {});
+      setGuest(false);
     },
     async deleteAccount() {
       const { error } = await sb()!.rpc('delete_my_account');
@@ -247,9 +271,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       meta.current = {};
       await saveMeta({});
       await sb()!.auth.signOut({ scope: 'local' }).catch(() => {});
+      setGuest(false);
       return null;
     },
-  }), [enabled, user, status, lastSync, recovery, syncNow, run, push]);
+  }), [enabled, ready, guestLoaded, guest, setGuest, firstSync, user, status, lastSync, recovery, syncNow, run, push]);
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 }

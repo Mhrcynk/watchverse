@@ -16,7 +16,7 @@ export default function Onboarding() {
   const { state } = store;
   const editing = state.onboarded;
   const { tablet, width } = useLayout();
-  const [step, setStep] = useState(editing ? 1 : 0);
+  const [step, setStep] = useState(1); // tanıtım artık hoş geldin ekranında
   const [sel, setSel] = useState<string[]>(state.follow.length ? state.follow : []);
   const [open, setOpen] = useState<string | null>(null);
   const [picked, setPicked] = useState<Set<string>>(() => {
@@ -96,7 +96,7 @@ export default function Onboarding() {
             );
           }} />
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 26 }}>
-          <Btn kind="secondary" label={editing ? 'Vazgeç' : 'Geri'} onPress={() => (editing ? (router.canGoBack() ? router.back() : router.replace('/profile')) : setStep(0))} />
+          {editing && <Btn kind="secondary" label="Vazgeç" onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />}
           <Btn style={{ flex: 1 }} label={`Devam et · ${sel.length} evren`} disabled={!sel.length} onPress={() => { setStep(2); setOpen(sel[0] || null); }} />
         </View>
       </Screen>
@@ -162,8 +162,8 @@ export default function Onboarding() {
 
 function Steps({ step }: { step: number }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 26 }} accessibilityLabel={`Adım ${step + 1} / 3`}>
-      {[0, 1, 2].map((i) => <View key={i} style={{ flex: 1, height: 4, borderRadius: 4, backgroundColor: i <= step ? C.accent : C.line }} />)}
+    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 26 }} accessibilityLabel={`Adım ${step} / 2`}>
+      {[1, 2].map((i) => <View key={i} style={{ flex: 1, height: 4, borderRadius: 4, backgroundColor: i <= step ? C.accent : C.line }} />)}
     </View>
   );
 }
