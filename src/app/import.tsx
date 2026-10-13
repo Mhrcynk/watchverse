@@ -111,7 +111,7 @@ export default function Import() {
               {plan > 0 && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14 }}>
                   <Small style={{ flex: 1, color: C.text }}>İzleme listesini de ekle</Small>
-                  <Switch value={withPlan} onValueChange={setWithPlan} trackColor={{ true: C.accent, false: C.line }} thumbColor="#fff" accessibilityLabel="İzleme listesini de ekle" />
+                  <Switch value={withPlan} onValueChange={setWithPlan} trackColor={{ true: C.accent, false: C.line }} thumbColor="#fff" {...({ activeThumbColor: "#fff" } as object)} accessibilityLabel="İzleme listesini de ekle" />
                 </View>
               )}
               <Btn label="İçe aktar" style={{ marginTop: 16 }} disabled={!step.ok.length} onPress={() => apply(step.ok)} />

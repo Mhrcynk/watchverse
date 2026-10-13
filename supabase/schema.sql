@@ -109,7 +109,138 @@ as $$ select jsonb_build_object('name', name, 'owner', owner_name, 'items', item
 revoke all on function public.get_shared_list(text) from public;
 grant execute on function public.get_shared_list(text) to anon, authenticated;
 
--- 4) Hata kayıtları: kimlik bilgisi tutulmaz, yalnızca hata metni
+-- 4) Arkadaşlar: davet bağlantısıyla eklenir; arkadaşlar birbirinin son izlediklerini görür
+create table if not exists public.profiles (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  display_name text not null default '' check (length(display_name) <= 40),
+  invite_code text not null unique default substr(md5(random()::text || clock_timestamp()::text), 1, 12),
+  share_activity boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+alter table public.profiles enable row level security;
+revoke all on public.profiles from anon, authenticated;
+
+create table if not exists public.friendships (
+  a uuid not null references auth.users (id) on delete cascade,
+  b uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (a, b),
+  check (a <> b)
+);
+alter table public.friendships enable row level security;
+revoke all on public.friendships from anon, authenticated;
+
+-- Kendi profilini oluşturur/günceller, davet kodunu döndürür
+create or replace function public.my_profile(p_name text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare uid uuid := auth.uid(); r public.profiles;
+begin
+  if uid is null then raise exception 'giris gerekli'; end if;
+  insert into public.profiles (user_id, display_name) values (uid, left(coalesce(p_name, ''), 40))
+  on conflict (user_id) do update set display_name = case when coalesce(p_name, '') = '' then public.profiles.display_name else left(p_name, 40) end, updated_at = now()
+  returning * into r;
+  return jsonb_build_object('code', r.invite_code, 'name', r.display_name, 'share', r.share_activity);
+end;
+$$;
+
+create or replace function public.reset_invite()
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare code text := substr(md5(random()::text || clock_timestamp()::text), 1, 12);
+begin
+  if auth.uid() is null then raise exception 'giris gerekli'; end if;
+  update public.profiles set invite_code = code, updated_at = now() where user_id = auth.uid();
+  return code;
+end;
+$$;
+
+create or replace function public.set_sharing(p_on boolean)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$ update public.profiles set share_activity = p_on, updated_at = now() where user_id = auth.uid(); $$;
+
+-- Davet eden kişinin adı (giriş yapmadan da görülebilir)
+create or replace function public.invite_info(p_code text)
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$ select nullif(display_name, '') from public.profiles where invite_code = p_code; $$;
+
+create or replace function public.accept_invite(p_code text, p_name text)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare uid uuid := auth.uid(); other uuid; oname text;
+begin
+  if uid is null then raise exception 'giris gerekli'; end if;
+  select user_id, display_name into other, oname from public.profiles where invite_code = p_code;
+  if other is null then raise exception 'davet gecersiz'; end if;
+  if other = uid then raise exception 'kendi davetin'; end if;
+  insert into public.profiles (user_id, display_name) values (uid, left(coalesce(p_name, ''), 40)) on conflict (user_id) do nothing;
+  insert into public.friendships (a, b) values (uid, other), (other, uid) on conflict do nothing;
+  return coalesce(nullif(oname, ''), 'Arkadaşın');
+end;
+$$;
+
+create or replace function public.remove_friend(p_id uuid)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$ delete from public.friendships where (a = auth.uid() and b = p_id) or (a = p_id and b = auth.uid()); $$;
+
+-- Arkadaşların son 30 hareketi: izlenenler, bölüm sayısı, puan (notlar paylaşılmaz)
+create or replace function public.friend_feed()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(jsonb_agg(f order by f->>'name'), '[]'::jsonb) from (
+    select jsonb_build_object(
+      'id', p.user_id,
+      'name', coalesce(nullif(p.display_name, ''), 'Arkadaşın'),
+      'share', p.share_activity,
+      'items', case when p.share_activity then coalesce((
+        select jsonb_agg(jsonb_build_object(
+          'k', t.key, 'at', t.value::bigint,
+          'w', (s.data->'watched') ? t.key,
+          'e', coalesce(jsonb_array_length(s.data->'episodes'->t.key), 0),
+          'r', s.data->'ratings'->t.key,
+          't', s.data->'lib'->t.key->>'title',
+          'p', s.data->'lib'->t.key->>'p',
+          'y', s.data->'lib'->t.key->>'year'
+        ) order by t.value::bigint desc)
+        from (select key, value from jsonb_each_text(coalesce(s.data->'touched', '{}'::jsonb)) where value ~ '^\d+$' order by value::bigint desc limit 30) t
+      ), '[]'::jsonb) else '[]'::jsonb end
+    ) as f
+    from public.friendships fr
+    join public.profiles p on p.user_id = fr.b
+    left join public.user_state s on s.user_id = fr.b
+    where fr.a = auth.uid()
+  ) x;
+$$;
+
+revoke all on function public.my_profile(text), public.reset_invite(), public.set_sharing(boolean), public.accept_invite(text, text), public.remove_friend(uuid), public.friend_feed() from public, anon;
+grant execute on function public.my_profile(text), public.reset_invite(), public.set_sharing(boolean), public.accept_invite(text, text), public.remove_friend(uuid), public.friend_feed() to authenticated;
+revoke all on function public.invite_info(text) from public;
+grant execute on function public.invite_info(text) to anon, authenticated;
+
+-- 5) Hata kayıtları: kimlik bilgisi tutulmaz, yalnızca hata metni
 create table if not exists public.app_errors (
   id bigint generated always as identity primary key,
   at timestamptz not null default now(),

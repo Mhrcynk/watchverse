@@ -8,6 +8,7 @@ import { ConfirmProvider, ToastProvider, useToast } from '@/components/ui';
 import { PreviewProvider } from '@/components/preview';
 import { ListPickerProvider } from '@/components/lists';
 import { SharedListsSync } from '@/components/share';
+import { FriendsSync } from '@/components/friends-sync';
 import { refreshLibrary } from '@/lib/library';
 import { syncCatalog } from '@/lib/remote';
 import { hasSyncApi, syncDevice } from '@/lib/sync';
@@ -88,6 +89,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
         <CatalogSync onChange={bump} />
         <LibrarySync />
         <SharedListsSync />
+        <FriendsSync />
         <Stack key={catVersion} screenOptions={{ headerShown: false, freezeOnBlur: true, contentStyle: { backgroundColor: C.bg }, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="welcome" options={{ animation: 'fade', gestureEnabled: false }} />
@@ -103,6 +105,8 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="l/[slug]" />
           <Stack.Screen name="stats" />
           <Stack.Screen name="import" />
+          <Stack.Screen name="friends" />
+          <Stack.Screen name="davet/[code]" />
         </Stack>
       </PreviewProvider></ListPickerProvider></ConfirmProvider></ToastProvider></AccountProvider>
     </ThemeProvider>

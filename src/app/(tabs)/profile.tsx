@@ -65,7 +65,10 @@ export default function Profile() {
         ))}
       </View>
 
-      <Btn kind="secondary" icon="bar-chart-2" label="Tüm istatistiklerin" style={{ marginTop: 12 }} onPress={() => router.push('/stats')} />
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+        <Btn kind="secondary" icon="bar-chart-2" label="İstatistikler" style={{ flex: 1 }} onPress={() => router.push('/stats')} />
+        <Btn kind="secondary" icon="users" label="Arkadaşlar" style={{ flex: 1 }} onPress={() => router.push('/friends')} />
+      </View>
 
       <AccountPanel />
 
@@ -127,7 +130,7 @@ export default function Profile() {
             <H3>Spoiler koruması</H3>
             <Small>İzlemediğin bir yapımdan sonra gelen hikâyeleri gizler.</Small>
           </View>
-          <Switch value={state.spoiler} onValueChange={store.setSpoiler} trackColor={{ true: C.accent, false: C.line }} thumbColor="#fff" accessibilityLabel="Spoiler koruması" />
+          <Switch value={state.spoiler} onValueChange={store.setSpoiler} trackColor={{ true: C.accent, false: C.line }} thumbColor="#fff" {...({ activeThumbColor: "#fff" } as object)} accessibilityLabel="Spoiler koruması" />
         </View>
         <Divider />
         <Text style={label}>Evren listelerinin görünümü</Text>
