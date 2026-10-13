@@ -193,6 +193,7 @@ export default function Profile() {
             });
           }} />
           <Btn kind="quiet" label={importing ? 'Kodu gizle' : 'Kodla geri yükle'} onPress={() => setImporting((v) => !v)} />
+          {Platform.OS === 'web' && <Btn kind="secondary" icon="log-in" label="Letterboxd / TV Time'dan aktar" onPress={() => router.push('/import')} />}
         </View>
         {importing && (
           <View style={{ marginTop: 14 }}>

@@ -75,6 +75,12 @@ export async function search(q: string): Promise<TItem[]> {
   // Önce afişi olan ve oy almış olanlar
   return items(j.results).sort((a, b) => Number(!!b.p) - Number(!!a.p) || b.votes - a.votes).slice(0, 40);
 }
+/** Yalnızca film ya da yalnızca dizi arar (içe aktarma için); yıl verilirse ona göre daraltır */
+export async function searchKind(m: Media, q: string, year?: number): Promise<TItem[]> {
+  const yk = m === 'movie' ? 'primary_release_year' : 'first_air_date_year';
+  const j = await get<any>(`/search/${m}`, { query: q.trim(), include_adult: 'false', [yk]: year }, 60 * 24);
+  return items(j.results, m);
+}
 export async function trending(): Promise<TItem[]> {
   return items((await get<any>('/trending/all/week', {}, 120, true)).results);
 }

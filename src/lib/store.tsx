@@ -140,7 +140,7 @@ type Actions = {
   listToggle: (id: string, item: ListItem) => boolean;
   listSetShare: (id: string, share: string | undefined) => void;
   /** dışarıdan toplu kayıt (içe aktarma) */
-  importMany: (items: { key: string; lib?: LibItem; watchedAt?: number; rating?: number; eps?: number[]; plan?: boolean }[]) => number;
+  importMany: (items: { key: string; lib?: LibItem; watchedAt?: number; dated?: boolean; rating?: number; eps?: number[]; plan?: boolean }[]) => number;
   finishOnboarding: (follow: string[], watchedIds: string[]) => void;
   exportBackup: () => string;
   importBackup: (code: string) => boolean;
@@ -322,13 +322,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (it.plan && TBY[it.key] && !list.includes(it.key)) list.push(it.key);
           if (it.watchedAt && !watched[it.key] && !(TBY[it.key]?.episodes)) {
             watched[it.key] = it.watchedAt;
-            cur = { ...cur, lib, log: bump({ ...cur, lib }, { f: 1, m: minutesOf({ ...cur, lib }, it.key) }, it.watchedAt) };
+            // aylık özete yalnızca tarihi bilinenler yazılır
+            if (it.dated) cur = { ...cur, lib, log: bump({ ...cur, lib }, { f: 1, m: minutesOf({ ...cur, lib }, it.key) }, it.watchedAt) };
           }
           if (it.eps?.length) {
             const before = episodes[it.key] || [];
             const next = [...new Set([...before, ...it.eps])].sort((a, b) => a - b);
             episodes[it.key] = next;
-            cur = { ...cur, lib, log: bumpEps({ ...cur, lib }, it.key, before, next) };
           }
           if (it.rating && it.rating >= 1 && it.rating <= 5) ratings[it.key] = Math.round(it.rating);
           touched[it.key] = Math.max(touched[it.key] || 0, it.watchedAt || Date.now());
