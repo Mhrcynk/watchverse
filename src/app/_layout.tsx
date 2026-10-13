@@ -101,6 +101,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="legal/[doc]" />
           <Stack.Screen name="lists/[id]" />
           <Stack.Screen name="l/[slug]" />
+          <Stack.Screen name="stats" />
         </Stack>
       </PreviewProvider></ListPickerProvider></ConfirmProvider></ToastProvider></AccountProvider>
     </ThemeProvider>

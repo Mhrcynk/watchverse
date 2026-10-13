@@ -14,6 +14,7 @@ import { monthLabel } from '@/lib/format';
 import { history, stats, universeProgress } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { useAccount } from '@/lib/account';
+import { fullStats } from '@/lib/stats';
 import { C, F, R, alpha } from '@/lib/theme';
 import type { ListView } from '@/lib/types';
 
@@ -24,6 +25,7 @@ export default function Profile() {
   const acc = useAccount();
   const { tablet } = useLayout();
   const s = useMemo(() => stats(state), [state]);
+  const fs = useMemo(() => fullStats(state), [state]);
   const hist = useMemo(() => history(state, 30), [state]);
   const [importing, setImporting] = useState(false);
   const [code, setCode] = useState('');
@@ -55,13 +57,15 @@ export default function Profile() {
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 18 }}>
-        {[[state.follow.length, 'Takip edilen evren'], [s.films, 'İzlenen film ve özel'], [s.eps, 'İzlenen bölüm'], [s.hours, 'Saatlik yolculuk']].map(([v, l]) => (
+        {[[state.follow.length, 'Takip edilen evren'], [fs.films, 'İzlenen film'], [fs.eps, 'İzlenen bölüm'], [Math.round(fs.minutes / 60), 'Saat izleme']].map(([v, l]) => (
           <Panel key={String(l)} style={{ flexGrow: 1, flexBasis: tablet ? '22%' : '45%', padding: 16 }}>
             <Text style={{ fontFamily: F.bold, fontSize: 28, color: C.text, letterSpacing: -1 }}>{Number(v).toLocaleString('tr-TR')}</Text>
             <Small style={{ marginTop: 2 }}>{l}</Small>
           </Panel>
         ))}
       </View>
+
+      <Btn kind="secondary" icon="bar-chart-2" label="Tüm istatistiklerin" style={{ marginTop: 12 }} onPress={() => router.push('/stats')} />
 
       <AccountPanel />
 
