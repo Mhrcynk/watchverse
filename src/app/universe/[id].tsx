@@ -7,7 +7,7 @@ import { Wordmark, TitleRow } from '@/components/media';
 import { BackLink, Btn, Empty, Eyebrow, H1, H3, Muted, Panel, Pills, Ring, Screen, Segmented, Small, useLayout, useToast } from '@/components/ui';
 import { CATEGORY_TR, MODE_HELP, MODE_TR, ORDER_TR, UBY, branchesOf, inMode, routeTitles } from '@/lib/catalog';
 import { duration } from '@/lib/format';
-import { branchOf, nextUp, universeProgress } from '@/lib/progress';
+import { nextUp, universeProgress } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
 import type { Mode, Order } from '@/lib/types';
@@ -24,9 +24,10 @@ export default function UniverseDetail() {
   const [limit, setLimit] = useState(PAGE);
   const u = UBY[id || ''];
 
-  const branch = u ? branchOf(state, u.id) : 'all';
+  // Evren sayfası açılışta tüm rotaları gösterir; seçilen rota hatırlanır
+  const branch = u ? state.branches[u.id] || 'all' : 'all';
   const branches = useMemo(() => (u ? branchesOf(u.id) : []), [u]);
-  const all = useMemo(() => (u ? routeTitles(u.id, branch, null, state.order) : []), [u, branch, state.order]);
+  const all = useMemo(() => (u ? routeTitles(u.id, branch, state.mode, state.order) : []), [u, branch, state.mode, state.order]);
   if (!u) return <Screen><BackLink label="Evrenler" onPress={() => router.back()} /><Empty title="Bu evren bulunamadı." action="Evrenlere dön" onAction={() => router.replace('/universes')} /></Screen>;
 
   const p = universeProgress(state, u.id);

@@ -17,10 +17,11 @@ export const initialState = (): State => ({
   episodes: {},
   touched: {},
   list: [],
-  mode: 'recommended',
-  order: 'recommended',
+  mode: 'essential',
+  order: 'release',
   branches: {},
   spoiler: true,
+  dv: 2,
 });
 
 /** Kayıttan gelen veriyi doğrular; katalogda olmayan kimlikleri ayıklar. */
@@ -48,6 +49,8 @@ export function sanitize(input: unknown): State {
   out.touched = {};
   for (const [id, v] of Object.entries(s.touched || {})) if (TBY[id] && typeof v === 'number') out.touched[id] = v;
   out.branches = {};
+  // Eski kayıtlar: ana hikâye + yayın sırası + tüm rotalar varsayılanına bir kez geçir
+  if ((s.dv || 0) < 2) { out.mode = 'essential'; out.order = 'release'; return out; }
   for (const [u, b] of Object.entries(s.branches || {})) if (UBY[u] && typeof b === 'string' && (b === 'all' || branchesOf(u).some((x) => x.id === b))) out.branches[u] = b;
   return out;
 }

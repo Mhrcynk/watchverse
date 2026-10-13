@@ -59,4 +59,6 @@ export type State = {
   order: Order;
   branches: Record<string, string>;
   spoiler: boolean;
+  /** varsayılan ayar sürümü (eski kayıtları yeni varsayılanlara taşımak için) */
+  dv?: number;
 };
