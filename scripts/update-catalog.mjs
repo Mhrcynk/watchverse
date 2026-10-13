@@ -33,6 +33,7 @@ const MAX_NEW = Number(args.max || 30);
 
 const TODAY = (process.env.TODAY || new Date().toISOString()).slice(0, 10);
 const SINCE = new Date(Date.parse(TODAY) - DAYS * 864e5).toISOString().slice(0, 10);
+const RECENT = new Date(Date.parse(TODAY) - 120 * 864e5).toISOString().slice(0, 10);
 
 const data = JSON.parse(fs.readFileSync(FILE, 'utf8'));
 const { sources } = JSON.parse(fs.readFileSync(SOURCES, 'utf8'));
@@ -76,6 +77,8 @@ async function updateSeries() {
     if (!r) continue;
     const last = r.last_episode_to_air;
     if (!last || !last.season_number || last.air_date > TODAY) continue;
+    // Yalnızca son aylarda yeni bölümü çıkan dizilere dokun; eski dizilerde TMDB'nin farklı sayımı yanlış ekleme yapar
+    if (last.air_date < RECENT) continue;
     const ours = {};
     for (const [s] of t.ep) ours[s] = (ours[s] || 0) + 1;
     const ourSeasons = Object.keys(ours).map(Number).sort((a, b) => a - b);
@@ -188,10 +191,13 @@ async function buildTitle(src, c) {
       const n = s < last.season_number ? tm[s] || 0 : last.episode_number;
       for (let e = 1; e <= n; e++) ep.push([s, e, null]);
     }
-    if (!ep.length) return null;
+    // Tek bölümlük tanıtım ya da kısa yapımları alma (seri kayıtları hariç)
+    if (ep.length < (c.collection ? 1 : 3)) return null;
     type = 'Dizi';
   } else {
     minutes = en.runtime || 0;
+    // Anahtar kelime ve şirket aramalarında kısa film, tanıtım ve özel bölüm gürültüsü çok; uzun metraj olmayanı alma
+    if (!c.collection && minutes < 60) return null;
     type = minutes && minutes < 40 ? 'Special' : 'Film';
   }
   const summary = (tr.overview || '').trim() || null;

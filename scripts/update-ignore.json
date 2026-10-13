@@ -1,1 +1,12 @@
-{ "_note": "Güncelleyicinin bir daha eklememesi gereken TMDB kayıtları, ör. \"movie:123\" ya da \"tv:456\"", "ignore": [] }
+{
+  "_note": "Güncelleyicinin bir daha eklememesi gereken TMDB kayıtları, ör. \"movie:123\" ya da \"tv:456\"",
+  "ignore": [
+    "movie:1750432",
+    "movie:1786298",
+    "movie:1767987",
+    "tv:231801",
+    "movie:1731694",
+    "tv:335390",
+    "movie:1742537"
+  ]
+}
