@@ -76,9 +76,11 @@ self.addEventListener('fetch', (e) => {
 const head = `
     <meta name="color-scheme" content="dark">
     <style id="wv-pwa">
-      html, body { background: #0B0D12; color-scheme: dark; }
-      html, body, #root { height: 100%; min-height: 100dvh; }
-      body { overscroll-behavior: none; }
+      html, body { background-color: #0B0D12 !important; color-scheme: dark; margin: 0; }
+      html { height: 100vh; height: -webkit-fill-available; }
+      body { min-height: 100vh; overscroll-behavior: none; }
+      /* iPhone'da ana ekrandan açılınca alt ve üst kenarda boşluk kalmasın */
+      #root { position: fixed; top: 0; right: 0; bottom: 0; left: 0; height: auto !important; background-color: #0B0D12; }
     </style>
     <link rel="manifest" href="${at('manifest.webmanifest')}">
     <link rel="apple-touch-icon" href="${at('apple-touch-icon.png')}">
