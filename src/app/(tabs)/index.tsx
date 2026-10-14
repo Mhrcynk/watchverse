@@ -7,7 +7,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UniverseCard } from '@/components/media';
 import { Billboard, RemoteRow, Row, Tile, TItemTile, useTileW, type BillboardItem } from '@/components/rows';
-import { Backdrop, Coverflow, Greeting, SearchPill, TicketCard } from '@/components/home';
+import { Backdrop, Coverflow, Greeting, PickBanner, SearchPill, TicketCard } from '@/components/home';
 import { isEn } from '@/lib/i18n';
 import { mergedPopular, platformLists, popularOf, type Lists, type PlatformList } from '@/lib/platform-lists';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +17,7 @@ import { usePreview } from '@/components/preview';
 import { StarterCard } from '@/components/starter';
 import { loadCollections, ofKind, todays, type Collection } from '@/lib/collections';
 import { useFriendsLiked } from '@/components/collections';
+import { useBackClose } from '@/lib/backclose';
 import { libraryEntries } from '@/lib/library';
 import { continueWatching, episodeLabel, fraction, isDone, nextEpisode, nextUp } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -104,6 +105,7 @@ export default function Home() {
           </View>
         )
       ) : <View style={{ marginTop: 18 }}><CatalogBillboard state={state} /></View>}
+      {api && !P && <PickBanner style={{ marginTop: 22 }} />}
 
       {P ? (
         <>
@@ -247,13 +249,14 @@ function useForYou(s: State, kind: Kind) {
 function CategorySheet({ visible, kind, onClose }: { visible: boolean; kind: Kind; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const list = GENRES.filter((g) => kind === 'all' || g[kind]);
+  const release = useBackClose(visible, onClose);
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.94)' }}>
         <ScrollView contentContainerStyle={{ paddingTop: insets.top + 50, paddingBottom: 140, alignItems: 'center', gap: 4 }}>
           <Text style={{ fontFamily: F.medium, fontSize: 14, color: C.muted, marginBottom: 14 }}>{kind === 'tv' ? 'Dizi kategorileri' : kind === 'movie' ? 'Film kategorileri' : 'Kategoriler'}</Text>
           {list.map((g) => (
-            <Pressable key={g.name} accessibilityRole="button" onPress={() => { onClose(); router.push({ pathname: '/genre/[id]', params: { id: g.name, k: kind } }); }}
+            <Pressable key={g.name} accessibilityRole="button" onPress={() => { onClose(); release(() => router.push({ pathname: '/genre/[id]', params: { id: g.name, k: kind } })); }}
               style={({ pressed }) => ({ paddingVertical: 12, paddingHorizontal: 30, opacity: pressed ? 0.6 : 1 })}>
               <Text style={{ fontFamily: F.semibold, fontSize: 20, color: '#D6D6DC' }}>{g.name}</Text>
             </Pressable>

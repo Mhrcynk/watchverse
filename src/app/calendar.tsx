@@ -5,8 +5,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Backdrop, PageHeader } from '@/components/home';
 import { usePreview } from '@/components/preview';
-import { BackLink, Empty, Press, Screen, Small, SkeletonRows } from '@/components/ui';
+import { BackLink, Btn, Empty, Press, Screen, Small, SkeletonRows, tap, useToast } from '@/components/ui';
 import { episodesBetween, weekStart, ymd, type CalEp } from '@/lib/calendar';
+import { canIcs, openGoogle, openIcs, type CalEvent } from '@/lib/ics';
 import { isEn } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
@@ -15,6 +16,8 @@ import { hasApi, img, today } from '@/lib/tmdb';
 const GUN = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const AY = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 const pad2 = (n: number) => String(n).padStart(2, '0');
+const android = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent || '');
+const toEvent = (x: CalEp): CalEvent => ({ uid: `${x.key}-${x.s}-${x.e}`, title: `${x.title} · S${pad2(x.s)} B${pad2(x.e)}`, date: x.date, note: [x.name, 'Yeni bölüm · WatchVerse'].filter(Boolean).join('\n') });
 
 /** Yayın takvimi: takip ettiğin dizilerin bu haftaki (ve seçilen haftadaki) bölümleri */
 export default function Calendar() {
@@ -23,6 +26,8 @@ export default function Calendar() {
   const [off, setOff] = useState(0);
   const [eps, setEps] = useState<CalEp[] | null>(null);
   const [err, setErr] = useState(false);
+  const [openRow, setOpenRow] = useState<string | null>(null);
+  const toast = useToast();
   const start = useMemo(() => weekStart(off), [off]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(start); d.setDate(d.getDate() + i); return d; }), [start]);
   const from = ymd(days[0]), to = ymd(days[6]);
@@ -58,6 +63,11 @@ export default function Calendar() {
         </Press>
       </View>
 
+      {canIcs && !android && !!eps?.some((x) => x.date >= t0 && !x.seen) && (
+        <Btn kind="secondary" icon="calendar" label="Haftanın bölümlerini takvime ekle" style={{ marginTop: 12 }}
+          onPress={() => { const up = eps!.filter((x) => x.date >= t0 && !x.seen); openIcs(up.map(toEvent), `watchverse-${from}`); toast(`${up.length} bölüm takvim dosyasına eklendi`); }} />
+      )}
+
       {err ? <Empty icon="wifi-off" title="Takvim yüklenemedi." text="İnternet bağlantını kontrol edip tekrar dene." />
         : eps === null ? <View style={{ marginTop: 20 }}><SkeletonRows n={4} /></View>
         : !eps.length ? <Empty icon="calendar" title={off === 0 ? 'Bu hafta yeni bölüm yok.' : 'Bu hafta için bölüm yok.'} text="Bir dizinin bölümünü işaretlediğinde ya da diziyi kaydettiğinde yeni bölümleri burada görürsün." action="Keşfet'e git" onAction={() => router.push('/explore')} />
@@ -76,10 +86,13 @@ export default function Calendar() {
                 {list.map((x, n) => {
                   const uri = img(x.p, 'w185');
                   const future = x.date > t0;
+                  const rk = `${x.key}-${x.s}-${x.e}`;
                   return (
-                    <Press key={`${x.key}-${x.s}-${x.e}`} accessibilityRole="button" accessibilityLabel={`${x.title}, ${x.s}. sezon ${x.e}. bölüm${x.seen ? ', izlendi' : ''}`}
+                    <View key={`${x.key}-${x.s}-${x.e}`} style={{ borderTopWidth: n ? StyleSheet.hairlineWidth : 0, borderTopColor: C.line }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Press accessibilityRole="button" accessibilityLabel={`${x.title}, ${x.s}. sezon ${x.e}. bölüm${x.seen ? ', izlendi' : ''}`}
                       onPress={() => openKey(x.key, { title: x.title, year: x.year, p: x.p })} scaleTo={0.99}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderTopWidth: n ? StyleSheet.hairlineWidth : 0, borderTopColor: C.line }}>
+                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, paddingRight: 6 }}>
                       <View style={{ width: 44, aspectRatio: 2 / 3, borderRadius: 8, overflow: 'hidden', backgroundColor: C.raised }}>
                         {uri && <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" />}
                       </View>
@@ -91,6 +104,20 @@ export default function Calendar() {
                         : future ? <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, backgroundColor: C.raised }}><Text style={{ fontFamily: F.semibold, fontSize: 11.5, color: C.muted }}>Yakında</Text></View>
                         : <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, backgroundColor: alpha(C.accent, 0.18) }}><Text style={{ fontFamily: F.bold, fontSize: 11.5, color: C.accent }}>Yeni</Text></View>}
                     </Press>
+                    {future && !x.seen && (
+                      <Press accessibilityRole="button" accessibilityLabel={`${x.title} bölümünü takvime ekle`} accessibilityState={{ expanded: openRow === rk }}
+                        onPress={() => { tap(); setOpenRow(openRow === rk ? null : rk); }} style={{ width: 44, height: 44, marginRight: 6, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: openRow === rk ? alpha(C.accent, 0.2) : 'transparent' }}>
+                        <Feather name="calendar" size={18} color={openRow === rk ? C.accentSoft : C.muted} />
+                      </Press>
+                    )}
+                    </View>
+                    {openRow === rk && (
+                      <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingBottom: 12 }}>
+                        <Btn kind="secondary" label="Google Takvim" style={{ flex: 1 }} onPress={() => { openGoogle(toEvent(x)); setOpenRow(null); }} />
+                        {canIcs && <Btn kind="secondary" label={android ? 'Takvim dosyası' : 'Apple / diğer'} style={{ flex: 1 }} onPress={() => { openIcs([toEvent(x)], `watchverse-${x.s}-${x.e}`); setOpenRow(null); }} />}
+                      </View>
+                    )}
+                    </View>
                   );
                 })}
               </View>

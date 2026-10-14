@@ -14,6 +14,8 @@ import type { Title } from '@/lib/types';
 import { Btn, Small, tap, useToast } from './ui';
 import { isSaved, itemFromTitle, itemFromTItem, useListPicker } from './lists';
 import { useTrailer } from './trailer';
+import { useSwipeDown } from './swipe';
+import { useBackClose } from '@/lib/backclose';
 
 type IconName = React.ComponentProps<typeof Feather>['name'];
 type Lite = { title: string; year: number | null; p: string | null };
@@ -60,8 +62,11 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
     const [m, n] = k.split(':');
     open({ key: k, m: m as TItem['m'], id: Number(n), title: f.title, orig: f.title, year: f.year, date: null, p: f.p, b: null, overview: '', vote: 0, votes: 0, lang: '' });
   }, [open, openTitle]);
-  useEffect(() => { if (x) { a.setValue(0); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [x]); // eslint-disable-line react-hooks/exhaustive-deps
-  const close = (then?: () => void) => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setX(null); setCat(null); then?.(); });
+  const open_ = !!x;
+  useEffect(() => { if (open_) { a.setValue(0); swipe.reset(); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [open_]); // eslint-disable-line react-hooks/exhaustive-deps
+  const release = useBackClose(open_, () => close());
+  const close = (then?: () => void) => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setX(null); setCat(null); release(then); });
+  const swipe = useSwipeDown(() => close());
 
   const s = store.state;
   const key = x?.key || '';
@@ -96,7 +101,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
         <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', opacity: a, justifyContent: 'flex-end' }}>
           <Pressable accessibilityLabel="Kapat" style={StyleSheet.absoluteFill} onPress={() => close()} />
           {x && (
-            <Animated.View accessibilityViewIsModal style={{ alignSelf: 'center', width: '100%', maxWidth: 560, backgroundColor: C.raised, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, overflow: 'hidden', paddingBottom: 18 + insets.bottom, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [80, 0] }) }] }}>
+            <Animated.View accessibilityViewIsModal {...swipe.handlers} style={{ alignSelf: 'center', width: '100%', maxWidth: 560, backgroundColor: C.raised, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, overflow: 'hidden', paddingBottom: 18 + insets.bottom, transform: [{ translateY: Animated.add(a.interpolate({ inputRange: [0, 1], outputRange: [80, 0] }), swipe.drag) }] }}>
               <View style={{ alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: C.line, marginTop: 10 }} />
               <View style={{ flexDirection: 'row', gap: 14, padding: 16, paddingTop: 12 }}>
                 <Pressable accessibilityRole="button" accessibilityLabel={`${x.title} ayrıntıları`} onPress={goDetail}

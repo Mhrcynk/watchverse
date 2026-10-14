@@ -9,7 +9,7 @@ import { PersonChip } from '@/components/people';
 import { Row, TItemTile } from '@/components/rows';
 import { MediaCard, PosterCard } from '@/components/media';
 import { Btn, Chip, Empty, Eyebrow, Grid, H1, Pills, Press, Screen, SectionHead, Small, useLayout, SkeletonGrid } from '@/components/ui';
-import { Backdrop, PageHeader } from '@/components/home';
+import { Backdrop, PageHeader, PickBanner } from '@/components/home';
 import { isEn } from '@/lib/i18n';
 import { CATALOG, CATEGORIES, CATEGORY_TR, search as searchCatalog } from '@/lib/catalog';
 import { routeOf } from '@/lib/library';
@@ -125,6 +125,7 @@ function Online() {
               </Press>
             ))}
           </View>
+          {hasApi() && <PickBanner style={{ marginTop: 26 }} />}
           <PopularList />
           <Btn kind="secondary" icon="globe" label={`Evrenlerdeki ${CATALOG.length} yapıma göz at`} style={{ marginTop: 30, alignSelf: 'flex-start' }} onPress={() => router.push('/universes')} />
         </>

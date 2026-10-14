@@ -142,7 +142,7 @@ export default function Profile() {
         <Item icon="upload" label="Yedekten geri yükle" onPress={restoreFile} below={importing ? (
           <View>
             <TextInput value={code} onChangeText={setCode} placeholder="WATCHVERSE: ile başlayan kodu yapıştır" placeholderTextColor={C.dim} multiline accessibilityLabel="Yedek kodu"
-              style={{ minHeight: 90, borderRadius: R.md, backgroundColor: C.raised, color: C.text, padding: 12, fontFamily: F.regular, fontSize: 13, textAlignVertical: 'top' }} />
+              style={{ minHeight: 90, borderRadius: R.md, backgroundColor: C.raised, color: C.text, padding: 12, fontFamily: F.regular, fontSize: 16, textAlignVertical: 'top' }} />
             <Btn label="Yedeği geri yükle" style={{ marginTop: 10, alignSelf: 'flex-start' }} disabled={!code.trim()}
               onPress={() => confirm('Yedek geri yüklensin mi?', 'Bu cihazdaki mevcut ilerlemenin yerine yedekteki ilerleme gelir.', 'Geri yükle', () => {
                 const ok = store.importBackup(code);

@@ -170,3 +170,21 @@ export function Backdrop() {
     <LinearGradient pointerEvents="none" colors={[alpha('#3A4050', 0.55), alpha('#15171D', 0)]} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 420, ...(Platform.OS === 'web' ? {} : {}) }} />
   );
 }
+
+/** "Bugün ne izlesem?" aracına giriş kartı */
+export function PickBanner({ style }: { style?: object }) {
+  return (
+    <Press accessibilityRole="button" accessibilityLabel="Bugün ne izlesem? Platformunu ve vaktini seç, tek bir öneri al." onPress={() => router.push('/pick')} scaleTo={0.98}
+      style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: R.lg, backgroundColor: C.card, overflow: 'hidden' }, style]}>
+      <LinearGradient colors={[alpha(C.accent, 0.16), 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: alpha(C.accent, 0.22), alignItems: 'center', justifyContent: 'center' }}>
+        <Feather name="shuffle" size={20} color={C.accentSoft} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontFamily: F.bold, fontSize: 16, color: C.text }}>Bugün ne izlesem?</Text>
+        <Text numberOfLines={2} style={{ marginTop: 2, fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: C.muted }}>Platformunu ve vaktini seç, tek bir öneri al.</Text>
+      </View>
+      <Feather name="chevron-right" size={18} color={C.dim} />
+    </Press>
+  );
+}

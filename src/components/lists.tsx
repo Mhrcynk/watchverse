@@ -12,6 +12,8 @@ import { C, F, M, R, alpha } from '@/lib/theme';
 import { img, type TDetail, type TItem } from '@/lib/tmdb';
 import type { ListItem, State, Title, UList } from '@/lib/types';
 import { Btn, Press, Small, tap, useToast } from './ui';
+import { useSwipeDown } from './swipe';
+import { useBackClose } from '@/lib/backclose';
 
 /* ---------- yapım → liste kaydı ---------- */
 export const itemFromTitle = (t: Title): ListItem => ({ k: t.id, t: t.trTitle || t.title, p: t.tmdb?.p || null, y: t.year, at: Date.now() });
@@ -70,8 +72,11 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
     }
     setItem(it); setName(''); setCreating(false);
   }, [store]);
-  useEffect(() => { if (item) { a.setValue(0); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [item]); // eslint-disable-line react-hooks/exhaustive-deps
-  const close = () => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => setItem(null));
+  const shown = !!item;
+  useEffect(() => { if (shown) { a.setValue(0); swipe.reset(); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [shown]); // eslint-disable-line react-hooks/exhaustive-deps
+  const release = useBackClose(shown, () => close());
+  const close = () => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setItem(null); release(); });
+  const swipe = useSwipeDown(() => close());
 
   const lists = Object.values(s.lists).sort((x, y) => y.updated - x.updated);
   const saved = !!item && isSaved(s, item.k);
@@ -118,7 +123,8 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
         <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', opacity: a, justifyContent: 'flex-end' }}>
           <Pressable accessibilityLabel="Kapat" style={StyleSheet.absoluteFill} onPress={close} />
           {item && (
-            <Animated.View accessibilityViewIsModal style={{ alignSelf: 'center', width: '100%', maxWidth: 560, maxHeight: '80%', backgroundColor: C.raised, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, paddingBottom: 16 + insets.bottom, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [80, 0] }) }] }}>
+            <Animated.View accessibilityViewIsModal style={{ alignSelf: 'center', width: '100%', maxWidth: 560, maxHeight: '80%', backgroundColor: C.raised, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, paddingBottom: 16 + insets.bottom, transform: [{ translateY: Animated.add(a.interpolate({ inputRange: [0, 1], outputRange: [80, 0] }), swipe.drag) }] }}>
+              <View {...swipe.handlers}>
               <View style={{ alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: C.line, marginTop: 10 }} />
               <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, paddingTop: 12, paddingBottom: 8, gap: 12 }}>
                 <View style={{ width: 40, aspectRatio: 2 / 3, borderRadius: 6, overflow: 'hidden', backgroundColor: C.card }}>
@@ -131,6 +137,7 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
                 <Pressable accessibilityRole="button" accessibilityLabel="Tamam" hitSlop={10} onPress={close} style={{ paddingHorizontal: 14, height: 34, borderRadius: 17, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontFamily: F.bold, fontSize: 14, color: C.onAccent }}>Tamam</Text>
                 </Pressable>
+              </View>
               </View>
               <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 8 }}>
                 <Press accessibilityRole="checkbox" accessibilityState={{ checked: saved }} accessibilityLabel="Kütüphanem" scaleTo={0.99}
@@ -166,7 +173,7 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TextInput value={name} onChangeText={setName} autoFocus placeholder="Liste adı, örn. Hafta sonu" placeholderTextColor={C.dim} maxLength={60}
                       accessibilityLabel="Yeni liste adı" onSubmitEditing={create} returnKeyType="done"
-                      style={{ flex: 1, height: 46, borderRadius: R.md, backgroundColor: C.card, color: C.text, paddingHorizontal: 14, fontFamily: F.regular, fontSize: 15, outlineStyle: 'none' } as never} />
+                      style={{ flex: 1, height: 46, borderRadius: R.md, backgroundColor: C.card, color: C.text, paddingHorizontal: 14, fontFamily: F.regular, fontSize: 16, outlineStyle: 'none' } as never} />
                     <Btn label="Oluştur" onPress={create} disabled={!name.trim()} />
                   </View>
                 ) : (

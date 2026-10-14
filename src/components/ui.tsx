@@ -10,6 +10,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { setConfirmHandler } from '@/lib/confirm';
+import { useBackClose } from '@/lib/backclose';
+import { useSwipeDown } from './swipe';
 import { EASE_OUT, ND, useEnter, useReducedMotion } from '@/lib/motion';
 import { C, F, M, MAX_W, R, TABLET, alpha } from '@/lib/theme';
 
@@ -322,15 +324,17 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     setConfirmHandler((title, message, ok, onOk) => { setQ({ title, message, ok, onOk }); });
     return () => setConfirmHandler(null);
   }, []);
-  useEffect(() => { if (q) { a.setValue(0); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
-  const close = (then?: () => void) => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setQ(null); then?.(); });
+  useEffect(() => { if (q) { a.setValue(0); swipe.reset(); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
+  const swipe = useSwipeDown(() => close());
+  const release = useBackClose(!!q, () => close());
+  const close = (then?: () => void) => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setQ(null); release(then); });
   return (
     <>
       {children}
       <Modal transparent visible={!!q} animationType="none" onRequestClose={() => close()}>
         <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.62)', opacity: a, justifyContent: 'flex-end' }}>
           <Pressable accessibilityLabel="Kapat" style={StyleSheet.absoluteFill} onPress={() => close()} />
-          <Animated.View accessibilityViewIsModal style={{ alignSelf: 'center', width: '100%', maxWidth: 520, backgroundColor: C.raised, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, padding: 22, paddingBottom: 22 + insets.bottom, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) }] }}>
+          <Animated.View accessibilityViewIsModal {...swipe.handlers} style={{ alignSelf: 'center', width: '100%', maxWidth: 520, backgroundColor: C.raised, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, padding: 22, paddingBottom: 22 + insets.bottom, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line, transform: [{ translateY: Animated.add(a.interpolate({ inputRange: [0, 1], outputRange: [60, 0] }), swipe.drag) }] }}>
             <Text accessibilityRole="header" style={{ fontFamily: F.bold, fontSize: 19, color: C.text }}>{q?.title}</Text>
             <Text style={{ marginTop: 8, fontFamily: F.regular, fontSize: 15, lineHeight: 22, color: C.muted }}>{q?.message}</Text>
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>

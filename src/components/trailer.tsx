@@ -4,6 +4,7 @@ import { Animated, Linking, Modal, Platform, Pressable, StyleSheet, Text, View }
 import { EASE_OUT, ND } from '@/lib/motion';
 import { C, F, M, R } from '@/lib/theme';
 import { useLayout } from './ui';
+import { useBackClose } from '@/lib/backclose';
 
 type Ctx = { play: (yt: string, title?: string) => void };
 const TrailerCtx = createContext<Ctx>({ play: (yt) => Linking.openURL(`https://www.youtube.com/watch?v=${yt}`) });
@@ -21,7 +22,8 @@ export function TrailerProvider({ children }: { children: ReactNode }) {
     setV({ yt, title });
   }, []);
   useEffect(() => { if (v) { a.setValue(0); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [v]); // eslint-disable-line react-hooks/exhaustive-deps
-  const close = () => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => setV(null));
+  const release = useBackClose(!!v, () => close());
+  const close = () => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setV(null); release(); });
 
   // Yatayda ekranı doldurur, dikeyde tam genişlik
   const w = Math.min(width - 24, (height - 140) * (16 / 9), 1100);
