@@ -15,6 +15,7 @@ import { history, stats, universeProgress } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { useAccount } from '@/lib/account';
 import { fullStats } from '@/lib/stats';
+import { LANG, setLang } from '@/lib/i18n';
 import { C, F, R, alpha } from '@/lib/theme';
 import type { ListView } from '@/lib/types';
 
@@ -120,6 +121,13 @@ export default function Profile() {
 
       <SectionHead title="Tercihler" />
       <Panel>
+        {Platform.OS === 'web' && (
+          <>
+            <Text style={label}>Dil · Language</Text>
+            <Segmented<'tr' | 'en'> label="Dil" value={LANG} onChange={(v) => v !== LANG && setLang(v)} options={[{ id: 'tr', label: 'Türkçe' }, { id: 'en', label: 'English' }]} />
+            <Divider />
+          </>
+        )}
         <Text style={label}>Adın</Text>
         <TextInput value={name} onChangeText={setName} onBlur={() => store.setName(name.trim())} onSubmitEditing={() => store.setName(name.trim())}
           placeholder="İsteğe bağlı" placeholderTextColor={C.dim} maxLength={40} accessibilityLabel="Adın"

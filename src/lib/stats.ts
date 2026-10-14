@@ -1,8 +1,9 @@
 import { TBY, UBY } from './catalog';
+import { isEn } from './i18n';
 import { minutesOf } from './store';
 import type { State } from './types';
 
-const AY = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const AY = isEn ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] : ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 
 export type FullStats = {
   films: number; eps: number; minutes: number; seriesDone: number; rated: number; avgRating: number | null;

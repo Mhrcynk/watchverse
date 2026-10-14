@@ -1,3 +1,4 @@
+import { isEn } from './i18n';
 import raw from '@/data/catalog.json';
 import type { ListView, Mode, Order, Title, Universe } from './types';
 export type { ListView } from './types';
@@ -113,7 +114,7 @@ export function phaseOf(t: Title): string | null {
 
 /** "Neden?" açıklaması: elle yazılmış not yoksa katalogdaki bağlantılardan üretilir */
 export function whyOf(t: Title): string {
-  if (t.why) return t.why;
+  if (t.why && !isEn) return t.why; // elle yazılmış notlar yalnızca Türkçe
   const u = UBY[t.u];
   const before = t.deps.map((d) => TBY[d]?.title).filter(Boolean).slice(0, 2);
   const after = (AFTER[t.id] || []).map((x) => x.title).slice(0, 2);

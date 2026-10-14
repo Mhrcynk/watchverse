@@ -15,11 +15,13 @@ import { hasSyncApi, syncDevice } from '@/lib/sync';
 import { StoreProvider, useStore } from '@/lib/store';
 import { AccountProvider } from '@/lib/account';
 import { installErrorTracking, reportError } from '@/lib/errors';
+import { startTranslator } from '@/lib/i18n';
 import { Text, View } from 'react-native';
 import type { ErrorBoundaryProps } from 'expo-router';
 import { C } from '@/lib/theme';
 
 installErrorTracking();
+startTranslator();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 SplashScreen.setOptions({ duration: 300, fade: true });
 

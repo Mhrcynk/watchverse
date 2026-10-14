@@ -1,3 +1,4 @@
+import { isEn } from '@/lib/i18n';
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -166,7 +167,7 @@ export const StoryCard = memo(function StoryCard({ t, index, enter = 0, onMarkUn
           <View style={{ flex: 1 }}>
             <Text numberOfLines={2} style={{ fontFamily: F.bold, fontSize: 16, lineHeight: 21, color: C.text }}>{t.title}</Text>
             <Small numberOfLines={1} style={{ marginTop: 3 }}>{meta}{t.episodes && eps && !done ? ` · ${eps}/${t.episodes} izlendi` : ''}</Small>
-            {!!t.summary && <Text numberOfLines={2} style={{ marginTop: 6, fontFamily: F.regular, fontSize: 13.5, lineHeight: 19, color: C.muted }}>{t.summary}</Text>}
+            {!!t.summary && !isEn && <Text numberOfLines={2} style={{ marginTop: 6, fontFamily: F.regular, fontSize: 13.5, lineHeight: 19, color: C.muted }}>{t.summary}</Text>}
           </View>
         </Press>
         <CheckButton done={done} color={col} label={done ? `${t.title} izlendi işaretini kaldır` : `${t.title} izlendi olarak işaretle`}

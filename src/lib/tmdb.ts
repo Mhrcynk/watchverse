@@ -1,3 +1,4 @@
+import { isEn } from './i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
@@ -30,6 +31,7 @@ const PERSIST = 'wv:tmdb:';
 
 async function get<T>(path: string, params: Record<string, string | number | undefined> = {}, maxAgeMin = 60, persist = false): Promise<T> {
   if (!API) throw new Error('no-api');
+  if (isEn && !('language' in params)) params = { ...params, language: 'en-US' };
   const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)])).toString();
   const url = `${API}/tmdb${path}${qs ? '?' + qs : ''}`;
   const hit = mem.get(url);

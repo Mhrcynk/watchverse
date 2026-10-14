@@ -1,9 +1,11 @@
+import { isEn } from '@/lib/i18n';
+import { detail } from '@/lib/tmdb';
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Art, Wordmark } from '@/components/media';
 import { BackLink, Bar, Btn, Chip, Empty, Eyebrow, H1, H2, H3, Muted, Panel, Pills, Press, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
@@ -31,6 +33,13 @@ export default function TitleDetail() {
   });
   const [showAfter, setShowAfter] = useState(false);
   const [showAllDeps, setShowAllDeps] = useState(false);
+  // İngilizcede özet TMDB'den İngilizce alınır
+  const [enSummary, setEnSummary] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isEn || !t?.tmdb?.id || t.tmdb.id < 0) return;
+    detail((t.tmdb.m || t.media) as 'movie' | 'tv', t.tmdb.id).then((d) => setEnSummary(d.overview || null), () => {});
+  }, [t?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const summary = isEn ? enSummary : t?.summary;
 
   if (!t) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><Empty title="Bu yapım bulunamadı." action="Ana sayfaya dön" onAction={() => router.replace('/')} /></Screen>;
 
@@ -90,10 +99,10 @@ export default function TitleDetail() {
         </View>
       </View>
 
-      {t.summary ? (
+      {summary ? (
         <Panel style={{ marginTop: 14 }}>
           <Eyebrow>Konusu</Eyebrow>
-          <Text style={{ fontFamily: F.regular, fontSize: 16, lineHeight: 25, color: C.text, marginTop: 8 }}>{t.summary}</Text>
+          <Text style={{ fontFamily: F.regular, fontSize: 16, lineHeight: 25, color: C.text, marginTop: 8 }}>{summary}</Text>
         </Panel>
       ) : null}
 

@@ -3,11 +3,12 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Brand } from '@/components/brand';
 import { Btn, Press, Small, useLayout } from '@/components/ui';
 import { useAccount } from '@/lib/account';
+import { LANG, setLang } from '@/lib/i18n';
 import { CATALOG, TBY, TIER_TR, UNIVERSES, posterUrl } from '@/lib/catalog';
 import { TIER_COLOR } from '@/components/media';
 import { C, F, R, alpha } from '@/lib/theme';
@@ -80,7 +81,7 @@ function Episodes({ w }: { w: number }) {
           <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: e < 3 ? C.accent : C.line, backgroundColor: e < 3 ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
             {e < 3 && <Feather name="check" size={14} color="#fff" />}
           </View>
-          <Text style={{ flex: 1, fontFamily: F.medium, fontSize: 14.5, color: e < 3 ? C.muted : C.text }}>{e}. Bölüm</Text>
+          <Text style={{ flex: 1, fontFamily: F.medium, fontSize: 14.5, color: e < 3 ? C.muted : C.text }}>{`${e}. Bölüm`}</Text>
           {e === 3 && <Small style={{ color: C.accentSoft }}>Sıradaki</Small>}
         </View>
       ))}
@@ -136,7 +137,15 @@ export default function Welcome() {
       <View style={{ width: w, flex: 1, paddingTop: insets.top + 18 }}>
         <View style={{ paddingHorizontal: pad, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Brand />
-          {!last && <Press accessibilityRole="button" onPress={() => go(slides.length - 1)} hitSlop={10}><Small style={{ color: C.muted }}>Atla</Small></Press>}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+            {Platform.OS === 'web' && (
+              <Press accessibilityRole="button" accessibilityLabel={LANG === 'en' ? 'Türkçe' : 'English'} onPress={() => setLang(LANG === 'en' ? 'tr' : 'en')} hitSlop={10}
+                style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line }}>
+                <Text style={{ fontFamily: F.semibold, fontSize: 12, color: C.muted }}>{LANG === 'en' ? 'TR' : 'EN'}</Text>
+              </Press>
+            )}
+            {!last && <Press accessibilityRole="button" onPress={() => go(slides.length - 1)} hitSlop={10}><Small style={{ color: C.muted }}>Atla</Small></Press>}
+          </View>
         </View>
 
         <ScrollView ref={ref} horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ flex: 1 }} onLayout={(e) => setH(e.nativeEvent.layout.height)}
