@@ -1,0 +1,705 @@
+
+== marvel
+  kaynak adayları: keyword:based on comic (182/203) | keyword:superhero (158/203) | company:Marvel Studios (86/203) ✓ | keyword:marvel cinematic universe (mcu) (82/203) ✓
+  eksik olabilir:
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:based on comic, keyword:superhero
+    My Hero Academia: Vigilantes [tv:280110] 2025-04-07 pop93 ← keyword:superhero
+    Legend of the White Dragon [movie:843352] 2026-08-28 pop80 ← keyword:superhero
+    VisionQuest [tv:213375] 2026-10-13 pop75 ← keyword:based on comic, company:Marvel Studios
+    ONE PIECE [tv:111110] 2023-08-31 pop64 ← keyword:based on comic
+    The Beauty [tv:273160] 2026-01-21 pop54 ← keyword:based on comic
+    Moving [tv:126485] 2023-08-09 pop46 ← keyword:superhero
+    Rurouni Kenshin [tv:210879] 2023-07-07 pop45 ← keyword:based on comic
+    Dragon Ball DAIMA [tv:236994] 2024-10-11 pop40 ← keyword:superhero
+    Masters of the Universe [movie:454639] 2026-06-03 pop37 ← keyword:superhero
+    Clash of the Thundermans [movie:1506560] 2026-09-03 pop35 ← keyword:superhero
+    WIND BREAKER [tv:223500] 2024-04-05 pop34 ← keyword:based on comic
+    PAW Patrol: The Mighty Movie [movie:893723] 2023-09-21 pop34 ← keyword:superhero
+    Go! Go! Loser Ranger! [tv:215799] 2024-04-07 pop33 ← keyword:superhero
+    Smurfs [movie:936108] 2025-06-30 pop30 ← keyword:based on comic
+    MF GHOST [tv:154526] 2023-10-02 pop30 ← keyword:based on comic
+    Clayface [movie:1400940] 2026-10-21 (yakında) pop29 ← keyword:based on comic
+    Despicable Me 4 [movie:519182] 2024-06-20 pop26 ← keyword:superhero
+    No. 1 Sentai Gozyuger [tv:275648] 2025-02-16 pop26 ← keyword:superhero
+    Miraculous World: Paris, Tales of Shadybug and Claw Noir [movie:1147400] 2024-02-11 pop25 ← keyword:superhero
+    The Beginning After the End [tv:274671] 2025-04-02 pop24 ← keyword:based on comic
+    Ohsama Sentai King-Ohger [tv:213439] 2023-03-05 pop24 ← keyword:superhero
+    Kamen Rider ZEZTZ [tv:295434] 2025-09-07 pop24 ← keyword:superhero
+    LEGO ONE PIECE [tv:318918] 2026-09-29 pop23 ← keyword:based on comic
+    Star Detective Precure! [tv:306721] 2026-02-01 pop23 ← keyword:superhero
+
+== sw
+  kaynak adayları: company:Lucasfilm Ltd. (42/46) ✓ | keyword:space opera (23/46)
+  eksik olabilir:
+    Dune: Part Three [movie:1170608] 2026-12-15 (yakında) pop32 ← keyword:space opera
+    Rebel Moon - Part One: A Child of Fire [movie:848326] 2023-12-15 pop31 ← keyword:space opera
+    Indiana Jones and the Dial of Destiny [movie:335977] 2023-06-25 pop18 ← company:Lucasfilm Ltd.
+    Rebel Moon - Part Two: The Scargiver [movie:934632] 2024-04-19 pop9 ← keyword:space opera
+    LEGO Star Wars: Rebuild the Galaxy - Pieces of the Past [tv:289411] 2025-09-19 pop8 ← company:Lucasfilm Ltd.
+
+== dc
+  kaynak adayları: keyword:superhero (203/270) | keyword:based on comic (175/270) | company:Warner Bros. Animation (130/270) | keyword:super power (117/270) | company:DC (111/270)
+  eksik olabilir:
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:superhero, keyword:based on comic
+    My Hero Academia: Vigilantes [tv:280110] 2025-04-07 pop93 ← keyword:superhero, keyword:super power
+    Legend of the White Dragon [movie:843352] 2026-08-28 pop80 ← keyword:superhero
+    VisionQuest [tv:213375] 2026-10-13 pop75 ← keyword:based on comic
+    ONE PIECE [tv:111110] 2023-08-31 pop64 ← keyword:based on comic, keyword:super power
+    Solo Leveling [tv:127532] 2024-01-07 pop63 ← keyword:super power
+    The Beauty [tv:273160] 2026-01-21 pop54 ← keyword:based on comic
+    Moving [tv:126485] 2023-08-09 pop46 ← keyword:superhero, keyword:super power
+    Dan Da Dan [tv:240411] 2024-10-04 pop46 ← keyword:super power
+    Rurouni Kenshin [tv:210879] 2023-07-07 pop45 ← keyword:based on comic
+    Dragon Ball DAIMA [tv:236994] 2024-10-11 pop40 ← keyword:superhero, keyword:super power
+    Masters of the Universe [movie:454639] 2026-06-03 pop37 ← keyword:superhero, keyword:super power
+    Gachiakuta [tv:256721] 2025-07-06 pop36 ← keyword:super power
+    Clash of the Thundermans [movie:1506560] 2026-09-03 pop35 ← keyword:superhero
+    PAW Patrol: The Mighty Movie [movie:893723] 2023-09-21 pop34 ← keyword:superhero
+    WIND BREAKER [tv:223500] 2024-04-05 pop34 ← keyword:based on comic
+    Go! Go! Loser Ranger! [tv:215799] 2024-04-07 pop33 ← keyword:superhero
+    Smurfs [movie:936108] 2025-06-30 pop30 ← keyword:based on comic
+    MF GHOST [tv:154526] 2023-10-02 pop30 ← keyword:based on comic
+    Clayface [movie:1400940] 2026-10-21 (yakında) pop29 ← keyword:based on comic
+    The Power [tv:95558] 2023-03-30 pop28 ← keyword:super power
+    Despicable Me 4 [movie:519182] 2024-06-20 pop26 ← keyword:superhero
+    No. 1 Sentai Gozyuger [tv:275648] 2025-02-16 pop26 ← keyword:superhero
+    Miraculous World: Paris, Tales of Shadybug and Claw Noir [movie:1147400] 2024-02-11 pop25 ← keyword:superhero
+    Ohsama Sentai King-Ohger [tv:213439] 2023-03-05 pop24 ← keyword:superhero, keyword:super power
+
+== wizard
+  kaynak adayları: keyword:witch (11/12) | keyword:magic (11/12) | keyword:wizard (11/12) | keyword:based on young adult novel (11/12) | company:Warner Bros. Pictures (11/12) | company:Heyday Films (11/12) | keyword:sequel (9/12) | keyword:based on novel or book (8/12)
+  eksik olabilir:
+    Insidious: Out of the Further [movie:1291595] 2026-08-19 pop478 ← keyword:sequel
+    Carrie [tv:288673] 2026-10-07 pop326 ← keyword:based on novel or book
+    Fall 2: Deadpoint [movie:1101412] 2026-09-01 pop276 ← keyword:sequel
+    The End of Oak Street [movie:1101383] 2026-08-12 pop173 ← company:Warner Bros. Pictures
+    Silo [tv:125988] 2023-05-04 pop152 ← keyword:based on novel or book
+    Toy Story 5 [movie:1084244] 2026-06-17 pop150 ← keyword:sequel
+    Other Mommy [movie:1400837] 2026-10-07 pop147 ← keyword:based on novel or book
+    Coyote vs. Acme [movie:1204680] 2026-08-17 pop144 ← company:Warner Bros. Pictures
+    The Scandal [tv:275102] 2026-09-18 pop136 ← keyword:based on novel or book
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:witch, keyword:magic
+    V/H/S/Mixtape [movie:1742441] 2026-10-09 pop110 ← keyword:sequel
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:sequel
+    Digger [movie:1248832] 2026-09-28 pop106 ← company:Warner Bros. Pictures
+    Zootopia 2 [movie:1084242] 2025-11-26 pop99 ← keyword:sequel
+    Project Hail Mary [movie:687163] 2026-03-15 pop95 ← keyword:based on novel or book
+    Frieren: Beyond Journey's End [tv:209867] 2023-09-29 pop94 ← keyword:magic
+    Tracker [tv:211288] 2024-02-11 pop94 ← keyword:based on novel or book
+    The Love Hypothesis [movie:1032863] 2026-09-23 pop92 ← keyword:based on novel or book
+    Inside Out 2 [movie:1022789] 2024-06-11 pop91 ← keyword:sequel
+    The Wild Robot [movie:1184918] 2024-09-12 pop90 ← keyword:based on novel or book
+    Coven Academy [tv:298505] 2026-10-01 pop89 ← keyword:witch
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:magic, keyword:sequel
+    My Fault [movie:1010581] 2023-06-08 pop85 ← keyword:based on young adult novel
+    LEGO Ninjago: Dragons Rising [tv:212989] 2023-06-01 pop85 ← keyword:sequel
+    Verity [movie:1283515] 2026-09-30 pop85 ← keyword:based on novel or book
+
+== middle
+  kaynak adayları: keyword:based on novel or book (11/11) | keyword:elves (10/11) | keyword:dwarf (9/11) | keyword:fantasy world (9/11) | keyword:hobbit (8/11) | keyword:high fantasy (8/11) | company:New Line Cinema (8/11) | keyword:sword and sorcery (7/11)
+  eksik olabilir:
+    Carrie [tv:288673] 2026-10-07 pop326 ← keyword:based on novel or book
+    Silo [tv:125988] 2023-05-04 pop152 ← keyword:based on novel or book
+    Other Mommy [movie:1400837] 2026-10-07 pop147 ← keyword:based on novel or book
+    The Scandal [tv:275102] 2026-09-18 pop136 ← keyword:based on novel or book
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:based on novel or book
+    Project Hail Mary [movie:687163] 2026-03-15 pop95 ← keyword:based on novel or book
+    Tracker [tv:211288] 2024-02-11 pop94 ← keyword:based on novel or book
+    Frieren: Beyond Journey's End [tv:209867] 2023-09-29 pop94 ← keyword:elves, keyword:fantasy world
+    The Love Hypothesis [movie:1032863] 2026-09-23 pop92 ← keyword:based on novel or book
+    The Wild Robot [movie:1184918] 2024-09-12 pop90 ← keyword:based on novel or book
+    Verity [movie:1283515] 2026-09-30 pop85 ← keyword:based on novel or book
+    Dark Matter [tv:196322] 2024-05-07 pop83 ← keyword:based on novel or book
+    East of Eden [tv:258165] 2026-10-01 pop72 ← keyword:based on novel or book
+    Oppenheimer [movie:872585] 2023-07-19 pop70 ← keyword:based on novel or book
+    Goosebumps [tv:157004] 2023-10-13 pop67 ← keyword:based on novel or book
+    Drawn Together [movie:1440098] 2026-09-09 pop66 ← keyword:based on novel or book
+    Percy Jackson and the Olympians [tv:103540] 2023-12-19 pop66 ← keyword:based on novel or book
+    The Sheep Detectives [movie:1301421] 2026-04-30 pop64 ← keyword:based on novel or book
+    Rosebush Pruning [movie:1130948] 2026-04-23 pop63 ← keyword:based on novel or book
+    Cross [tv:213306] 2024-11-14 pop57 ← keyword:based on novel or book
+    Off Campus [tv:273240] 2026-05-13 pop56 ← keyword:based on novel or book
+    Wicked: For Good [movie:967941] 2025-11-19 pop54 ← keyword:based on novel or book, keyword:fantasy world
+    Treasure Island [tv:333101] 2026-10-11 pop54 ← keyword:based on novel or book
+    The Night Agent [tv:129552] 2023-03-23 pop52 ← keyword:based on novel or book
+    The Devil Wears Prada 2 [movie:1314481] 2026-04-29 pop51 ← keyword:based on novel or book
+
+== got
+  kaynak adayları: keyword:based on novel or book (3/3) | keyword:fantasy world (3/3) | keyword:kingdom (2/3) | keyword:dragon (2/3) | keyword:king (2/3) | keyword:prequel (2/3) | keyword:knight (2/3) | company:HBO (2/3)
+  eksik olabilir:
+    Carrie [tv:288673] 2026-10-07 pop326 ← keyword:based on novel or book
+    Silo [tv:125988] 2023-05-04 pop152 ← keyword:based on novel or book
+    Other Mommy [movie:1400837] 2026-10-07 pop147 ← keyword:based on novel or book
+    The Scandal [tv:275102] 2026-09-18 pop136 ← keyword:based on novel or book
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:based on novel or book
+    Project Hail Mary [movie:687163] 2026-03-15 pop95 ← keyword:based on novel or book
+    Tracker [tv:211288] 2024-02-11 pop94 ← keyword:based on novel or book
+    Frieren: Beyond Journey's End [tv:209867] 2023-09-29 pop94 ← keyword:fantasy world
+    My Hero Academia: Vigilantes [tv:280110] 2025-04-07 pop93 ← keyword:prequel
+    The Love Hypothesis [movie:1032863] 2026-09-23 pop92 ← keyword:based on novel or book
+    The Wild Robot [movie:1184918] 2024-09-12 pop90 ← keyword:based on novel or book
+    Verity [movie:1283515] 2026-09-30 pop85 ← keyword:based on novel or book
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:prequel
+    Dark Matter [tv:196322] 2024-05-07 pop83 ← keyword:based on novel or book
+    The Last of Us [tv:100088] 2023-01-15 pop79 ← company:HBO
+    Dragon Ball Super: Beerus [tv:312359] 2026-10-11 pop74 ← keyword:dragon
+    East of Eden [tv:258165] 2026-10-01 pop72 ← keyword:based on novel or book
+    Oppenheimer [movie:872585] 2023-07-19 pop70 ← keyword:based on novel or book
+    Goosebumps [tv:157004] 2023-10-13 pop67 ← keyword:based on novel or book
+    Drawn Together [movie:1440098] 2026-09-09 pop66 ← keyword:based on novel or book
+    Percy Jackson and the Olympians [tv:103540] 2023-12-19 pop66 ← keyword:based on novel or book
+    The Sheep Detectives [movie:1301421] 2026-04-30 pop64 ← keyword:based on novel or book
+    Rosebush Pruning [movie:1130948] 2026-04-23 pop63 ← keyword:based on novel or book
+    The Bad Guys: The Series [tv:302540] 2025-11-06 pop58 ← keyword:prequel
+    Cross [tv:213306] 2024-11-14 pop57 ← keyword:based on novel or book
+
+== boys
+  kaynak adayları: keyword:superhero (3/3) | keyword:based on comic (3/3) | keyword:super power (3/3) | company:Amazon Studios (3/3) | company:Original Film (3/3) | company:Sony Pictures Television (3/3) | company:Kripke Enterprises (3/3) | company:Point Grey Pictures (3/3)
+  eksik olabilir:
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:superhero, keyword:based on comic
+    My Hero Academia: Vigilantes [tv:280110] 2025-04-07 pop93 ← keyword:superhero, keyword:super power
+    My Fault [movie:1010581] 2023-06-08 pop85 ← company:Amazon Studios
+    Dark Matter [tv:196322] 2024-05-07 pop83 ← company:Sony Pictures Television
+    Legend of the White Dragon [movie:843352] 2026-08-28 pop80 ← keyword:superhero
+    The Last of Us [tv:100088] 2023-01-15 pop79 ← company:Sony Pictures Television
+    VisionQuest [tv:213375] 2026-10-13 pop75 ← keyword:based on comic
+    Goosebumps [tv:157004] 2023-10-13 pop67 ← company:Original Film, company:Sony Pictures Television
+    ONE PIECE [tv:111110] 2023-08-31 pop64 ← keyword:based on comic, keyword:super power
+    Solo Leveling [tv:127532] 2024-01-07 pop63 ← keyword:super power
+    The Beauty [tv:273160] 2026-01-21 pop54 ← keyword:based on comic
+    The Night Agent [tv:129552] 2023-03-23 pop52 ← company:Sony Pictures Television
+    Sonic the Hedgehog 3 [movie:939243] 2024-12-19 pop49 ← company:Original Film
+    Moving [tv:126485] 2023-08-09 pop46 ← keyword:superhero, keyword:super power
+    Dan Da Dan [tv:240411] 2024-10-04 pop46 ← keyword:super power
+    Rurouni Kenshin [tv:210879] 2023-07-07 pop45 ← keyword:based on comic
+    Doc [tv:255055] 2025-01-07 pop44 ← company:Sony Pictures Television
+    Outlander: Blood of My Blood [tv:207484] 2025-08-08 pop44 ← company:Sony Pictures Television
+    Dragon Ball DAIMA [tv:236994] 2024-10-11 pop40 ← keyword:superhero, keyword:super power
+    Masters of the Universe [movie:454639] 2026-06-03 pop37 ← keyword:superhero, keyword:super power
+    Gachiakuta [tv:256721] 2025-07-06 pop36 ← keyword:super power
+    Star City [tv:252107] 2026-05-28 pop36 ← company:Sony Pictures Television
+    Clash of the Thundermans [movie:1506560] 2026-09-03 pop35 ← keyword:superhero
+    PAW Patrol: The Mighty Movie [movie:893723] 2023-09-21 pop34 ← keyword:superhero
+    WIND BREAKER [tv:223500] 2024-04-05 pop34 ← keyword:based on comic
+
+== alien
+  kaynak adayları: keyword:alien (13/17) ✓ | keyword:creature (11/17) | company:20th Century Fox (11/17) | keyword:sequel (9/17) | company:Brandywine Productions (9/17) | company:Davis Entertainment (9/17) | keyword:predator (7/17) ✓ | keyword:android (6/17)
+  eksik olabilir:
+    Insidious: Out of the Further [movie:1291595] 2026-08-19 pop478 ← keyword:sequel
+    Fall 2: Deadpoint [movie:1101412] 2026-09-01 pop276 ← keyword:sequel
+    Toy Story 5 [movie:1084244] 2026-06-17 pop150 ← keyword:sequel
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:sequel
+    V/H/S/Mixtape [movie:1742441] 2026-10-09 pop110 ← keyword:sequel
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:sequel
+    Zootopia 2 [movie:1084242] 2025-11-26 pop99 ← keyword:sequel
+    Project Hail Mary [movie:687163] 2026-03-15 pop95 ← keyword:alien
+    Inside Out 2 [movie:1022789] 2024-06-11 pop91 ← keyword:sequel
+    Disclosure Day [movie:1275779] 2026-06-10 pop89 ← keyword:alien
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:alien, keyword:sequel
+    LEGO Ninjago: Dragons Rising [tv:212989] 2023-06-01 pop85 ← keyword:sequel
+    VisionQuest [tv:213375] 2026-10-13 pop75 ← keyword:android
+    Scary Movie [movie:1273221] 2026-06-03 pop69 ← keyword:sequel
+    The Social Reckoning [movie:1281331] 2026-10-07 pop64 ← keyword:sequel
+    Doctor Who [tv:239770] 2024-05-11 pop57 ← keyword:alien
+    Demon Slayer: Kimetsu no Yaiba Infinity Castle [movie:1311031] 2025-07-18 pop57 ← keyword:sequel
+    Wicked: For Good [movie:967941] 2025-11-19 pop54 ← keyword:sequel
+    PAW Patrol: The Dino Movie [movie:1185806] 2026-07-23 pop51 ← keyword:sequel
+    The Devil Wears Prada 2 [movie:1314481] 2026-04-29 pop51 ← keyword:sequel
+    Sonic the Hedgehog 3 [movie:939243] 2024-12-19 pop49 ← keyword:sequel
+    The Super Mario Galaxy Movie [movie:1226863] 2026-04-01 pop47 ← keyword:sequel
+    Dan Da Dan [tv:240411] 2024-10-04 pop46 ← keyword:alien
+    Evil Dead Burn [movie:1212763] 2026-07-07 pop45 ← keyword:sequel
+    Evil Dead Rise [movie:713704] 2023-04-12 pop44 ← keyword:sequel
+
+== monsterverse
+  kaynak adayları: keyword:kaiju (6/6) | keyword:monsterverse (6/6) ✓ | keyword:giant monster (5/6) | keyword:godzilla (5/6) | company:Legendary Pictures (5/6) | keyword:dinosaur (3/6) | keyword:giant ape (3/6) | keyword:king kong (3/6)
+  eksik olabilir:
+    The End of Oak Street [movie:1101383] 2026-08-12 pop173 ← keyword:dinosaur
+    Digger [movie:1248832] 2026-09-28 pop106 ← company:Legendary Pictures
+    Street Fighter [movie:1153576] 2026-10-13 pop56 ← company:Legendary Pictures
+    PAW Patrol: The Dino Movie [movie:1185806] 2026-07-23 pop51 ← keyword:dinosaur
+    Kaiju No. 8 [tv:207468] 2024-04-13 pop46 ← keyword:kaiju, keyword:giant monster
+    A Minecraft Movie [movie:950387] 2025-03-31 pop38 ← company:Legendary Pictures
+    The Book of Clarence [movie:976584] 2024-01-11 pop36 ← company:Legendary Pictures
+    Dune: Part Three [movie:1170608] 2026-12-15 (yakında) pop32 ← company:Legendary Pictures
+    Meg 2: The Trench [movie:615656] 2023-08-02 pop29 ← keyword:kaiju
+    Ohsama Sentai King-Ohger [tv:213439] 2023-03-05 pop24 ← keyword:kaiju, keyword:giant monster
+    Skull Island [tv:117678] 2023-06-22 pop24 ← keyword:monsterverse
+    Godzilla Minus One [movie:940721] 2023-11-03 pop23 ← keyword:kaiju, keyword:giant monster
+    Godzilla Minus Zero [movie:1381071] 2026-11-03 (yakında) pop20 ← keyword:kaiju, keyword:godzilla
+    Chibi Godzilla Raids Again [tv:221725] 2023-04-01 pop20 ← keyword:kaiju
+    KAIJU GIRL CARAMELISE [tv:308874] 2026-07-03 pop17 ← keyword:kaiju
+    Soaring Sky! Precure [tv:213883] 2023-02-05 pop15 ← keyword:kaiju, keyword:giant monster
+    Enola Holmes 3 [movie:1202033] 2026-06-30 pop15 ← company:Legendary Pictures
+    Attack on Titan: THE LAST ATTACK [movie:1333100] 2024-03-20 pop14 ← keyword:giant monster
+    Rooster Fighter [tv:259819] 2026-03-15 pop14 ← keyword:giant monster
+    Primitive War [movie:1257009] 2025-08-21 pop13 ← keyword:dinosaur
+    SNOWBALL EARTH [tv:296232] 2026-04-03 pop12 ← keyword:kaiju
+    65 [movie:700391] 2023-03-02 pop12 ← keyword:giant monster, keyword:dinosaur
+    Ultraman: Rising [movie:829402] 2024-06-14 pop10 ← keyword:kaiju
+    Ultraman Arc [tv:251104] 2024-07-06 pop10 ← keyword:kaiju, keyword:giant monster
+    Ultraman Omega [tv:289745] 2025-07-05 pop10 ← keyword:kaiju
+
+== apes
+  kaynak adayları: keyword:dystopia (10/10) | keyword:ape (9/10) | company:20th Century Fox (9/10) | keyword:chimpanzee (7/10) | keyword:gorilla (6/10) | keyword:sequel (5/10) | keyword:post-apocalyptic future (4/10) | keyword:anthropomorphism (4/10)
+  eksik olabilir:
+    Insidious: Out of the Further [movie:1291595] 2026-08-19 pop478 ← keyword:sequel
+    Fall 2: Deadpoint [movie:1101412] 2026-09-01 pop276 ← keyword:sequel
+    Silo [tv:125988] 2023-05-04 pop152 ← keyword:dystopia, keyword:post-apocalyptic future
+    Toy Story 5 [movie:1084244] 2026-06-17 pop150 ← keyword:sequel
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:sequel
+    V/H/S/Mixtape [movie:1742441] 2026-10-09 pop110 ← keyword:sequel
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:sequel
+    Zootopia 2 [movie:1084242] 2025-11-26 pop99 ← keyword:sequel, keyword:anthropomorphism
+    Inside Out 2 [movie:1022789] 2024-06-11 pop91 ← keyword:sequel
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:sequel
+    LEGO Ninjago: Dragons Rising [tv:212989] 2023-06-01 pop85 ← keyword:sequel
+    The Last of Us [tv:100088] 2023-01-15 pop79 ← keyword:post-apocalyptic future
+    Scary Movie [movie:1273221] 2026-06-03 pop69 ← keyword:sequel
+    The Social Reckoning [movie:1281331] 2026-10-07 pop64 ← keyword:sequel
+    The Bad Guys: The Series [tv:302540] 2025-11-06 pop58 ← keyword:anthropomorphism
+    Demon Slayer: Kimetsu no Yaiba Infinity Castle [movie:1311031] 2025-07-18 pop57 ← keyword:sequel
+    Fallout [tv:106379] 2024-04-10 pop56 ← keyword:post-apocalyptic future
+    Wicked: For Good [movie:967941] 2025-11-19 pop54 ← keyword:sequel
+    PAW Patrol: The Dino Movie [movie:1185806] 2026-07-23 pop51 ← keyword:sequel
+    The Devil Wears Prada 2 [movie:1314481] 2026-04-29 pop51 ← keyword:sequel
+    Sonic the Hedgehog 3 [movie:939243] 2024-12-19 pop49 ← keyword:sequel
+    The Super Mario Galaxy Movie [movie:1226863] 2026-04-01 pop47 ← keyword:sequel
+    The Running Man [movie:798645] 2025-11-11 pop45 ← keyword:dystopia
+    Evil Dead Burn [movie:1212763] 2026-07-07 pop45 ← keyword:sequel
+    Furiosa: A Mad Max Saga [movie:786892] 2024-05-22 pop45 ← keyword:post-apocalyptic future
+
+== jurassic
+  kaynak adayları: keyword:dinosaur (9/9) | company:Amblin Entertainment (9/9) | keyword:tyrannosaurus rex (7/9) | keyword:sequel (7/9) | company:Universal Pictures (7/9) | keyword:island (5/9) | keyword:dna (4/9) | keyword:paleontology (4/9)
+  eksik olabilir:
+    Insidious: Out of the Further [movie:1291595] 2026-08-19 pop478 ← keyword:sequel
+    The Odyssey [movie:1368337] 2026-07-15 pop377 ← company:Universal Pictures
+    Fall 2: Deadpoint [movie:1101412] 2026-09-01 pop276 ← keyword:sequel
+    The End of Oak Street [movie:1101383] 2026-08-12 pop173 ← keyword:dinosaur
+    Toy Story 5 [movie:1084244] 2026-06-17 pop150 ← keyword:sequel, keyword:island
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:sequel
+    V/H/S/Mixtape [movie:1742441] 2026-10-09 pop110 ← keyword:sequel
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:sequel
+    Zootopia 2 [movie:1084242] 2025-11-26 pop99 ← keyword:sequel
+    Inside Out 2 [movie:1022789] 2024-06-11 pop91 ← keyword:sequel
+    The Wild Robot [movie:1184918] 2024-09-12 pop90 ← keyword:island
+    Disclosure Day [movie:1275779] 2026-06-10 pop89 ← company:Amblin Entertainment, company:Universal Pictures
+    War of the Worlds [movie:755898] 2025-07-29 pop86 ← company:Universal Pictures
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:sequel, company:Universal Pictures
+    LEGO Ninjago: Dragons Rising [tv:212989] 2023-06-01 pop85 ← keyword:sequel
+    Oppenheimer [movie:872585] 2023-07-19 pop70 ← company:Universal Pictures
+    Scary Movie [movie:1273221] 2026-06-03 pop69 ← keyword:sequel
+    The Social Reckoning [movie:1281331] 2026-10-07 pop64 ← keyword:sequel
+    Demon Slayer: Kimetsu no Yaiba Infinity Castle [movie:1311031] 2025-07-18 pop57 ← keyword:sequel
+    Wicked: For Good [movie:967941] 2025-11-19 pop54 ← keyword:sequel, company:Universal Pictures
+    Forgotten Island [movie:1465063] 2026-09-10 pop54 ← keyword:island
+    PAW Patrol: The Dino Movie [movie:1185806] 2026-07-23 pop51 ← keyword:dinosaur, keyword:sequel
+    The Devil Wears Prada 2 [movie:1314481] 2026-04-29 pop51 ← keyword:sequel
+    Sonic the Hedgehog 3 [movie:939243] 2024-12-19 pop49 ← keyword:sequel
+    The Super Mario Galaxy Movie [movie:1226863] 2026-04-01 pop47 ← keyword:sequel, company:Universal Pictures
+
+== matrix
+  kaynak adayları: keyword:artificial intelligence (a.i.) (5/5) | keyword:dystopia (5/5) | keyword:cyberpunk (5/5) | company:Village Roadshow Pictures (5/5) | keyword:man vs machine (4/5) | keyword:martial arts (4/5) | keyword:gnosticism (4/5) | keyword:virtual reality (4/5)
+  eksik olabilir:
+    Silo [tv:125988] 2023-05-04 pop152 ← keyword:dystopia
+    Avatar: Seven Havens [tv:284833] 2026-10-09 pop151 ← keyword:martial arts
+    Virtual Assistant [movie:1470424] 2025-11-06 pop90 ← keyword:artificial intelligence (a.i.)
+    Renegade Immortal [tv:223911] 2023-09-25 pop90 ← keyword:martial arts
+    LEGO Ninjago: Dragons Rising [tv:212989] 2023-06-01 pop85 ← keyword:martial arts
+    Avatar Aang: The Last Airbender [movie:980431] 2026-07-24 pop78 ← keyword:martial arts
+    Dragon Ball Super: Beerus [tv:312359] 2026-10-11 pop74 ← keyword:martial arts
+    Ranma1/2 [tv:259140] 2024-10-06 pop70 ← keyword:martial arts
+    Street Fighter [movie:1153576] 2026-10-13 pop56 ← keyword:martial arts
+    The Furious [movie:1280738] 2026-06-10 pop52 ← keyword:martial arts
+    Digimon Beatbreak [tv:286791] 2025-10-05 pop45 ← keyword:artificial intelligence (a.i.)
+    The Running Man [movie:798645] 2025-11-11 pop45 ← keyword:dystopia
+    Hell's Paradise [tv:117465] 2023-04-01 pop43 ← keyword:martial arts
+    Dragon Ball DAIMA [tv:236994] 2024-10-11 pop40 ← keyword:martial arts
+    Soul Land 2: The Peerless Tang Clan [tv:228429] 2023-06-24 pop39 ← keyword:martial arts
+    Mortal Kombat II [movie:931285] 2026-05-06 pop38 ← keyword:martial arts
+    Gachiakuta [tv:256721] 2025-07-06 pop36 ← keyword:dystopia
+    Blood River [tv:261663] 2025-10-20 pop36 ← keyword:martial arts
+    Scream 7 [movie:1159559] 2026-02-25 pop35 ← keyword:artificial intelligence (a.i.)
+    One Hundred Thousand Years of Qi Refining [tv:220850] 2023-02-18 pop34 ← keyword:martial arts
+    My Senior Brother is Too Steady [tv:218642] 2023-01-19 pop33 ← keyword:martial arts
+    MASHLE: MAGIC AND MUSCLES [tv:204832] 2023-04-08 pop32 ← keyword:martial arts
+    Pursuit of Jade [tv:279388] 2026-03-06 pop32 ← keyword:martial arts
+    The Electric State [movie:777443] 2025-02-24 pop31 ← keyword:artificial intelligence (a.i.), keyword:man vs machine
+    Pluribus [tv:225171] 2025-11-06 pop30 ← keyword:dystopia
+
+== terminator
+  kaynak adayları: keyword:artificial intelligence (a.i.) (7/8) | keyword:cyborg (7/8) | keyword:time travel (7/8) | keyword:dystopia (6/8) | keyword:killer robot (5/8) | keyword:sequel (5/8) | keyword:saving the world (4/8) | keyword:man vs machine (3/8)
+  eksik olabilir:
+    Insidious: Out of the Further [movie:1291595] 2026-08-19 pop478 ← keyword:sequel
+    Fall 2: Deadpoint [movie:1101412] 2026-09-01 pop276 ← keyword:sequel
+    The End of Oak Street [movie:1101383] 2026-08-12 pop173 ← keyword:time travel
+    Silo [tv:125988] 2023-05-04 pop152 ← keyword:dystopia
+    Toy Story 5 [movie:1084244] 2026-06-17 pop150 ← keyword:sequel
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:sequel
+    V/H/S/Mixtape [movie:1742441] 2026-10-09 pop110 ← keyword:sequel
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:sequel
+    Zootopia 2 [movie:1084242] 2025-11-26 pop99 ← keyword:sequel
+    Inside Out 2 [movie:1022789] 2024-06-11 pop91 ← keyword:sequel
+    Virtual Assistant [movie:1470424] 2025-11-06 pop90 ← keyword:artificial intelligence (a.i.)
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:sequel
+    LEGO Ninjago: Dragons Rising [tv:212989] 2023-06-01 pop85 ← keyword:sequel
+    Avatar: The Last Airbender [tv:82452] 2024-02-22 pop75 ← keyword:saving the world
+    Scary Movie [movie:1273221] 2026-06-03 pop69 ← keyword:sequel
+    Plan B [tv:212055] 2023-02-27 pop68 ← keyword:time travel
+    The Social Reckoning [movie:1281331] 2026-10-07 pop64 ← keyword:sequel
+    Doctor Who [tv:239770] 2024-05-11 pop57 ← keyword:time travel
+    Demon Slayer: Kimetsu no Yaiba Infinity Castle [movie:1311031] 2025-07-18 pop57 ← keyword:sequel
+    Wicked: For Good [movie:967941] 2025-11-19 pop54 ← keyword:sequel
+    PAW Patrol: The Dino Movie [movie:1185806] 2026-07-23 pop51 ← keyword:sequel
+    The Devil Wears Prada 2 [movie:1314481] 2026-04-29 pop51 ← keyword:sequel
+    Sonic the Hedgehog 3 [movie:939243] 2024-12-19 pop49 ← keyword:sequel
+    The Super Mario Galaxy Movie [movie:1226863] 2026-04-01 pop47 ← keyword:sequel
+    Digimon Beatbreak [tv:286791] 2025-10-05 pop45 ← keyword:artificial intelligence (a.i.)
+
+== transformers
+  kaynak adayları: keyword:based on toy (8/8) | keyword:giant robot (8/8) | company:di Bonaventura Pictures (8/8) | company:DeSanto/Murphy Productions (8/8) | keyword:duringcreditsstinger (7/8) | company:Paramount Pictures (7/8) | keyword:robot (6/8) | keyword:alien (4/8)
+  eksik olabilir:
+    Matchbox the Movie [movie:1148365] 2026-10-05 pop381 ← keyword:based on toy
+    Toy Story 5 [movie:1084244] 2026-06-17 pop150 ← keyword:duringcreditsstinger
+    The Gentlemen [tv:236235] 2024-03-07 pop100 ← keyword:duringcreditsstinger
+    Project Hail Mary [movie:687163] 2026-03-15 pop95 ← keyword:alien
+    Inside Out 2 [movie:1022789] 2024-06-11 pop91 ← keyword:duringcreditsstinger
+    The Wild Robot [movie:1184918] 2024-09-12 pop90 ← keyword:duringcreditsstinger, keyword:robot
+    Disclosure Day [movie:1275779] 2026-06-10 pop89 ← keyword:alien
+    LEGO Ninjago: Dragons Rising [tv:212989] 2023-06-01 pop85 ← keyword:based on toy
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:duringcreditsstinger, keyword:alien
+    Heart of the Beast [movie:1263337] 2026-09-19 pop85 ← company:Paramount Pictures
+    Avatar Aang: The Last Airbender [movie:980431] 2026-07-24 pop78 ← company:Paramount Pictures
+    Scary Movie [movie:1273221] 2026-06-03 pop69 ← keyword:duringcreditsstinger, company:Paramount Pictures
+    Hoppers [movie:1327819] 2026-03-04 pop61 ← keyword:duringcreditsstinger
+    Doctor Who [tv:239770] 2024-05-11 pop57 ← keyword:alien
+    Fallout [tv:106379] 2024-04-10 pop56 ← keyword:robot
+    PAW Patrol: The Dino Movie [movie:1185806] 2026-07-23 pop51 ← keyword:based on toy
+    Beyblade X [tv:226688] 2023-10-06 pop49 ← keyword:based on toy
+    Sonic the Hedgehog 3 [movie:939243] 2024-12-19 pop49 ← keyword:duringcreditsstinger, company:Paramount Pictures
+    The Super Mario Galaxy Movie [movie:1226863] 2026-04-01 pop47 ← keyword:duringcreditsstinger
+    KPop Demon Hunters [movie:803796] 2025-06-20 pop47 ← keyword:duringcreditsstinger
+    Dan Da Dan [tv:240411] 2024-10-04 pop46 ← keyword:alien
+    Digimon Beatbreak [tv:286791] 2025-10-05 pop45 ← keyword:based on toy
+    The Running Man [movie:798645] 2025-11-11 pop45 ← company:Paramount Pictures
+    Lilo & Stitch [movie:552524] 2025-05-17 pop43 ← keyword:alien
+    The Super Mario Bros. Movie [movie:502356] 2023-04-05 pop42 ← keyword:duringcreditsstinger
+
+== startrek
+  kaynak adayları: keyword:space opera (18/26) | keyword:spacecraft (16/26) | keyword:starship (13/26) | company:Paramount Pictures (13/26) | keyword:space (12/26) | keyword:teleportation (11/26) | keyword:outer space (11/26) | keyword:alien (10/26)
+  eksik olabilir:
+    The End of Oak Street [movie:1101383] 2026-08-12 pop173 ← keyword:teleportation
+    Project Hail Mary [movie:687163] 2026-03-15 pop95 ← keyword:space, keyword:alien
+    Disclosure Day [movie:1275779] 2026-06-10 pop89 ← keyword:alien
+    Heart of the Beast [movie:1263337] 2026-09-19 pop85 ← company:Paramount Pictures
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:alien
+    Avatar Aang: The Last Airbender [movie:980431] 2026-07-24 pop78 ← company:Paramount Pictures
+    Scary Movie [movie:1273221] 2026-06-03 pop69 ← company:Paramount Pictures
+    Doctor Who [tv:239770] 2024-05-11 pop57 ← keyword:alien
+    Sonic the Hedgehog 3 [movie:939243] 2024-12-19 pop49 ← company:Paramount Pictures
+    The Super Mario Galaxy Movie [movie:1226863] 2026-04-01 pop47 ← keyword:space
+    Dan Da Dan [tv:240411] 2024-10-04 pop46 ← keyword:alien
+    The Running Man [movie:798645] 2025-11-11 pop45 ← company:Paramount Pictures
+    Lilo & Stitch [movie:552524] 2025-05-17 pop43 ← keyword:alien
+    Dungeons & Dragons: Honor Among Thieves [movie:493529] 2023-03-23 pop38 ← company:Paramount Pictures
+    Gladiator II [movie:558449] 2024-11-13 pop37 ← company:Paramount Pictures
+    Hello Tomorrow! [tv:125000] 2023-02-16 pop36 ← keyword:space
+    Scream 7 [movie:1159559] 2026-02-25 pop35 ← company:Paramount Pictures
+    PAW Patrol: The Mighty Movie [movie:893723] 2023-09-21 pop34 ← company:Paramount Pictures
+    Dune: Part Three [movie:1170608] 2026-12-15 (yakında) pop32 ← keyword:space opera, keyword:space
+    Scream VI [movie:934433] 2023-03-08 pop32 ← company:Paramount Pictures
+    Rebel Moon - Part One: A Child of Fire [movie:848326] 2023-12-15 pop31 ← keyword:space opera, keyword:space
+    Mean Girls [movie:673593] 2024-01-10 pop31 ← company:Paramount Pictures
+    Elio [movie:1022787] 2025-06-18 pop31 ← keyword:alien
+    NieR:Automata Ver1.1a [tv:158373] 2023-01-08 pop29 ← keyword:alien
+    The Bad Guys 2 [movie:1175942] 2025-07-24 pop27 ← keyword:space
+
+== twd
+  kaynak adayları: keyword:based on graphic novel (7/7) | company:AMC Studios (7/7) | keyword:spin off (6/7) | company:Skybound Entertainment (6/7) | keyword:zombie (5/7) | keyword:horror (5/7) | company:Circle of Confusion (5/7) | company:Idiotbox (5/7)
+  eksik olabilir:
+    Resident Evil [movie:1423191] 2026-09-16 pop480 ← keyword:zombie
+    Insidious: Out of the Further [movie:1291595] 2026-08-19 pop478 ← keyword:horror
+    Carrie [tv:288673] 2026-10-07 pop326 ← keyword:horror
+    Silo [tv:125988] 2023-05-04 pop152 ← company:AMC Studios
+    Marshals [tv:290856] 2026-03-01 pop109 ← keyword:spin off
+    My Hero Academia: Vigilantes [tv:280110] 2025-04-07 pop93 ← keyword:spin off
+    Colony [movie:1375646] 2026-05-21 pop93 ← keyword:zombie
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:spin off
+    Goosebumps [tv:157004] 2023-10-13 pop67 ← keyword:horror
+    President Curtis [tv:296756] 2026-07-26 pop49 ← keyword:spin off
+    Missing Child Videotape [movie:1341284] 2025-01-24 pop49 ← keyword:horror
+    XO, Kitty [tv:195670] 2023-05-18 pop48 ← keyword:spin off
+    If Wishes Could Kill [tv:285838] 2026-04-24 pop47 ← keyword:horror
+    Neagley [tv:273207] 2026-09-16 pop46 ← keyword:spin off
+    Evil Dead Burn [movie:1212763] 2026-07-07 pop45 ← keyword:spin off
+    Furiosa: A Mad Max Saga [movie:786892] 2024-05-22 pop45 ← keyword:spin off
+    Evil Dead Rise [movie:713704] 2023-04-12 pop44 ← keyword:spin off
+    Dutton Ranch [tv:299167] 2026-05-15 pop44 ← keyword:spin off
+    Georgie & Mandy's First Marriage [tv:243875] 2024-10-17 pop42 ← keyword:spin off
+    Monster: The Ed Gein Story [tv:286801] 2025-10-03 pop40 ← keyword:horror
+    Widow's Bay [tv:270476] 2026-04-28 pop40 ← keyword:horror
+    A Minecraft Movie [movie:950387] 2025-03-31 pop38 ← keyword:zombie
+    KINKI [movie:1400499] 2025-08-08 pop38 ← keyword:horror
+    The Eternaut [tv:226362] 2025-04-30 pop37 ← keyword:based on graphic novel
+    Star City [tv:252107] 2026-05-28 pop36 ← keyword:spin off
+
+== johnwick
+  kaynak adayları: company:Thunder Road (6/6) | company:87Eleven (5/6) | keyword:hitman (4/6) | keyword:new york city (3/6) | keyword:assassin (3/6) | keyword:secret organization (3/6) | keyword:martial arts (3/6) | keyword:sequel (3/6)
+  eksik olabilir:
+    Insidious: Out of the Further [movie:1291595] 2026-08-19 pop478 ← keyword:sequel
+    Fall 2: Deadpoint [movie:1101412] 2026-09-01 pop276 ← keyword:sequel
+    Avatar: Seven Havens [tv:284833] 2026-10-09 pop151 ← keyword:martial arts
+    Toy Story 5 [movie:1084244] 2026-06-17 pop150 ← keyword:sequel
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:sequel
+    V/H/S/Mixtape [movie:1742441] 2026-10-09 pop110 ← keyword:sequel
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:sequel
+    Zootopia 2 [movie:1084242] 2025-11-26 pop99 ← keyword:sequel
+    Inside Out 2 [movie:1022789] 2024-06-11 pop91 ← keyword:sequel
+    Renegade Immortal [tv:223911] 2023-09-25 pop90 ← keyword:martial arts
+    Disclosure Day [movie:1275779] 2026-06-10 pop89 ← keyword:new york city
+    LEGO Ninjago: Dragons Rising [tv:212989] 2023-06-01 pop85 ← keyword:martial arts, keyword:sequel
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:sequel
+    Avatar Aang: The Last Airbender [movie:980431] 2026-07-24 pop78 ← keyword:martial arts
+    Dragon Ball Super: Beerus [tv:312359] 2026-10-11 pop74 ← keyword:martial arts
+    Ranma1/2 [tv:259140] 2024-10-06 pop70 ← keyword:martial arts
+    Scary Movie [movie:1273221] 2026-06-03 pop69 ← keyword:sequel
+    The Social Reckoning [movie:1281331] 2026-10-07 pop64 ← keyword:sequel
+    Demon Slayer: Kimetsu no Yaiba Infinity Castle [movie:1311031] 2025-07-18 pop57 ← keyword:sequel
+    Street Fighter [movie:1153576] 2026-10-13 pop56 ← keyword:martial arts
+    Wicked: For Good [movie:967941] 2025-11-19 pop54 ← keyword:sequel
+    The Furious [movie:1280738] 2026-06-10 pop52 ← keyword:martial arts
+    The Devil Wears Prada 2 [movie:1314481] 2026-04-29 pop51 ← keyword:new york city, keyword:sequel
+    PAW Patrol: The Dino Movie [movie:1185806] 2026-07-23 pop51 ← keyword:sequel
+    The Brutalist [movie:549509] 2024-12-20 pop50 ← keyword:new york city
+
+== breakingbad
+  kaynak adayları: keyword:new mexico (3/3) | keyword:albuquerque, new mexico (3/3) | company:Sony Pictures Television (3/3) | company:High Bridge Productions (3/3) | company:Gran Via Productions (3/3) | keyword:dark comedy (2/3) | keyword:tragedy (2/3) | keyword:drugs (2/3)
+  eksik olabilir:
+    Digger [movie:1248832] 2026-09-28 pop106 ← keyword:dark comedy
+    The Gentlemen [tv:236235] 2024-03-07 pop100 ← keyword:dark comedy
+    Dark Matter [tv:196322] 2024-05-07 pop83 ← company:Sony Pictures Television
+    The Last of Us [tv:100088] 2023-01-15 pop79 ← company:Sony Pictures Television
+    Oppenheimer [movie:872585] 2023-07-19 pop70 ← keyword:new mexico
+    Goosebumps [tv:157004] 2023-10-13 pop67 ← company:Sony Pictures Television
+    Buddy [movie:1514026] 2026-08-27 pop66 ← keyword:dark comedy
+    Rosebush Pruning [movie:1130948] 2026-04-23 pop63 ← keyword:dark comedy
+    Another Simple Favor [movie:974573] 2025-03-07 pop57 ← keyword:dark comedy
+    The Night Agent [tv:129552] 2023-03-23 pop52 ← company:Sony Pictures Television
+    The 100 Girlfriends Who Really, Really, Really, Really, REALLY Love You [tv:223564] 2023-10-08 pop49 ← keyword:drugs
+    Hazbin Hotel [tv:94954] 2024-01-18 pop47 ← keyword:dark comedy
+    The Substance [movie:933260] 2024-09-18 pop45 ← keyword:dark comedy
+    Doc [tv:255055] 2025-01-07 pop44 ← company:Sony Pictures Television
+    Outlander: Blood of My Blood [tv:207484] 2025-08-08 pop44 ← company:Sony Pictures Television
+    Star City [tv:252107] 2026-05-28 pop36 ← company:Sony Pictures Television
+    Kinds of Kindness [movie:1029955] 2024-05-30 pop35 ← keyword:dark comedy
+    The Invite [movie:950028] 2026-06-25 pop34 ← keyword:dark comedy
+    Ready or Not: Here I Come [movie:1266127] 2026-03-19 pop34 ← keyword:dark comedy
+    Blink Twice [movie:840705] 2024-08-21 pop34 ← keyword:dark comedy
+    BEEF [tv:154385] 2023-04-06 pop34 ← keyword:dark comedy
+    The Monkey [movie:1124620] 2025-02-10 pop33 ← keyword:dark comedy
+    Go! Go! Loser Ranger! [tv:215799] 2024-04-07 pop33 ← keyword:dark comedy
+    Scream VI [movie:934433] 2023-03-08 pop32 ← keyword:dark comedy
+    The Drama [movie:1325734] 2026-04-01 pop32 ← keyword:dark comedy
+
+== yellowstone
+  kaynak adayları: company:101 Studios (3/3) | company:Bosque Ranch Productions (3/3) | company:Linson Entertainment (3/3) | company:MTV Entertainment Studios (3/3) | keyword:montana (2/3) | keyword:family drama (2/3) | keyword:cattle ranch (2/3) | keyword:yellowstone (2/3)
+  eksik olabilir:
+    MobLand [tv:247718] 2025-03-30 pop276 ← company:101 Studios, company:MTV Entertainment Studios
+    Lioness [tv:113962] 2023-07-23 pop208 ← company:101 Studios, company:Bosque Ranch Productions
+    Marshals [tv:290856] 2026-03-01 pop109 ← company:101 Studios, company:Bosque Ranch Productions
+    Rosebush Pruning [movie:1130948] 2026-04-23 pop63 ← keyword:family drama
+    Landman [tv:157741] 2024-11-17 pop51 ← company:101 Studios, company:Bosque Ranch Productions
+    Dutton Ranch [tv:299167] 2026-05-15 pop44 ← company:101 Studios, company:Bosque Ranch Productions
+    The Agency [tv:219971] 2024-12-01 pop40 ← company:101 Studios
+    Little House on the Prairie [tv:283304] 2026-07-09 pop33 ← keyword:family drama
+    Teen Wolf: The Movie [movie:877703] 2023-01-18 pop21 ← company:MTV Entertainment Studios
+    Lawmen: Bass Reeves [tv:157732] 2023-11-05 pop19 ← company:101 Studios, company:Bosque Ranch Productions
+    The Madison [tv:225891] 2026-03-14 pop18 ← company:101 Studios, company:Bosque Ranch Productions
+    Regretting You [movie:1327862] 2025-10-22 pop17 ← keyword:family drama
+    Clone High [tv:118546] 2023-05-23 pop13 ← company:MTV Entertainment Studios
+    Everybody Still Hates Chris [tv:207318] 2024-09-25 pop12 ← company:MTV Entertainment Studios
+    Wolf Pack [tv:134865] 2023-01-26 pop11 ← company:MTV Entertainment Studios
+    American Fiction [movie:1056360] 2023-11-10 pop11 ← keyword:family drama
+    The Girlfriend [tv:253376] 2025-09-10 pop11 ← keyword:family drama
+    4 Blocks Zero [tv:310133] 2026-09-25 pop11 ← keyword:family drama
+    Ren & Stimpy [tv:259831] 2024-07-13 pop10 ← company:MTV Entertainment Studios
+    Digman! [tv:210249] 2023-03-22 pop10 ← company:MTV Entertainment Studios
+    Fjord [movie:1401459] 2026-06-13 pop10 ← keyword:family drama
+    Unstoppable [movie:1101448] 2024-12-06 pop9 ← company:101 Studios
+    Romería [movie:1182861] 2025-09-05 pop9 ← keyword:family drama
+    The Chicken Sisters [tv:254988] 2024-09-10 pop9 ← keyword:family drama
+    I, Jack Wright [tv:262899] 2025-04-23 pop9 ← keyword:family drama
+
+== dexter
+  kaynak adayları: keyword:based on novel or book (4/4) | keyword:vigilante (4/4) | keyword:serial killer (4/4) | company:Clyde Phillips Productions (4/4) | keyword:miami, florida (3/4) | keyword:murder (3/4) | keyword:sequel (3/4) | keyword:new york city (2/4)
+  eksik olabilir:
+    Insidious: Out of the Further [movie:1291595] 2026-08-19 pop478 ← keyword:sequel
+    Carrie [tv:288673] 2026-10-07 pop326 ← keyword:based on novel or book
+    MobLand [tv:247718] 2025-03-30 pop276 ← keyword:murder
+    Fall 2: Deadpoint [movie:1101412] 2026-09-01 pop276 ← keyword:sequel
+    Silo [tv:125988] 2023-05-04 pop152 ← keyword:based on novel or book
+    Toy Story 5 [movie:1084244] 2026-06-17 pop150 ← keyword:sequel
+    Other Mommy [movie:1400837] 2026-10-07 pop147 ← keyword:based on novel or book
+    The Scandal [tv:275102] 2026-09-18 pop136 ← keyword:based on novel or book
+    Onslaught [movie:1284046] 2026-09-02 pop125 ← keyword:serial killer
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:based on novel or book, keyword:sequel
+    V/H/S/Mixtape [movie:1742441] 2026-10-09 pop110 ← keyword:sequel
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:sequel
+    Zootopia 2 [movie:1084242] 2025-11-26 pop99 ← keyword:sequel
+    Project Hail Mary [movie:687163] 2026-03-15 pop95 ← keyword:based on novel or book
+    Tracker [tv:211288] 2024-02-11 pop94 ← keyword:based on novel or book
+    My Hero Academia: Vigilantes [tv:280110] 2025-04-07 pop93 ← keyword:vigilante
+    The Love Hypothesis [movie:1032863] 2026-09-23 pop92 ← keyword:based on novel or book
+    Inside Out 2 [movie:1022789] 2024-06-11 pop91 ← keyword:sequel
+    The Wild Robot [movie:1184918] 2024-09-12 pop90 ← keyword:based on novel or book
+    Disclosure Day [movie:1275779] 2026-06-10 pop89 ← keyword:new york city
+    Verity [movie:1283515] 2026-09-30 pop85 ← keyword:based on novel or book
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:sequel
+    LEGO Ninjago: Dragons Rising [tv:212989] 2023-06-01 pop85 ← keyword:sequel
+    Dark Matter [tv:196322] 2024-05-07 pop83 ← keyword:based on novel or book
+    East of Eden [tv:258165] 2026-10-01 pop72 ← keyword:based on novel or book
+
+== conjuring
+  kaynak adayları: company:New Line Cinema (10/10) | keyword:halloween (9/10) | company:The Safran Company (9/10) | company:Atomic Monster (9/10) | keyword:ghost (5/10) | keyword:demon (5/10) | keyword:spin off (5/10) | keyword:demonic possession (5/10)
+  eksik olabilir:
+    Insidious: Out of the Further [movie:1291595] 2026-08-19 pop478 ← company:Atomic Monster, keyword:demon
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:halloween
+    Marshals [tv:290856] 2026-03-01 pop109 ← keyword:spin off
+    My Hero Academia: Vigilantes [tv:280110] 2025-04-07 pop93 ← keyword:spin off
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:spin off
+    Backrooms [movie:1083381] 2026-05-27 pop77 ← company:Atomic Monster
+    Goosebumps [tv:157004] 2023-10-13 pop67 ← keyword:halloween, keyword:ghost
+    Demon Slayer: Kimetsu no Yaiba Infinity Castle [movie:1311031] 2025-07-18 pop57 ← keyword:demon
+    Forgotten Island [movie:1465063] 2026-09-10 pop54 ← keyword:demon
+    President Curtis [tv:296756] 2026-07-26 pop49 ← keyword:spin off
+    XO, Kitty [tv:195670] 2023-05-18 pop48 ← keyword:spin off
+    KPop Demon Hunters [movie:803796] 2025-06-20 pop47 ← keyword:demon
+    Dan Da Dan [tv:240411] 2024-10-04 pop46 ← keyword:ghost
+    Neagley [tv:273207] 2026-09-16 pop46 ← keyword:spin off
+    Evil Dead Burn [movie:1212763] 2026-07-07 pop45 ← company:New Line Cinema, keyword:demon
+    Furiosa: A Mad Max Saga [movie:786892] 2024-05-22 pop45 ← keyword:spin off
+    Evil Dead Rise [movie:713704] 2023-04-12 pop44 ← company:New Line Cinema, keyword:demon
+    Dutton Ranch [tv:299167] 2026-05-15 pop44 ← keyword:spin off
+    Haunted Hotel [tv:255752] 2025-09-19 pop43 ← keyword:demon, keyword:demonic possession
+    Georgie & Mandy's First Marriage [tv:243875] 2024-10-17 pop42 ← keyword:spin off
+    Dragon Ball DAIMA [tv:236994] 2024-10-11 pop40 ← keyword:demon
+    Mortal Kombat II [movie:931285] 2026-05-06 pop38 ← company:New Line Cinema, company:Atomic Monster
+    Star City [tv:252107] 2026-05-28 pop36 ← keyword:spin off
+    Scream 7 [movie:1159559] 2026-02-25 pop35 ← keyword:halloween
+    Moonlit Reunion [tv:242762] 2025-08-18 pop34 ← keyword:demon
+
+== fast
+  kaynak adayları: company:Universal Pictures (12/12) | keyword:cars (11/12) | company:Original Film (10/12) | keyword:street race (9/12) | keyword:sequel (9/12) | keyword:car race (7/12) | company:One Race (7/12) | keyword:excited (5/12)
+  eksik olabilir:
+    Insidious: Out of the Further [movie:1291595] 2026-08-19 pop478 ← keyword:sequel
+    Matchbox the Movie [movie:1148365] 2026-10-05 pop381 ← keyword:cars
+    The Odyssey [movie:1368337] 2026-07-15 pop377 ← company:Universal Pictures
+    Fall 2: Deadpoint [movie:1101412] 2026-09-01 pop276 ← keyword:sequel
+    Toy Story 5 [movie:1084244] 2026-06-17 pop150 ← keyword:sequel
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:sequel
+    V/H/S/Mixtape [movie:1742441] 2026-10-09 pop110 ← keyword:sequel
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:sequel
+    Zootopia 2 [movie:1084242] 2025-11-26 pop99 ← keyword:sequel, keyword:excited
+    Tracker [tv:211288] 2024-02-11 pop94 ← keyword:excited
+    Inside Out 2 [movie:1022789] 2024-06-11 pop91 ← keyword:sequel
+    Disclosure Day [movie:1275779] 2026-06-10 pop89 ← company:Universal Pictures
+    War of the Worlds [movie:755898] 2025-07-29 pop86 ← company:Universal Pictures
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← company:Universal Pictures, keyword:sequel
+    LEGO Ninjago: Dragons Rising [tv:212989] 2023-06-01 pop85 ← keyword:sequel
+    Oppenheimer [movie:872585] 2023-07-19 pop70 ← company:Universal Pictures
+    Scary Movie [movie:1273221] 2026-06-03 pop69 ← keyword:sequel
+    Goosebumps [tv:157004] 2023-10-13 pop67 ← company:Original Film
+    The Social Reckoning [movie:1281331] 2026-10-07 pop64 ← keyword:sequel
+    Merry Berry Love [tv:305551] 2026-10-07 pop60 ← keyword:excited
+    Demon Slayer: Kimetsu no Yaiba Infinity Castle [movie:1311031] 2025-07-18 pop57 ← keyword:sequel
+    Wicked: For Good [movie:967941] 2025-11-19 pop54 ← company:Universal Pictures, keyword:sequel
+    Forgotten Island [movie:1465063] 2026-09-10 pop54 ← keyword:excited
+    PAW Patrol: The Dino Movie [movie:1185806] 2026-07-23 pop51 ← keyword:sequel
+    The Devil Wears Prada 2 [movie:1314481] 2026-04-29 pop51 ← keyword:sequel
+
+== witcher
+  kaynak adayları: company:Hivemind (4/4) | company:Little Schmidt Productions (4/4) | company:Platige Films (4/4) | keyword:based on novel or book (3/4) | keyword:fantasy world (3/4) | keyword:monster (2/4) | keyword:magic (2/4) | company:Studio Mir (2/4)
+  eksik olabilir:
+    Carrie [tv:288673] 2026-10-07 pop326 ← keyword:based on novel or book
+    Silo [tv:125988] 2023-05-04 pop152 ← keyword:based on novel or book
+    Other Mommy [movie:1400837] 2026-10-07 pop147 ← keyword:based on novel or book
+    The Scandal [tv:275102] 2026-09-18 pop136 ← keyword:based on novel or book
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:based on novel or book, keyword:magic
+    Project Hail Mary [movie:687163] 2026-03-15 pop95 ← keyword:based on novel or book
+    Tracker [tv:211288] 2024-02-11 pop94 ← keyword:based on novel or book
+    Frieren: Beyond Journey's End [tv:209867] 2023-09-29 pop94 ← keyword:fantasy world, keyword:magic
+    The Love Hypothesis [movie:1032863] 2026-09-23 pop92 ← keyword:based on novel or book
+    The Wild Robot [movie:1184918] 2024-09-12 pop90 ← keyword:based on novel or book
+    Verity [movie:1283515] 2026-09-30 pop85 ← keyword:based on novel or book
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:magic
+    Dark Matter [tv:196322] 2024-05-07 pop83 ← keyword:based on novel or book
+    Avatar Aang: The Last Airbender [movie:980431] 2026-07-24 pop78 ← company:Studio Mir
+    Backrooms [movie:1083381] 2026-05-27 pop77 ← keyword:monster
+    East of Eden [tv:258165] 2026-10-01 pop72 ← keyword:based on novel or book
+    Oppenheimer [movie:872585] 2023-07-19 pop70 ← keyword:based on novel or book
+    Goosebumps [tv:157004] 2023-10-13 pop67 ← keyword:based on novel or book
+    Drawn Together [movie:1440098] 2026-09-09 pop66 ← keyword:based on novel or book
+    Percy Jackson and the Olympians [tv:103540] 2023-12-19 pop66 ← keyword:based on novel or book, keyword:monster
+    The Sheep Detectives [movie:1301421] 2026-04-30 pop64 ← keyword:based on novel or book
+    Rosebush Pruning [movie:1130948] 2026-04-23 pop63 ← keyword:based on novel or book
+    Solo Leveling [tv:127532] 2024-01-07 pop63 ← keyword:magic
+    Cross [tv:213306] 2024-11-14 pop57 ← keyword:based on novel or book
+    Off Campus [tv:273240] 2026-05-13 pop56 ← keyword:based on novel or book
+
+== dune
+  kaynak adayları: keyword:based on novel or book (4/4) | keyword:chosen one (3/4) | keyword:desert (3/4) | keyword:giant worm (3/4) | keyword:space opera (3/4) | keyword:messiah (3/4) | keyword:empire (2/4) | keyword:future (2/4)
+  eksik olabilir:
+    Carrie [tv:288673] 2026-10-07 pop326 ← keyword:based on novel or book
+    Silo [tv:125988] 2023-05-04 pop152 ← keyword:based on novel or book
+    Other Mommy [movie:1400837] 2026-10-07 pop147 ← keyword:based on novel or book
+    The Scandal [tv:275102] 2026-09-18 pop136 ← keyword:based on novel or book
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:based on novel or book
+    Project Hail Mary [movie:687163] 2026-03-15 pop95 ← keyword:based on novel or book
+    Tracker [tv:211288] 2024-02-11 pop94 ← keyword:based on novel or book
+    The Love Hypothesis [movie:1032863] 2026-09-23 pop92 ← keyword:based on novel or book
+    The Wild Robot [movie:1184918] 2024-09-12 pop90 ← keyword:based on novel or book
+    Verity [movie:1283515] 2026-09-30 pop85 ← keyword:based on novel or book
+    Dark Matter [tv:196322] 2024-05-07 pop83 ← keyword:based on novel or book
+    East of Eden [tv:258165] 2026-10-01 pop72 ← keyword:based on novel or book
+    Oppenheimer [movie:872585] 2023-07-19 pop70 ← keyword:based on novel or book
+    Goosebumps [tv:157004] 2023-10-13 pop67 ← keyword:based on novel or book
+    Drawn Together [movie:1440098] 2026-09-09 pop66 ← keyword:based on novel or book
+    Percy Jackson and the Olympians [tv:103540] 2023-12-19 pop66 ← keyword:based on novel or book
+    The Sheep Detectives [movie:1301421] 2026-04-30 pop64 ← keyword:based on novel or book
+    Rosebush Pruning [movie:1130948] 2026-04-23 pop63 ← keyword:based on novel or book
+    Cross [tv:213306] 2024-11-14 pop57 ← keyword:based on novel or book
+    Off Campus [tv:273240] 2026-05-13 pop56 ← keyword:based on novel or book
+    Wicked: For Good [movie:967941] 2025-11-19 pop54 ← keyword:based on novel or book
+    Treasure Island [tv:333101] 2026-10-11 pop54 ← keyword:based on novel or book
+    The Night Agent [tv:129552] 2023-03-23 pop52 ← keyword:based on novel or book
+    The Devil Wears Prada 2 [movie:1314481] 2026-04-29 pop51 ← keyword:based on novel or book
+    The Last Sunrise [movie:1516698] 2026-08-26 pop48 ← keyword:based on novel or book
+
+== hunger
+  kaynak adayları: keyword:based on novel or book (5/5) | keyword:dystopia (5/5) | keyword:based on young adult novel (5/5) | company:Lionsgate (5/5) | company:Color Force (5/5) | keyword:female protagonist (3/5) | keyword:game (3/5) | keyword:sequel (3/5)
+  eksik olabilir:
+    Insidious: Out of the Further [movie:1291595] 2026-08-19 pop478 ← keyword:sequel
+    Carrie [tv:288673] 2026-10-07 pop326 ← keyword:based on novel or book
+    Fall 2: Deadpoint [movie:1101412] 2026-09-01 pop276 ← keyword:sequel
+    Silo [tv:125988] 2023-05-04 pop152 ← keyword:based on novel or book, keyword:dystopia
+    Toy Story 5 [movie:1084244] 2026-06-17 pop150 ← keyword:sequel
+    Other Mommy [movie:1400837] 2026-10-07 pop147 ← keyword:based on novel or book
+    The Scandal [tv:275102] 2026-09-18 pop136 ← keyword:based on novel or book
+    The Apothecary Diaries [tv:220542] 2023-10-22 pop126 ← keyword:female protagonist
+    Practical Magic 2 [movie:1302904] 2026-09-09 pop124 ← keyword:based on novel or book, keyword:sequel
+    V/H/S/Mixtape [movie:1742441] 2026-10-09 pop110 ← keyword:sequel
+    Avengers: Doomsday [movie:1003596] 2026-12-16 (yakında) pop108 ← keyword:sequel
+    Zootopia 2 [movie:1084242] 2025-11-26 pop99 ← keyword:sequel
+    Project Hail Mary [movie:687163] 2026-03-15 pop95 ← keyword:based on novel or book
+    Tracker [tv:211288] 2024-02-11 pop94 ← keyword:based on novel or book
+    Frieren: Beyond Journey's End [tv:209867] 2023-09-29 pop94 ← keyword:female protagonist
+    The Love Hypothesis [movie:1032863] 2026-09-23 pop92 ← keyword:based on novel or book
+    Inside Out 2 [movie:1022789] 2024-06-11 pop91 ← keyword:sequel
+    The Wild Robot [movie:1184918] 2024-09-12 pop90 ← keyword:based on novel or book
+    Verity [movie:1283515] 2026-09-30 pop85 ← keyword:based on novel or book
+    My Fault [movie:1010581] 2023-06-08 pop85 ← keyword:based on young adult novel, keyword:female protagonist
+    Minions & Monsters [movie:1315772] 2026-06-24 pop85 ← keyword:sequel
+    LEGO Ninjago: Dragons Rising [tv:212989] 2023-06-01 pop85 ← keyword:sequel
+    Dark Matter [tv:196322] 2024-05-07 pop83 ← keyword:based on novel or book
+    East of Eden [tv:258165] 2026-10-01 pop72 ← keyword:based on novel or book
+    Oppenheimer [movie:872585] 2023-07-19 pop70 ← keyword:based on novel or book
