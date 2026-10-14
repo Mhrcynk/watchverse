@@ -66,7 +66,7 @@ async function pool(items, n, fn) { const q = [...items]; await Promise.all(Arra
 /** TMDB → Wikidata → Türkçe Wikipedia sayfa adı (önbellekli; sayfası yoksa '') */
 const diag = { keys: 0, qid: 0, site: 0, views: 0, err: '' };
 async function trwikiTitles(keys, cache) {
-  const need = keys.filter((k) => cache[k] === undefined || cache[k] === '');
+  const need = keys.filter((k) => cache[k] === undefined);
   diag.keys = need.length;
   const qid = {};
   await pool(need, 8, async (k) => {
@@ -91,10 +91,12 @@ const ymd = (d) => d.toISOString().slice(0, 10).replace(/-/g, '');
 async function pageviews(titles) {
   const end = new Date(Date.now() - 864e5), start = new Date(Date.now() - 30 * 864e5);
   const out = {};
-  await pool([...new Set(titles)].filter(Boolean), 6, async (t) => {
+  await pool([...new Set(titles)].filter(Boolean), 2, async (t) => {
     const u = `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/tr.wikipedia/all-access/user/${encodeURIComponent(t.replace(/ /g, '_'))}/daily/${ymd(start)}/${ymd(end)}`;
     try {
-      const r = await fetch(u, { headers: UA });
+      let r = await fetch(u, { headers: UA });
+      for (let i = 0; r.status === 429 && i < 5; i++) { await sleep(2000 * (i + 1)); r = await fetch(u, { headers: UA }); }
+      await sleep(120);
       if (!r.ok && r.status !== 404) diag.err ||= 'pageviews ' + r.status;
       out[t] = r.ok ? ((await r.json()).items || []).reduce((n, x) => n + x.views, 0) : 0;
       if (out[t]) diag.views++;
