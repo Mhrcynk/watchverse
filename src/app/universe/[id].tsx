@@ -3,75 +3,48 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { StoryCard, UniverseLogo } from '@/components/media';
+import { PosterCard, StoryCard, UniverseLogo } from '@/components/media';
+import { Row, useTileW } from '@/components/rows';
 import { TicketCard } from '@/components/home';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { backdropOf } from '@/lib/logos';
-import { BackLink, Btn, Empty, Eyebrow, H1, H3, Muted, Panel, Pills, Press, Ring, Screen, Segmented, Small, useLayout, useToast } from '@/components/ui';
-import { CATEGORY_TR, GROUPS, TYPE_TR, UBY, VIEWS, VIEW_HELP, VIEW_TR, branchesOf, phaseOf, posterUrl, viewTitles } from '@/lib/catalog';
+import { BackLink, Btn, Chip, Empty, Grid, H1, H3, Muted, Panel, Press, Ring, Screen, Small, useLayout, useToast } from '@/components/ui';
+import { CATEGORY_TR, TYPE_TR, UBY, phaseOf, posterUrl } from '@/lib/catalog';
+import { shelvesOf } from '@/lib/shelves';
 import { duration } from '@/lib/format';
-import { fraction, isDone, isStarted, pctOf, remaining } from '@/lib/progress';
+import { isDone, nextUp, universeProgress } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
-import type { ListView, Title } from '@/lib/types';
+import type { Title } from '@/lib/types';
 import { confirm } from '@/lib/confirm';
 
 const PAGE = 60;
 
 export default function UniverseDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, shelf } = useLocalSearchParams<{ id: string; shelf?: string }>();
   const u = UBY[id || ''];
+  if (!u) return <Screen><BackLink label="Evrenler" onPress={() => router.back()} /><Empty title="Bu evren bulunamadı." action="Evrenlere dön" onAction={() => router.replace('/universes')} /></Screen>;
+  return shelf ? <ShelfList uid={u.id} shelfKey={shelf} /> : <Shelves uid={u.id} />;
+}
+
+/** Evren sayfası: üstte görsel ve ilerleme, altında raflar (her rota / tür kendi satırında) */
+function Shelves({ uid }: { uid: string }) {
+  const u = UBY[uid];
   const store = useStore();
   const { state } = store;
   const toast = useToast();
-  const { tablet, pad, width } = useLayout();
+  const { tablet, pad, width, posterCols } = useLayout();
+  const tw = useTileW();
   const insets = useSafeAreaInsets();
-  const bd = u ? backdropOf(u.id) : null;
-  const [unseen, setUnseen] = useState(false);
-  const [limit, setLimit] = useState(PAGE);
-
-  // Evren sayfası açılışta tüm rotaları gösterir; seçilen rota hatırlanır
-  const branches = useMemo(() => (u ? branchesOf(u.id) : []), [u]);
-  const view = state.view;
-  // Bu görünümde yapımı olan rotalar; ana rota başta
-  const visibleBranches = useMemo(() => (u ? branches.filter((b) => viewTitles(u.id, b.id, view).length).sort((a, b) => (a.id === u.defaultBranch ? -1 : b.id === u.defaultBranch ? 1 : 0)) : []), [u, branches, view]);
-  const saved = u ? state.branches[u.id] || 'all' : 'all';
-  const branch = saved !== 'all' && !visibleBranches.some((b) => b.id === saved) ? 'all' : saved;
-  const all = useMemo(() => {
-    if (!u) return [];
-    if (branch !== 'all' || visibleBranches.length < 2) return viewTitles(u.id, branch, view);
-    // Tüm rotalar: her rota kendi bölümünde; ana rota en üstte
-    return visibleBranches.flatMap((b) => viewTitles(u.id, b.id, view));
-  }, [u, branch, visibleBranches, view]);
-  if (!u) return <Screen><BackLink label="Evrenler" onPress={() => router.back()} /><Empty title="Bu evren bulunamadı." action="Evrenlere dön" onAction={() => router.replace('/universes')} /></Screen>;
-
-  // İlerleme ve "sıradaki" ekrandaki listeye göre
-  const doneN = all.filter((t) => isDone(state, t)).length;
-  const p = { done: doneN, total: all.length, pct: pctOf(all.reduce((x, t) => x + fraction(state, t), 0), all.length, doneN), left: all.reduce((x, t) => x + remaining(state, t), 0) };
-  const n = all.find((t) => isStarted(state, t)) || all.find((t) => !isDone(state, t)) || null;
+  const bd = backdropOf(u.id);
+  const order = state.view === 'chrono' ? 'chrono' : 'release';
+  const shelves = useMemo(() => shelvesOf(u.id, order), [u.id, order]);
+  const p = universeProgress(state, u.id);
+  const n = nextUp(state, u.id);
   const following = state.follow.includes(u.id);
-  const markUntil = (t: Title) => {
-    const upto = all.slice(0, all.findIndex((x) => x.id === t.id) + 1);
-    const left = upto.filter((x) => !isDone(state, x)).length;
-    if (!left) { toast('Bunlar zaten izlendi'); return; }
-    confirm('Buraya kadar izledim', `“${t.title}” ve öncesi, toplam ${left} yapım izlendi olarak işaretlensin mi?`, 'İşaretle', () => {
-      const n = store.markMany(upto.map((x) => x.id));
-      toast(`${n} yapım izlendi olarak işaretlendi`);
-    });
-  };
-  const numbered = all.map((t, i) => ({ t, n: i + 1 }));
-  const shown = unseen ? numbered.filter((x) => !isDone(state, x.t)) : numbered;
-  // Bölüm başlıkları: tüm rotalarda rota adı, MCU'da faz
-  const sections: { key: string; title: string; items: typeof shown }[] = [];
-  for (const x of shown.slice(0, limit)) {
-    const multi = branch === 'all' && visibleBranches.length > 1;
-    const ph = view !== 'chrono' ? phaseOf(x.t) : null;
-    const title = [multi ? GROUPS[x.t.branch] || '' : '', ph || ''].filter(Boolean).join(' · ');
-    const last = sections[sections.length - 1];
-    if (last && last.title === title) last.items.push(x);
-    else sections.push({ key: `${title}-${sections.length}`, title, items: [x] });
-  }
+  const total = shelves.reduce((x, s) => x + s.items.length, 0);
+  const groups = new Set(shelves.map((s) => s.group)).size;
 
   return (
     <Screen>
@@ -93,7 +66,7 @@ export default function UniverseDetail() {
       <Muted style={{ marginTop: 12 }}>{u.desc}</Muted>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 16 }}>
         <View style={{ flex: 1, gap: 10 }}>
-          <Small>{CATEGORY_TR[u.category]} · {all.length} yapım · {duration(p.left)} kaldı</Small>
+          <Small>{CATEGORY_TR[u.category]} · {total} yapım · ana hikâyede {duration(p.left)} kaldı</Small>
           <Btn style={{ alignSelf: 'flex-start' }} kind={following ? 'success' : 'primary'} icon={following ? 'check' : 'plus'}
             label={following ? 'Takip ediliyor' : 'Evreni takip et'}
             onPress={() => { store.toggleFollow(u.id); toast(following ? `${u.name} takipten çıkarıldı` : `${u.name} takip ediliyor`); }} />
@@ -110,33 +83,98 @@ export default function UniverseDetail() {
         ) : (
           <Panel style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <Feather name="award" size={26} color={C.green} />
-            <H3 style={{ flex: 1 }}>Bu rotadaki yolculuğunu tamamladın.</H3>
+            <H3 style={{ flex: 1 }}>Ana hikâyeyi tamamladın.</H3>
           </Panel>
         )}
       </View>
 
-      <View style={{ marginTop: 22 }}>
-        <Segmented<ListView> label="Liste görünümü" value={view} onChange={(v) => { store.setView(v); setLimit(PAGE); }}
-          options={VIEWS.map((v) => ({ id: v, label: VIEW_TR[v] }))} />
-        <Small style={{ marginTop: 8 }}>{VIEW_HELP[view]}</Small>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 22 }}>
+        <Small style={{ flex: 1 }}>Sıralama</Small>
+        <Chip label="Çıkış sırası" active={order === 'release'} onPress={() => store.setView(state.view === 'chrono' ? 'main' : state.view)} />
+        <Chip label="Kronolojik" active={order === 'chrono'} onPress={() => store.setView('chrono')} />
       </View>
 
-      {visibleBranches.length > 1 && (
-        <View style={{ marginTop: 14 }}>
-          <Pills value={branch} onChange={(b) => { store.setBranch(u.id, b); setLimit(PAGE); }}
-            options={[{ id: 'all', label: 'Tüm rotalar' }, ...visibleBranches.map((b) => ({ id: b.id, label: b.name }))]} />
+      {shelves.length === 1 && (
+        <View style={{ marginTop: 22 }}>
+          <Grid items={shelves[0].items} cols={posterCols} gap={14} rowGap={22} keyOf={(t) => t.id} render={(t, cw) => <PosterCard t={t} width={cw} />} />
+          <Btn kind="secondary" icon="list" label="Sırayla listele" style={{ marginTop: 20, alignSelf: 'flex-start' }} onPress={() => router.push({ pathname: '/universe/[id]', params: { id: u.id, shelf: shelves[0].key } })} />
         </View>
       )}
+      {shelves.length > 1 && shelves.map((sh, i) => {
+        const groupHead = sh.split && groups > 1 && shelves[i - 1]?.group !== sh.group;
+        return (
+          <View key={sh.key}>
+          {groupHead && (
+            <View style={{ marginTop: 34, flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+              <Text accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontFamily: F.heavy, fontSize: 21, color: C.text, letterSpacing: -0.4 }}>{sh.group}</Text>
+              <Small>{shelves.filter((x) => x.group === sh.group).reduce((a, x) => a + x.items.length, 0)} yapım</Small>
+            </View>
+          )}
+          <Row title={sh.title} onMore={() => router.push({ pathname: '/universe/[id]', params: { id: u.id, shelf: sh.key } })}>
+            {sh.items.slice(0, 20).map((t) => <PosterCard key={t.id} t={t} width={tw} />)}
+            {sh.items.length > 20 && (
+              <Press accessibilityRole="button" accessibilityLabel={`${sh.title}: tümünü gör`} onPress={() => router.push({ pathname: '/universe/[id]', params: { id: u.id, shelf: sh.key } })}
+                style={{ width: tw, aspectRatio: 2 / 3, borderRadius: R.md, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Feather name="arrow-right" size={20} color={C.text} />
+                <Small>+{sh.items.length - 20} yapım</Small>
+              </Press>
+            )}
+          </Row>
+          </View>
+        );
+      })}
+    </Screen>
+  );
+}
 
-      <Press accessibilityRole="switch" accessibilityState={{ checked: unseen }} onPress={() => { setUnseen((x) => !x); setLimit(PAGE); }}
-        style={{ marginTop: 16, marginBottom: 6, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <View style={{ width: 22, height: 22, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: unseen ? C.accent : 'transparent', borderWidth: unseen ? 0 : 1.5, borderColor: C.line }}>
-          {unseen && <Feather name="check" size={14} color={C.onAccent} />}
-        </View>
-        <Text style={{ flex: 1, fontFamily: F.medium, fontSize: 14, color: C.text }}>Sadece izlemediklerim</Text>
-        <Small>{shown.length} yapım</Small>
-      </Press>
-      <Small style={{ marginBottom: 4 }}>İpucu: bir yapıma uzun basarak oraya kadar olanların hepsini izlendi işaretleyebilirsin.</Small>
+/** Bir rafın tamamı: sırayla, izlendi işaretli liste */
+function ShelfList({ uid, shelfKey }: { uid: string; shelfKey: string }) {
+  const u = UBY[uid];
+  const store = useStore();
+  const { state } = store;
+  const toast = useToast();
+  const [unseen, setUnseen] = useState(false);
+  const [limit, setLimit] = useState(PAGE);
+  const order = state.view === 'chrono' ? 'chrono' : 'release';
+  const sh = useMemo(() => shelvesOf(u.id, order).find((x) => x.key === shelfKey), [u.id, order, shelfKey]);
+  const back = () => (router.canGoBack() ? router.back() : router.replace(`/universe/${u.id}`));
+  if (!sh) return <Screen><BackLink label={u.name} onPress={back} /><Empty title="Bu bölüm bulunamadı." /></Screen>;
+
+  const all = sh.items;
+  const doneN = all.filter((t) => isDone(state, t)).length;
+  const markUntil = (t: Title) => {
+    const upto = all.slice(0, all.findIndex((x) => x.id === t.id) + 1);
+    const left = upto.filter((x) => !isDone(state, x)).length;
+    if (!left) { toast('Bunlar zaten izlendi'); return; }
+    confirm('Buraya kadar izledim', `“${t.title}” ve öncesi, toplam ${left} yapım izlendi olarak işaretlensin mi?`, 'İşaretle', () => {
+      const n = store.markMany(upto.map((x) => x.id));
+      toast(`${n} yapım izlendi olarak işaretlendi`);
+    });
+  };
+  const numbered = all.map((t, i) => ({ t, n: i + 1 }));
+  const shown = unseen ? numbered.filter((x) => !isDone(state, x.t)) : numbered;
+  // MCU'da faz başlıkları
+  const sections: { key: string; title: string; items: typeof shown }[] = [];
+  for (const x of shown.slice(0, limit)) {
+    const title = order !== 'chrono' ? phaseOf(x.t) || '' : '';
+    const last = sections[sections.length - 1];
+    if (last && last.title === title) last.items.push(x);
+    else sections.push({ key: `${title}-${sections.length}`, title, items: [x] });
+  }
+
+  return (
+    <Screen>
+      <BackLink label={u.name} onPress={back} />
+      {sh.split && <Small style={{ marginBottom: 4 }}>{sh.group}</Small>}
+      <H1>{sh.title}</H1>
+      <Small style={{ marginTop: 6 }}>{all.length} yapım · {doneN} izlendi</Small>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 16 }}>
+        <Chip label="Çıkış sırası" active={order === 'release'} onPress={() => { store.setView(state.view === 'chrono' ? 'main' : state.view); setLimit(PAGE); }} />
+        <Chip label="Kronolojik" active={order === 'chrono'} onPress={() => { store.setView('chrono'); setLimit(PAGE); }} />
+        <Chip icon={unseen ? 'check-square' : 'square'} label="Sadece izlemediklerim" active={unseen} onPress={() => { setUnseen((x) => !x); setLimit(PAGE); }} />
+      </View>
+      <Small style={{ marginTop: 10, marginBottom: 4 }}>İpucu: bir yapıma uzun basarak oraya kadar olanların hepsini izlendi işaretleyebilirsin.</Small>
 
       {sections.length ? sections.map((sec) => (
         <View key={sec.key} style={{ marginTop: 18 }}>
@@ -148,9 +186,8 @@ export default function UniverseDetail() {
           )}
           {sec.items.map(({ t, n }, i) => <StoryCard key={t.id} t={t} index={n} enter={i} onMarkUntil={markUntil} />)}
         </View>
-      )) : <Empty title={unseen ? 'Bu listede izlemediğin yapım kalmadı.' : 'Bu görünümde yapım yok.'} text={unseen ? undefined : 'Tümü görünümünü dene.'} />}
+      )) : <Empty title="Bu bölümde izlemediğin yapım kalmadı." />}
       {shown.length > limit && <Btn kind="secondary" label={`Daha fazla göster (${shown.length - limit})`} style={{ marginTop: 6 }} onPress={() => setLimit((l) => l + PAGE)} />}
     </Screen>
   );
 }
-
