@@ -42,7 +42,7 @@ const norm = (n) => n.toLowerCase().replace(/\+/g, 'plus').replace(/[^a-z0-9]/g,
 async function providerIds() {
   const [tv, mv] = await Promise.all([tmdb('/watch/providers/tv', { watch_region: 'TR' }), tmdb('/watch/providers/movie', { watch_region: 'TR' })]);
   const all = [...(tv.results || []), ...(mv.results || [])];
-  console.log(`TMDB'de Türkiye platformları: ${[...new Set(all.map((x) => x.provider_name))].join(', ')}`);
+  console.log(`::notice::TMDB'de Turkiye platformlari: ${[...new Set(all.map((x) => x.provider_name))].join(', ')}`);
   const out = [];
   for (const [name, keys, at] of WANT) {
     const p = keys.map((k) => all.find((x) => norm(x.provider_name) === k)).find(Boolean);
@@ -61,7 +61,7 @@ async function popularOn(pid, m) {
 }
 
 /* ---------- Türkçe Wikipedia ilgisi (son 30 gün) ---------- */
-const UA = { 'user-agent': 'WatchVerse/1.0 (watchverse.destek@gmail.com) liste hazırlama' };
+const UA = { 'user-agent': 'WatchVerse/1.0 (watchverse.destek@gmail.com) list builder' };
 async function pool(items, n, fn) { const q = [...items]; await Promise.all(Array.from({ length: n }, async () => { for (let x = q.shift(); x !== undefined; x = q.shift()) await fn(x); })); }
 /** TMDB → Wikidata → Türkçe Wikipedia sayfa adı (önbellekli; sayfası yoksa '') */
 async function trwikiTitles(keys, cache) {
