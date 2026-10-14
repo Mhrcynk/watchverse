@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ConfirmProvider, ToastProvider, useToast } from '@/components/ui';
 import { PreviewProvider } from '@/components/preview';
 import { TrailerProvider } from '@/components/trailer';
+import { StackTabBar } from '@/components/glass-tabbar';
 import { ListPickerProvider } from '@/components/lists';
 import { SharedListsSync } from '@/components/share';
 import { FriendsSync } from '@/components/friends-sync';
@@ -113,6 +114,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="profile" />
           <Stack.Screen name="davet/[code]" />
         </Stack>
+        <StackTabBar />
       </PreviewProvider></TrailerProvider></ListPickerProvider></ConfirmProvider></ToastProvider></AccountProvider>
     </ThemeProvider>
   );

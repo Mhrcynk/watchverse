@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useScrollToTop } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
@@ -27,6 +28,9 @@ export function useLayout() {
 
 export function Screen({ children, scroll = true, style, refresh }: { children: ReactNode; scroll?: boolean; style?: StyleProp<ViewStyle>; refresh?: ReactNode }) {
   const insets = useSafeAreaInsets();
+  // Seçili sekmeye yeniden dokununca sayfa en üste kayar
+  const sref = useRef<ScrollView>(null);
+  useScrollToTop(sref);
   const { pad, tablet } = useLayout();
   const inner = (
     <View style={[{ width: '100%', maxWidth: MAX_W, alignSelf: 'center', paddingLeft: pad + insets.left, paddingRight: pad + insets.right, paddingTop: insets.top + (tablet ? 28 : 14), paddingBottom: (tablet ? 40 : 100) + insets.bottom }, style]}>
@@ -36,7 +40,7 @@ export function Screen({ children, scroll = true, style, refresh }: { children: 
   if (!scroll) return <View style={{ flex: 1, backgroundColor: C.bg }}>{inner}</View>;
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === 'android' ? 'height' : undefined} enabled={Platform.OS === 'android'}>
-    <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
+    <ScrollView ref={sref} style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
       {refresh}
       {inner}
     </ScrollView>
