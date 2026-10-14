@@ -30,17 +30,22 @@ const slim = (r, m) => ({
 });
 
 /* ---------- platformlar ---------- */
+// Türkiye'de hizmet veren abonelik platformları (TMDB/JustWatch adlarıyla eşleşir)
 const WANT = [
-  ['Netflix', /^netflix$/i, "Netflix'te"], ['Disney+', /^disney plus$/i, "Disney+'ta"], ['Prime Video', /^amazon prime video$/i, "Prime Video'da"],
-  ['HBO Max', /^(hbo )?max$|^hbo max$/i, "HBO Max'te"], ['Apple TV+', /^apple tv\+?$|^apple tv plus$/i, "Apple TV+'ta"], ['TOD', /^tod$/i, "TOD'da"],
-  ['Exxen', /^exxen$/i, "Exxen'de"], ['tabii', /^tabii$/i, "tabii'de"], ['Gain', /^gain$/i, "Gain'de"], ['BluTV', /^blutv$/i, "BluTV'de"],
+  ['Netflix', ['netflix'], "Netflix'te"], ['Disney+', ['disneyplus'], "Disney+'ta"], ['Prime Video', ['amazonprimevideo', 'primevideo'], "Prime Video'da"],
+  ['HBO Max', ['hbomax', 'max'], "HBO Max'te"], ['Apple TV+', ['appletvplus', 'appletv'], "Apple TV+'ta"], ['TOD', ['tod'], "TOD'da"],
+  ['Exxen', ['exxen'], "Exxen'de"], ['tabii', ['tabii'], "tabii'de"], ['Gain', ['gain'], "Gain'de"], ['MUBI', ['mubi'], "MUBI'de"],
+  ['puhutv', ['puhutv'], "puhutv'de"], ['TV+', ['tvplus'], "TV+'ta"], ['Tivibu', ['tivibu'], "Tivibu'da"], ['Crunchyroll', ['crunchyroll'], "Crunchyroll'da"],
+  ['BluTV', ['blutv'], "BluTV'de"],
 ];
+const norm = (n) => n.toLowerCase().replace(/\+/g, 'plus').replace(/[^a-z0-9]/g, '');
 async function providerIds() {
   const [tv, mv] = await Promise.all([tmdb('/watch/providers/tv', { watch_region: 'TR' }), tmdb('/watch/providers/movie', { watch_region: 'TR' })]);
   const all = [...(tv.results || []), ...(mv.results || [])];
+  console.log(`TMDB'de Türkiye platformları: ${[...new Set(all.map((x) => x.provider_name))].join(', ')}`);
   const out = [];
-  for (const [name, re, at] of WANT) {
-    const p = all.find((x) => re.test(x.provider_name.trim()));
+  for (const [name, keys, at] of WANT) {
+    const p = keys.map((k) => all.find((x) => norm(x.provider_name) === k)).find(Boolean);
     if (p && !out.some((o) => o.id === p.provider_id)) out.push({ id: p.provider_id, name, at, logo: p.logo_path || null });
   }
   return out;
@@ -48,10 +53,42 @@ async function providerIds() {
 async function popularOn(pid, m) {
   const res = [];
   for (const page of [1, 2, 3]) {
-    const j = await tmdb(`/discover/${m}`, { watch_region: 'TR', with_watch_providers: pid, with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc', include_adult: 'false', 'vote_count.gte': m === 'movie' ? 30 : 10, page });
+    const j = await tmdb(`/discover/${m}`, { watch_region: 'TR', with_watch_providers: pid, with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc', include_adult: 'false', 'vote_count.gte': m === 'movie' ? 5 : 2, page });
     res.push(...(j.results || []).filter((r) => r.poster_path).map((r) => slim(r, m)));
+    if ((j.total_pages || 1) <= page) break;
   }
   return res;
+}
+
+/* ---------- Türkçe Wikipedia ilgisi (son 30 gün) ---------- */
+const UA = { 'user-agent': 'WatchVerse/1.0 (watchverse.destek@gmail.com) liste hazırlama' };
+async function pool(items, n, fn) { const q = [...items]; await Promise.all(Array.from({ length: n }, async () => { for (let x = q.shift(); x !== undefined; x = q.shift()) await fn(x); })); }
+/** TMDB → Wikidata → Türkçe Wikipedia sayfa adı (önbellekli; sayfası yoksa '') */
+async function trwikiTitles(keys, cache) {
+  const need = keys.filter((k) => cache[k] === undefined);
+  const qid = {};
+  await pool(need, 8, async (k) => {
+    const [m, id] = k.split(':');
+    try { const j = await tmdb(`/${m}/${id}/external_ids`, { language: undefined }); qid[k] = j.wikidata_id || null; } catch { qid[k] = null; }
+  });
+  const ids = [...new Set(Object.values(qid).filter(Boolean))];
+  const site = {};
+  for (let i = 0; i < ids.length; i += 50) {
+    const u = `https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&props=sitelinks&sitefilter=trwiki&ids=${ids.slice(i, i + 50).join('|')}`;
+    try { const j = await (await fetch(u, { headers: UA })).json(); for (const [q, e] of Object.entries(j.entities || {})) site[q] = e.sitelinks?.trwiki?.title || ''; } catch {}
+  }
+  for (const k of need) cache[k] = qid[k] ? site[qid[k]] ?? '' : '';
+  return cache;
+}
+const ymd = (d) => d.toISOString().slice(0, 10).replace(/-/g, '');
+async function pageviews(titles) {
+  const end = new Date(Date.now() - 864e5), start = new Date(Date.now() - 30 * 864e5);
+  const out = {};
+  await pool([...new Set(titles)].filter(Boolean), 6, async (t) => {
+    const u = `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/tr.wikipedia/all-access/user/${encodeURIComponent(t.replace(/ /g, '_'))}/daily/${ymd(start)}/${ymd(end)}`;
+    try { const r = await fetch(u, { headers: UA }); out[t] = r.ok ? ((await r.json()).items || []).reduce((n, x) => n + x.views, 0) : 0; } catch { out[t] = 0; }
+  });
+  return out;
 }
 
 /* ---------- Netflix resmî İlk 10 ---------- */
@@ -113,10 +150,33 @@ const lists = plats.map((p) => {
   for (const m of ['tv', 'movie']) {
     const sc = new Map();
     for (const d of days) (hist.days[d][p.id]?.[m] || []).forEach((id, i) => sc.set(id, (sc.get(id) || 0) + (60 - i)));
-    out[m] = [...sc.entries()].sort((a, b) => b[1] - a[1]).map(([id, s]) => ({ ...hist.meta[`${m}:${id}`], score: Math.round(s / days.length) })).filter((x) => x.id);
+    out[m] = [...sc.entries()].sort((a, b) => b[1] - a[1]).slice(0, 60).map(([id, s]) => ({ ...hist.meta[`${m}:${id}`], tmdbScore: s / days.length })).filter((x) => x.id);
   }
   return out;
 });
+// Türkçe Wikipedia: son 30 günün görüntülenmesi (Türkiye'deki ilgi için en yakın açık veri)
+hist.wiki = hist.wiki || {};
+const allKeys = [...new Set(lists.flatMap((l) => [...l.tv, ...l.movie].map((x) => `${x.m}:${x.id}`)))];
+let wikiOk = 0;
+try {
+  await trwikiTitles(allKeys, hist.wiki);
+  const views = await pageviews(allKeys.map((k) => hist.wiki[k]));
+  for (const l of lists) for (const m of ['tv', 'movie']) {
+    const maxT = Math.max(1, ...l[m].map((x) => x.tmdbScore));
+    const maxW = Math.max(1, ...l[m].map((x) => Math.log1p(views[hist.wiki[`${m}:${x.id}`]] || 0)));
+    for (const x of l[m]) {
+      const v = views[hist.wiki[`${m}:${x.id}`]] || 0;
+      if (v) wikiOk++;
+      x.views = v;
+      x.score = 0.4 * (x.tmdbScore / maxT) + 0.6 * (Math.log1p(v) / maxW);
+    }
+    l[m].sort((a, b) => b.score - a.score);
+  }
+} catch (e) {
+  console.log('::warning::Wikipedia verisi alınamadı: ' + e.message);
+  for (const l of lists) for (const m of ['tv', 'movie']) for (const x of l[m]) x.score = x.tmdbScore;
+}
+for (const l of lists) for (const m of ['tv', 'movie']) for (const x of l[m]) { delete x.tmdbScore; x.score = Math.round((x.score || 0) * 1000); }
 // Başka platformlarda da olanlar kendi listesinde geri düşer
 for (const m of ['tv', 'movie']) {
   const count = new Map();
@@ -141,9 +201,9 @@ try {
 } catch (e) { console.log('::warning::Netflix resmî verisi alınamadı: ' + e.message); }
 for (const l of lists) if (!l.source) l.source = 'tmdb';
 
-const data = { updated: new Date().toISOString(), days: days.length, netflix: netflixMeta, platforms: lists.filter((l) => l.items.length >= 6) };
+const data = { updated: new Date().toISOString(), days: days.length, wiki: wikiOk > 0, netflix: netflixMeta, platforms: lists.filter((l) => l.items.length >= 6) };
 const top = (arr) => arr.slice(0, 5).map((x) => x.title).join(', ');
-console.log(`::notice::Listeler (${days.length} günlük): ${data.platforms.map((l) => `${l.name}: ${top(l.items)}`).join(' || ')}`);
+console.log(`::notice::Listeler (${days.length} günlük, Wikipedia eşleşen ${wikiOk}): ${data.platforms.map((l) => `${l.name}: ${top(l.items)}`).join(' || ')}`);
 
 if (!ns) { console.log('::warning::Cloudflare bilgileri ya da depolama alanı yok; listeler sunucuya yazılmadı.'); process.exit(0); }
 const w1 = await kvPut('lists', data);

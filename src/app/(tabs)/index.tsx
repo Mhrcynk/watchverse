@@ -119,7 +119,7 @@ export default function Home() {
         </>
       )}
 
-      {P && <Small style={{ marginTop: 28 }}>{P.source === 'netflix' ? "Popüler listesi Netflix'in Türkiye için yayımladığı haftalık izlenme sıralamasının son 4 haftasından hazırlanır." : `${P.name} izlenme verisi yayımlamıyor. Popüler listesi, ${P.name}'da Türkiye'de izlenebilen yapımların TMDB/JustWatch'taki ilgisinin son 30 günlük ortalamasıdır; her gün güncellenir.`}</Small>}
+      {P && <Small style={{ marginTop: 28 }}>{P.source === 'netflix' ? "Popüler listesi Netflix'in Türkiye için yayımladığı haftalık izlenme sıralamasının son 4 haftasından hazırlanır." : `${P.name} izlenme verisi yayımlamıyor. Popüler listesi, ${P.name}'da Türkiye'de izlenebilen yapımların son 30 gündeki Türkçe Wikipedia görüntülenmesi ve TMDB/JustWatch ilgisiyle sıralanır; her gün güncellenir.`}</Small>}
       {!api && (
         <View style={{ marginTop: 30 }}>
           <Small>Tüm film ve dizilerde arama ve listeler, ara sunucu kurulunca açılır.</Small>
