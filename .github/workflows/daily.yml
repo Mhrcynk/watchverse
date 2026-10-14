@@ -3,7 +3,7 @@ name: Günlük bölüm bildirimi
 
 on:
   schedule:
-    - cron: '47 5 * * *'   # her gün 08:47 (Türkiye saati)
+    - cron: '47 5 * * *'   # her gün 08:47 (Türkiye saati): bildirim + platform listeleri
   workflow_dispatch:
 
 permissions:
@@ -28,3 +28,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SITE_URL: ${{ secrets.CUSTOM_DOMAIN != '' && format('https://{0}/', secrets.CUSTOM_DOMAIN) || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
         run: node scripts/notify.mjs --daily || true
+      - name: Platform listelerini güncelle
+        env:
+          TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/lists.mjs || true
