@@ -175,7 +175,8 @@ language sql
 stable
 security definer
 set search_path = ''
-as $$ select nullif(display_name, '') from public.profiles where invite_code = p_code; $$;
+-- Geçerli davette ad yoksa boş metin döner (null = geçersiz davet)
+as $$ select coalesce(display_name, '') from public.profiles where invite_code = p_code; $$;
 
 create or replace function public.accept_invite(p_code text, p_name text)
 returns text
