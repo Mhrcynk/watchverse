@@ -1,0 +1,25 @@
+# Evren denetimi: katalogda eksik kalmış olabilecek yapımları listeler (hiçbir şeyi değiştirmez)
+name: Evren denetimi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Denetle
+        env:
+          TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
+        run: node scripts/audit-universes.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audit
+          path: audit.json
