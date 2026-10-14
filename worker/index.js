@@ -80,9 +80,9 @@ export default {
     try {
       if (url.pathname.startsWith('/tmdb/') && req.method === 'GET') return await tmdb(url, env, ctx);
       if (url.pathname === '/sync' && req.method === 'POST') return await sync(req, env);
-      if (url.pathname === '/lists' && req.method === 'GET') {
-        const v = await env.WV.get('lists');
-        return v ? new Response(v, { headers: { 'content-type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=60', ...CORS } }) : json({ error: 'yok' }, 404);
+      if ((url.pathname === '/lists' || url.pathname === '/collections') && req.method === 'GET') {
+        const v = await env.WV.get(url.pathname.slice(1));
+        return v ? new Response(v, { headers: { 'content-type': 'application/json; charset=utf-8', 'Cache-Control': `public, max-age=${url.pathname === '/lists' ? 60 : 600}`, ...CORS } }) : json({ error: 'yok' }, 404);
       }
       if (url.pathname === '/devices' && req.method === 'GET') return await devices(req, env);
       if (url.pathname === '/') return json({ ok: true, name: 'watchverse' });
