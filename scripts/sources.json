@@ -274,6 +274,60 @@
       ],
       "branch": "jw-extra",
       "tier": 1
+    },
+    {
+      "u": "fast",
+      "collection": "The Fast and the Furious",
+      "media": [
+        "movie"
+      ],
+      "branch": "fast-main",
+      "tier": 0
+    },
+    {
+      "u": "hunger",
+      "collection": "The Hunger Games",
+      "media": [
+        "movie"
+      ],
+      "branch": "hunger-main",
+      "tier": 0
+    },
+    {
+      "u": "dune",
+      "collection": "Dune",
+      "media": [
+        "movie"
+      ],
+      "branch": "dune-main",
+      "tier": 0
+    },
+    {
+      "u": "conjuring",
+      "collection": "The Conjuring",
+      "media": [
+        "movie"
+      ],
+      "branch": "conjuring-main",
+      "tier": 0
+    },
+    {
+      "u": "conjuring",
+      "collection": "Annabelle",
+      "media": [
+        "movie"
+      ],
+      "branch": "conjuring-main",
+      "tier": 1
+    },
+    {
+      "u": "conjuring",
+      "collection": "The Nun",
+      "media": [
+        "movie"
+      ],
+      "branch": "conjuring-main",
+      "tier": 1
     }
   ]
 }
