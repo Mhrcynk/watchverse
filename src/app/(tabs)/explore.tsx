@@ -6,7 +6,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { scoreText, usePreview } from '@/components/preview';
 import { PersonChip } from '@/components/people';
-import { loadCollections, type Collection } from '@/lib/collections';
 import { Row, TItemTile } from '@/components/rows';
 import { MediaCard, PosterCard } from '@/components/media';
 import { Btn, Chip, Empty, Eyebrow, Grid, H1, Pills, Press, Screen, SectionHead, Small, useLayout, SkeletonGrid } from '@/components/ui';
@@ -126,7 +125,6 @@ function Online() {
               </Press>
             ))}
           </View>
-          <CollectionsGrid />
           <PopularList />
           <Btn kind="secondary" icon="globe" label={`Evrenlerdeki ${CATALOG.length} yapıma göz at`} style={{ marginTop: 30, alignSelf: 'flex-start' }} onPress={() => router.push('/universes')} />
         </>
@@ -231,37 +229,3 @@ function CatalogOnly() {
   );
 }
 
-/** Koleksiyonlar: ödüllüler, klasikler, mini diziler… her biri kendi sayfasına açılır */
-function CollectionsGrid() {
-  const [all, setAll] = useState<Collection[]>([]);
-  useEffect(() => { loadCollections(setAll).then(setAll).catch(() => {}); }, []);
-  if (!all.length) return null;
-  return (
-    <>
-      <Text accessibilityRole="header" style={{ marginTop: 30, marginBottom: 12, fontFamily: F.bold, fontSize: 18.5, color: C.text }}>Koleksiyonlar</Text>
-      <View style={{ gap: 10 }}>
-        {all.map((c) => {
-          const ps = c.items.filter((x) => x.p).slice(0, 3);
-          return (
-            <Press key={c.id} accessibilityRole="button" accessibilityLabel={`${c.title}, ${c.items.length} yapım`} onPress={() => router.push({ pathname: '/collection/[id]', params: { id: c.id } })} scaleTo={0.98}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12, borderRadius: R.lg, backgroundColor: C.card }}>
-              <View style={{ width: 84, height: 60 }}>
-                {ps.map((x, i) => (
-                  <View key={x.key} style={{ position: 'absolute', left: i * 22, top: 0, width: 40, height: 60, borderRadius: 6, overflow: 'hidden', backgroundColor: C.raised, borderWidth: 1.5, borderColor: C.card, zIndex: 3 - i }}>
-                    <Image source={{ uri: img(x.p, 'w185')! }} style={StyleSheet.absoluteFill} contentFit="cover" />
-                  </View>
-                ))}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 15.5, color: C.text }}>{c.title}</Text>
-                <Text numberOfLines={1} style={{ marginTop: 2, fontFamily: F.regular, fontSize: 12.5, color: C.muted }}>{c.sub}</Text>
-              </View>
-              <Text style={{ fontFamily: F.medium, fontSize: 13, color: C.dim }}>{c.items.length}</Text>
-              <Feather name="chevron-right" size={18} color={C.dim} />
-            </Press>
-          );
-        })}
-      </View>
-    </>
-  );
-}

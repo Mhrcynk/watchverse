@@ -17,7 +17,7 @@ export default function CollectionPage() {
   const [kind, setKind] = useState<'all' | 'tv' | 'movie'>('all');
   useEffect(() => { loadCollections(setAll).then(setAll); }, []);
   const c = all?.find((x) => x.id === id);
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/explore'));
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/collections'));
   if (all && !c) return <Screen><BackLink label="Geri" onPress={back} /><Empty icon="layers" title="Bu koleksiyon bulunamadı." /></Screen>;
   const items = c ? ofKind(c, kind) : [];
   const mixed = c ? c.items.some((x) => x.m === 'tv') && c.items.some((x) => x.m === 'movie') : false;

@@ -17,6 +17,7 @@ const TABS = [
   { name: 'index', title: 'Ana Sayfa', icon: 'home' },
   { name: 'explore', title: 'Keşfet', icon: 'search' },
   { name: 'library', title: 'Kütüphanem', icon: 'bookmark' },
+  { name: 'collections', title: 'Koleksiyonlar', icon: 'layers' },
   { name: 'universes', title: 'Evrenler', icon: 'globe' },
 ] as const;
 
@@ -46,7 +47,7 @@ export default function TabsLayout() {
         tabBarVariant: tablet ? 'material' : 'uikit',
         tabBarActiveTintColor: C.text,
         tabBarInactiveTintColor: C.dim,
-        tabBarLabelStyle: { fontFamily: F.medium, fontSize: tablet ? 13 : 11 },
+        tabBarLabelStyle: tablet ? { fontFamily: F.medium, fontSize: 14, flexShrink: 0 } : { fontFamily: F.medium, fontSize: 11 },
         tabBarStyle: tablet
           ? { backgroundColor: C.bg, borderRightColor: C.line, borderRightWidth: 1, width: 208, minWidth: 208, maxWidth: 208, paddingTop: insets.top + 24 }
           : { backgroundColor: '#0A0A0C', borderTopColor: C.lineSoft, height: 64 + insets.bottom, paddingTop: 8 },
@@ -79,7 +80,7 @@ function TabIcon({ name, color, focused, pill }: { name: React.ComponentProps<ty
     else Animated.spring(a, { toValue: focused ? 1 : 0, friction: 7, tension: 160, useNativeDriver: ND }).start();
   }, [focused, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <View style={{ width: 56, height: 30, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: pill ? 56 : 28, height: 30, alignItems: 'center', justifyContent: 'center' }}>
       {pill && <Animated.View style={{ position: 'absolute', width: 56, height: 30, borderRadius: 15, backgroundColor: alpha(C.accent, 0.2), opacity: a, transform: [{ scaleX: a.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }} />}
       <Feather name={name} size={21} color={focused ? C.accentSoft : color} />
     </View>

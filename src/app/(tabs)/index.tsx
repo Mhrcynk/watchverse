@@ -15,9 +15,8 @@ import { Btn, FadeIn, Press, Screen, Segmented, Small, tap, useLayout } from '@/
 import { TBY, TYPE_TR, UBY, daysUntil, posterPath, posterUrl, upcomingFor, type Upcoming } from '@/lib/catalog';
 import { usePreview } from '@/components/preview';
 import { StarterCard } from '@/components/starter';
-import { useAccount } from '@/lib/account';
 import { loadCollections, ofKind, todays, type Collection } from '@/lib/collections';
-import { friendFeed } from '@/lib/friends';
+import { useFriendsLiked } from '@/components/collections';
 import { libraryEntries } from '@/lib/library';
 import { continueWatching, episodeLabel, fraction, isDone, nextEpisode, nextUp } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -54,24 +53,9 @@ export default function Home() {
   const [lists, setLists] = useState<Lists | null>(null);
   const [trend, setTrend] = useState<TItem[]>([]);
   const [colls, setColls] = useState<Collection[]>([]);
-  const [liked, setLiked] = useState<{ k: string; title: string; p: string | null; year: number | null; who: string }[]>([]);
-  const acc = useAccount();
   const { openKey } = usePreview();
   useEffect(() => { if (api) loadCollections(setColls).then(setColls).catch(() => {}); }, [api]);
-  // Arkadaşlarının 4-5 yıldız verdikleri (senin izlemediklerin)
-  useEffect(() => {
-    if (!acc.user) { setLiked([]); return; }
-    friendFeed().then((fs) => {
-      const seen = new Set<string>();
-      const out: typeof liked = [];
-      for (const f of fs) for (const x of f.items) {
-        if ((x.r || 0) < 4 || seen.has(x.k)) continue;
-        seen.add(x.k);
-        out.push({ k: x.k, title: TBY[x.k]?.trTitle || TBY[x.k]?.title || x.t || '', p: TBY[x.k]?.tmdb?.p || x.p, year: TBY[x.k]?.year || (x.y ? Number(x.y) : null), who: f.name || 'Arkadaşın' });
-      }
-      setLiked(out.filter((x) => x.title).slice(0, 20));
-    }).catch(() => {});
-  }, [acc.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const liked = useFriendsLiked();
   useEffect(() => {
     if (!api) return;
     platformLists(setLists).then((v) => v && setLists(v)).catch(() => {});
