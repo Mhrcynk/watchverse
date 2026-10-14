@@ -328,6 +328,26 @@
       ],
       "branch": "conjuring-main",
       "tier": 1
+    },
+    {
+      "u": "yellowstone",
+      "ids": [
+        "tv:290856",
+        "tv:225891",
+        "tv:299167"
+      ],
+      "branch": "yellowstone-main",
+      "tier": 1,
+      "_note": "Marshals, The Madison, Dutton Ranch (Taylor Sheridan'ın Yellowstone evreni)"
+    },
+    {
+      "u": "monsterverse",
+      "ids": [
+        "tv:117678"
+      ],
+      "branch": "monster-main",
+      "tier": 2,
+      "_note": "Skull Island (Netflix, 2023)"
     }
   ]
 }

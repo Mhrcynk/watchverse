@@ -121,6 +121,8 @@ async function updateSeries() {
 /* ---------- 2. Yeni yapımlar ---------- */
 const resolved = {};
 async function resolveSource(src) {
+  // Elle seçilmiş yapımlar (anahtar kelime / şirketle güvenle bulunamayan evren yapımları)
+  if (src.ids) return { kind: 'ids', ids: src.ids };
   const kind = src.collection ? 'collection' : src.keyword ? 'keyword' : 'company';
   const q = src[kind];
   const key = `${kind}:${q}`;
@@ -136,6 +138,15 @@ async function resolveSource(src) {
 
 async function candidates(src, ref) {
   const out = [];
+  if (ref.kind === 'ids') {
+    for (const k of ref.ids) {
+      const [m, id] = k.split(':');
+      const r = await api(`/${m}/${id}`, { language: 'en-US' });
+      const date = r && (m === 'movie' ? r.release_date : r.first_air_date);
+      if (date && date <= TODAY) out.push({ m, r });
+    }
+    return out;
+  }
   if (ref.kind === 'collection') {
     const c = await api(`/collection/${ref.id}`, { language: 'en-US' });
     for (const p of c?.parts || []) if (p.release_date && p.release_date <= TODAY && p.release_date >= SINCE) out.push({ m: 'movie', r: p, collection: c });
@@ -271,7 +282,14 @@ async function findUpcoming() {
     const ref = await resolveSource(src);
     if (!ref) continue;
     const found = [];
-    if (ref.kind === 'collection') {
+    if (ref.kind === 'ids') {
+      for (const k of ref.ids) {
+        const [m, id] = k.split(':');
+        const r = await api(`/${m}/${id}`, { language: 'en-US' });
+        const date = r && (m === 'movie' ? r.release_date : r.first_air_date);
+        if (date && date > TODAY && date <= HORIZON) found.push({ m, r });
+      }
+    } else if (ref.kind === 'collection') {
       const c = await api(`/collection/${ref.id}`, { language: 'en-US' });
       for (const p of c?.parts || []) if (p.release_date && p.release_date > TODAY && p.release_date <= HORIZON) found.push({ m: 'movie', r: p });
     } else if ((src.tier ?? 1) <= 1) {
