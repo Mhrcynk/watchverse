@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Row, TItemTile, useTileW } from '@/components/rows';
-import { BackLink, Bar, Btn, Chip, Empty, Eyebrow, FadeIn, H1, Muted, Panel, Pills, Press, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
+import { BackLink, Bar, Btn, Chip, Empty, Eyebrow, FadeIn, H1, Muted, Panel, Pills, Press, Screen, SectionHead, Small, tap, useLayout, useToast, SkeletonPage, SkeletonRows } from '@/components/ui';
 import { duration } from '@/lib/format';
 import { catalogOf, libFromDetail, libProgress, routeOf, shortDate } from '@/lib/library';
 import { useStore } from '@/lib/store';
@@ -67,7 +67,7 @@ export default function Show() {
   if (!pk) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><Empty title="Bu yapım bulunamadı." /></Screen>;
   if (!hasApi()) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><Empty icon="wifi-off" title="Arama henüz kurulmadı." text="Tüm film ve dizileri görmek için ara sunucu kurulumu gerekiyor." /></Screen>;
   if (err && !d) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><Empty icon="wifi-off" title="Yapım bilgisi alınamadı." text="İnternet bağlantını kontrol edip tekrar dene." action="Tekrar dene" onAction={() => router.replace(`/show/${key}`)} /></Screen>;
-  if (!d) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><View style={{ paddingVertical: 80, alignItems: 'center' }}><ActivityIndicator color={C.accentSoft} /></View></Screen>;
+  if (!d) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><SkeletonPage /></Screen>;
 
   const li = state.lib[key];
   const inLib = !!li;
@@ -93,8 +93,9 @@ export default function Show() {
             {(bd || d.p) && <Image source={{ uri: bd || img(d.p, 'w780')! }} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} />}
             <LinearGradient colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', C.bg]} locations={[0, 0.25, 0.6, 1]} style={StyleSheet.absoluteFill} />
             <Press accessibilityRole="button" accessibilityLabel="Geri" onPress={back} hitSlop={8}
-              style={{ position: 'absolute', top: insets.top + 8, left: pad - 6, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}>
-              <Feather name="chevron-left" size={24} color="#fff" />
+              style={{ position: 'absolute', top: insets.top + 8, left: pad - 6, height: 40, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.55)', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Feather name="chevron-left" size={22} color="#fff" />
+              <Text style={{ fontFamily: F.semibold, fontSize: 14, color: '#fff' }}>Geri</Text>
             </Press>
             {!!d.yt && (
               <Press accessibilityRole="button" accessibilityLabel="Fragmanı izle" onPress={() => play(d.yt!, d.title)}
@@ -164,7 +165,7 @@ export default function Show() {
           <SectionHead title="Bölümler" note={`${pr.done} / ${d.aired} izlendi`} />
           <Bar pct={d.aired ? (pr.done / d.aired) * 100 : 0} height={6} />
           {d.seasons.length > 1 && <View style={{ marginTop: 16 }}><Pills value={String(sn)} onChange={(v) => setSn(Number(v))} options={d.seasons.map((s) => ({ id: String(s.n), label: s.name.length < 16 ? s.name : `${s.n}. sezon` }))} /></View>}
-          {eps === null ? <View style={{ paddingVertical: 30, alignItems: 'center' }}><ActivityIndicator color={C.accentSoft} /></View> : (
+          {eps === null ? <SkeletonRows n={3} /> : (
             <>
               {airedEps.length > 0 && (
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>

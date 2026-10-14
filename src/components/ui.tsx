@@ -258,9 +258,11 @@ export const Divider = () => <View style={{ height: StyleSheet.hairlineWidth, ba
 
 export function BackLink({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <Press accessibilityRole="button" accessibilityLabel={`${label} sayfasına dön`} onPress={onPress} hitSlop={10} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginBottom: 18, paddingVertical: 4 }}>
-      <Feather name="chevron-left" size={20} color={C.muted} />
-      <Text style={{ fontFamily: F.medium, fontSize: 15, color: C.muted }}>{label}</Text>
+    // Tüm sayfalarda aynı geri düğmesi: yuvarlak hatlı küçük kapsül (görselli sayfalarda görselin üstünde)
+    <Press accessibilityRole="button" accessibilityLabel={`Geri: ${label}`} onPress={onPress} hitSlop={10}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginBottom: 18, height: 38, paddingLeft: 8, paddingRight: 14, borderRadius: 19, backgroundColor: C.card }}>
+      <Feather name="chevron-left" size={20} color={C.text} />
+      <Text numberOfLines={1} style={{ maxWidth: 220, fontFamily: F.semibold, fontSize: 14, color: C.text }}>{label}</Text>
     </Press>
   );
 }
@@ -339,5 +341,47 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         </Animated.View>
       </Modal>
     </>
+  );
+}
+
+/* ---------- yükleniyor iskeleti: her yerde aynı gri kutular ---------- */
+export function SkeletonGrid({ rows = 2, cols }: { rows?: number; cols?: number }) {
+  const { posterCols } = useLayout();
+  const n = cols || posterCols;
+  return (
+    <View accessibilityLabel="Yükleniyor" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 8 }}>
+      {Array.from({ length: n * rows }, (_, i) => (
+        <View key={i} style={{ width: `${(100 - (n - 1) * 3.2) / n}%` as `${number}%`, gap: 8 }}>
+          <View style={{ width: '100%', aspectRatio: 2 / 3, borderRadius: 16, backgroundColor: C.card }} />
+          <View style={{ width: '80%', height: 10, borderRadius: 5, backgroundColor: C.card }} />
+        </View>
+      ))}
+    </View>
+  );
+}
+export function SkeletonPage() {
+  return (
+    <View accessibilityLabel="Yükleniyor" style={{ gap: 12 }}>
+      <View style={{ width: '100%', aspectRatio: 16 / 10, borderRadius: R.lg, backgroundColor: C.card }} />
+      <View style={{ width: '70%', height: 26, borderRadius: 8, backgroundColor: C.card }} />
+      <View style={{ width: '45%', height: 14, borderRadius: 7, backgroundColor: C.card }} />
+      <View style={{ width: '100%', height: 48, borderRadius: R.md, backgroundColor: C.card, marginTop: 8 }} />
+      <View style={{ width: '100%', height: 90, borderRadius: R.lg, backgroundColor: C.card }} />
+    </View>
+  );
+}
+export function SkeletonRows({ n = 4 }: { n?: number }) {
+  return (
+    <View accessibilityLabel="Yükleniyor" style={{ gap: 10, marginTop: 8 }}>
+      {Array.from({ length: n }, (_, i) => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: R.lg, backgroundColor: C.card }}>
+          <View style={{ width: 44, aspectRatio: 2 / 3, borderRadius: 8, backgroundColor: C.raised }} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <View style={{ width: '60%', height: 12, borderRadius: 6, backgroundColor: C.raised }} />
+            <View style={{ width: '35%', height: 10, borderRadius: 5, backgroundColor: C.raised }} />
+          </View>
+        </View>
+      ))}
+    </View>
   );
 }

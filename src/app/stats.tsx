@@ -5,6 +5,7 @@ import { BackLink, H1, H3, Muted, Panel, Press, Screen, SectionHead, Small, useL
 import { routeOf } from '@/lib/library';
 import { fullStats, hoursText } from '@/lib/stats';
 import { useStore } from '@/lib/store';
+import { Backdrop, PageHeader } from '@/components/home';
 import { C, F, R, alpha } from '@/lib/theme';
 
 type Metric = 'minutes' | 'eps' | 'films';
@@ -76,9 +77,9 @@ export default function Stats() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
 
   return (
-    <Screen>
+    <Screen><Backdrop />
       <BackLink label="Profil" onPress={back} />
-      <H1>İstatistiklerin</H1>
+      <PageHeader bold="İstatistiklerin" />
       <Muted style={{ marginTop: 6 }}>{s.minutes ? `Toplam ${hoursText(s.minutes)} izledin${days >= 1 ? `; bu ${days} tam güne denk geliyor` : ''}.` : 'İzlediklerini işaretledikçe burası dolacak.'}</Muted>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 18 }}>

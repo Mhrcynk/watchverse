@@ -18,6 +18,7 @@ import { RecommendBanner, TitleExtras } from '@/components/extras';
 import { CastRow } from '@/components/people';
 import { isSaved, itemFromTitle, useListPicker } from '@/components/lists';
 import { useTrailer } from '@/components/trailer';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TitleDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,7 +27,8 @@ export default function TitleDetail() {
   const toast = useToast();
   const { pick } = useListPicker();
   const { play } = useTrailer();
-  const { tablet, width } = useLayout();
+  const { tablet, width, pad } = useLayout();
+  const insets = useSafeAreaInsets();
   const t = TBY[id || ''];
   const seasons = useMemo(() => (t ? [...new Set(t.ep.map((e) => e[0]))] : []), [t]);
   const [season, setSeason] = useState<number>(() => {
@@ -71,40 +73,53 @@ export default function TitleDetail() {
 
   return (
     <Screen>
-      <BackLink label={u.name} onPress={back} />
-      <RecommendBanner />
-
-      <View style={{ borderRadius: R.xl, overflow: 'hidden', backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line }}>
-        {bd ? <Image source={{ uri: bd }} style={StyleSheet.absoluteFill} contentFit="cover" /> : (
-          <LinearGradient colors={[alpha(u.color, 0.35), 'transparent']} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={StyleSheet.absoluteFill} />
-        )}
-        <LinearGradient colors={['rgba(0,0,0,0.35)', 'rgba(0,0,0,0.92)']} style={StyleSheet.absoluteFill} />
-        <View style={{ flexDirection: tablet ? 'row' : 'column', padding: tablet ? 28 : 18, gap: tablet ? 28 : 16 }}>
-          <Art t={t} size="w500" style={{ width: tablet ? 220 : 132, alignSelf: tablet ? 'flex-start' : 'flex-start' }} />
-          <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-            <Eyebrow lang="en" style={{ color: u.color }}>{t.phase.startsWith(u.name) ? t.phase : `${u.name} · ${t.phase}`}</Eyebrow>
-            <H1 style={{ marginTop: 8, fontSize: tablet ? 36 : 28, lineHeight: tablet ? 42 : 33 }} accessibilityRole="header">{t.title}</H1>
-            {t.trTitle && <Muted style={{ marginTop: 4 }}>Türkiye’de: {t.trTitle}</Muted>}
-            <Small style={{ marginTop: 10, color: '#D2D5DE' }}>
-              {t.year} · {TYPE_TR[t.type]} · {t.episodes ? `${t.seasons > 1 ? t.seasons + ' sezon · ' : ''}${t.episodes} bölüm · toplam ${duration(totalMinutes(t))}` : duration(t.minutes)}
-            </Small>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-              <Chip label={TIER_TR[t.tier]} color={t.tier === 0 ? C.accentSoft : C.muted} />
-              {t.animated && <Chip label="Animasyon" />}
-              {(t.pl || []).map((x) => <Chip key={x} label={x} icon="play-circle" />)}
-            </View>
-            <Small style={{ marginTop: 10, color: '#D2D5DE' }}>{whyOf(t)}</Small>
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
-              <Btn icon="check" kind={done ? 'success' : 'primary'}
-                label={done ? 'İzlendi · Geri al' : t.episodes ? 'Diziyi tamamladım' : 'İzledim'}
-                onPress={() => { const v = store.toggleWatched(t.id); tap(v ? 'success' : 'light'); toast(v ? 'İzlendi olarak kaydedildi' : 'İzleme işareti kaldırıldı'); }} />
-              {!!t.yt && <Btn icon="play" kind="secondary" label="Fragman" onPress={() => play(t.yt!, t.trTitle || t.title)} />}
-              <Btn icon="bookmark" kind={inList ? 'success' : 'secondary'} label={inList ? 'Kütüphanende' : 'Kaydet'} accessibilityLabel={inList ? 'Kütüphanende; listeleri düzenle' : 'Kütüphaneme kaydet'} onPress={() => pick(itemFromTitle(t))} />
-            </View>
-            <TitleExtras k={t.id} title={t.trTitle || t.title} path={`title/${t.id}`} movie={!t.episodes} done={done} started={eps > 0} />
-          </View>
+      {/* Diğer yapım sayfalarıyla aynı düzen: üstte tam genişlik görsel, altında ad, bilgiler ve düğmeler */}
+      <View style={{ marginHorizontal: -pad, marginTop: -(insets.top + (tablet ? 28 : 14)) }}>
+        <View style={{ width: '100%', aspectRatio: tablet ? 21 / 9 : 16 / 10, backgroundColor: C.card }}>
+          {bd ? <Image source={{ uri: bd }} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} /> : (
+            <LinearGradient colors={[alpha(u.color, 0.45), C.bg]} style={StyleSheet.absoluteFill} />
+          )}
+          <LinearGradient colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', C.bg]} locations={[0, 0.25, 0.6, 1]} style={StyleSheet.absoluteFill} />
+          <Press accessibilityRole="button" accessibilityLabel={`Geri: ${u.name}`} onPress={back} hitSlop={8}
+            style={{ position: 'absolute', top: insets.top + 8, left: pad - 6, height: 40, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.55)', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Feather name="chevron-left" size={22} color="#fff" />
+            <Text numberOfLines={1} style={{ maxWidth: 180, fontFamily: F.semibold, fontSize: 14, color: '#fff' }}>{u.name}</Text>
+          </Press>
+          {!!t.yt && (
+            <Press accessibilityRole="button" accessibilityLabel="Fragmanı izle" onPress={() => play(t.yt!, t.trTitle || t.title)}
+              style={{ position: 'absolute', alignSelf: 'center', top: '38%', width: 58, height: 58, borderRadius: 29, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center' }}>
+              <Feather name="play" size={24} color="#fff" style={{ marginLeft: 3 }} />
+            </Press>
+          )}
         </View>
       </View>
+      <View style={{ flexDirection: 'row', gap: 16, marginTop: -54, alignItems: 'flex-end' }}>
+        <Art t={t} size="w342" style={{ width: tablet ? 140 : 96, borderRadius: R.md }} />
+        <View style={{ flex: 1, paddingBottom: 2 }}>
+          <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 13, color: u.color }}>{t.phase.startsWith(u.name) ? t.phase : `${u.name} · ${t.phase}`}</Text>
+          <H1 style={{ marginTop: 4, fontSize: tablet ? 36 : 26, lineHeight: tablet ? 42 : 31 }} accessibilityRole="header">{t.title}</H1>
+        </View>
+      </View>
+      {t.trTitle && <Muted style={{ marginTop: 8 }}>Türkiye’de: {t.trTitle}</Muted>}
+      <Text style={{ marginTop: 8, fontFamily: F.medium, fontSize: 14, color: '#D0D0D6' }}>
+        {t.year} · {TYPE_TR[t.type]} · {t.episodes ? `${t.seasons > 1 ? t.seasons + ' sezon · ' : ''}${t.episodes} bölüm · toplam ${duration(totalMinutes(t))}` : duration(t.minutes)}
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+        <Chip label={TIER_TR[t.tier]} color={t.tier === 0 ? C.accentSoft : C.muted} />
+        {t.animated && <Chip label="Animasyon" />}
+        {(t.pl || []).map((x) => <Chip key={x} label={x} icon="play-circle" />)}
+      </View>
+      <Small style={{ marginTop: 10 }}>{whyOf(t)}</Small>
+      <View style={{ height: 16 }} />
+      <RecommendBanner />
+      <Btn icon="bookmark" kind={inList ? 'success' : 'primary'} label={inList ? 'Kütüphanende' : 'Kaydet'} accessibilityLabel={inList ? 'Kütüphanende; listeleri düzenle' : 'Kütüphaneme kaydet'} onPress={() => pick(itemFromTitle(t))} />
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+        <Btn style={{ flex: 1 }} icon="check" kind={done ? 'success' : 'secondary'}
+          label={done ? 'İzlendi · Geri al' : t.episodes ? 'Diziyi tamamladım' : 'İzledim'}
+          onPress={() => { const v = store.toggleWatched(t.id); tap(v ? 'success' : 'light'); toast(v ? 'İzlendi olarak kaydedildi' : 'İzleme işareti kaldırıldı'); }} />
+        {!!t.yt && <Btn style={{ flex: 1 }} icon="play" kind="secondary" label="Fragman" onPress={() => play(t.yt!, t.trTitle || t.title)} />}
+      </View>
+      <TitleExtras k={t.id} title={t.trTitle || t.title} path={`title/${t.id}`} movie={!t.episodes} done={done} started={eps > 0} />
 
       {summary ? (
         <Panel style={{ marginTop: 14 }}>

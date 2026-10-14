@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Backdrop, PageHeader } from '@/components/home';
 import { usePreview } from '@/components/preview';
-import { BackLink, Empty, Press, Screen, Small } from '@/components/ui';
+import { BackLink, Empty, Press, Screen, Small, SkeletonRows } from '@/components/ui';
 import { episodesBetween, weekStart, ymd, type CalEp } from '@/lib/calendar';
 import { isEn } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
@@ -59,7 +59,7 @@ export default function Calendar() {
       </View>
 
       {err ? <Empty icon="wifi-off" title="Takvim yüklenemedi." text="İnternet bağlantını kontrol edip tekrar dene." />
-        : eps === null ? <View style={{ paddingVertical: 60, alignItems: 'center' }}><ActivityIndicator color={C.accentSoft} /><Small style={{ marginTop: 12 }}>Dizilerin taranıyor…</Small></View>
+        : eps === null ? <View style={{ marginTop: 20 }}><SkeletonRows n={4} /></View>
         : !eps.length ? <Empty icon="calendar" title={off === 0 ? 'Bu hafta yeni bölüm yok.' : 'Bu hafta için bölüm yok.'} text="Bir dizinin bölümünü işaretlediğinde ya da diziyi kaydettiğinde yeni bölümleri burada görürsün." action="Keşfet'e git" onAction={() => router.push('/explore')} />
         : days.map((d, i) => {
           const key = ymd(d);

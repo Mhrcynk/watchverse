@@ -62,7 +62,7 @@ export function StackTabBar() {
   const { state } = useStore();
   const acc = useAccount();
   const tabRoot = ['/', '/explore', '/library', '/universes'].includes(path);
-  const hidden = tablet || tabRoot || /^\/(welcome|onboarding|account)/.test(path) || !state.onboarded || (!acc.user && !acc.guest);
+  const hidden = tabRoot || /^\/(welcome|onboarding|account)/.test(path) || !state.onboarded || (!acc.user && !acc.guest);
   if (hidden) return null;
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>

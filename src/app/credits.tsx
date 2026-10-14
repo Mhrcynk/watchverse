@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Linking, View } from 'react-native';
 import { BackLink, Body, Divider, H1, H3, Muted, Panel, Press, Screen, SectionHead, Small } from '@/components/ui';
 import { CATALOG, META, UNIVERSES } from '@/lib/catalog';
+import { Backdrop, PageHeader } from '@/components/home';
 import { C, F } from '@/lib/theme';
 
 const link = (url: string, text: string) => (
@@ -11,9 +12,9 @@ const link = (url: string, text: string) => (
 export default function Credits() {
   const posters = CATALOG.filter((t) => t.tmdb?.p).length;
   return (
-    <Screen>
+    <Screen><Backdrop />
       <BackLink label="Profil" onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
-      <H1>Katalog ve kaynaklar</H1>
+      <PageHeader bold="Katalog ve kaynaklar" />
 
       <Panel style={{ marginTop: 20 }}>
         <H3>{CATALOG.length} yapım · {UNIVERSES.length} evren</H3>

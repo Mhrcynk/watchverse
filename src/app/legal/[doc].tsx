@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Linking, View } from 'react-native';
 import { BackLink, Body, H1, H3, Muted, Panel, Press, Screen, Small } from '@/components/ui';
 import { CONTACT, LEGAL, LEGAL_UPDATED } from '@/lib/legal';
+import { Backdrop, PageHeader } from '@/components/home';
 import { C } from '@/lib/theme';
 
 export default function Legal() {
@@ -9,9 +10,9 @@ export default function Legal() {
   const d = LEGAL[(doc as keyof typeof LEGAL) || 'gizlilik'] || LEGAL.gizlilik;
   const other = d.id === 'gizlilik' ? LEGAL.sartlar : LEGAL.gizlilik;
   return (
-    <Screen>
+    <Screen><Backdrop />
       <BackLink label="Geri" onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
-      <H1>{d.title}</H1>
+      <PageHeader bold={d.title} />
       <Small style={{ marginTop: 6 }}>Son güncelleme: {LEGAL_UPDATED}</Small>
       <Muted style={{ marginTop: 16 }}>{d.intro}</Muted>
       <View style={{ gap: 12, marginTop: 20 }}>

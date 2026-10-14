@@ -9,6 +9,7 @@ import { confirm } from '@/lib/confirm';
 import { routeOf } from '@/lib/library';
 import { useStore } from '@/lib/store';
 import { C, F, R } from '@/lib/theme';
+import { Backdrop, PageHeader } from '@/components/home';
 import { img } from '@/lib/tmdb';
 
 const inputStyle = { height: 50, borderRadius: R.md, backgroundColor: C.raised, color: C.text, paddingHorizontal: 14, fontFamily: F.semibold, fontSize: 18, outlineStyle: 'none' } as never;
@@ -27,9 +28,9 @@ export default function ListScreen() {
   if (id === 'new') {
     const create = () => { if (!name.trim()) return; const nid = store.listCreate(name); toast('Liste oluşturuldu'); router.replace(`/lists/${nid}`); };
     return (
-      <Screen>
+      <Screen><Backdrop />
         <BackLink label="Kütüphanem" onPress={back} />
-        <H1>Yeni liste</H1>
+        <PageHeader bold="Yeni liste" />
         <Muted style={{ marginTop: 6, marginBottom: 18 }}>Bir ad ver; sonra bir yapımda "Kaydet"e dokunup bu listeyi seç.</Muted>
         <TextInput value={name} onChangeText={setName} autoFocus placeholder="Örn. Hafta sonu, Eşimle izleyeceklerim" placeholderTextColor={C.dim} maxLength={60} accessibilityLabel="Liste adı" onSubmitEditing={create} returnKeyType="done" style={inputStyle} />
         <Btn label="Oluştur" style={{ marginTop: 14 }} disabled={!name.trim()} onPress={create} />
@@ -37,11 +38,11 @@ export default function ListScreen() {
     );
   }
 
-  if (!l) return <Screen><BackLink label="Kütüphanem" onPress={back} /><Empty icon="list" title="Bu liste bulunamadı." text="Silinmiş olabilir." /></Screen>;
+  if (!l) return <Screen><Backdrop /><BackLink label="Kütüphanem" onPress={back} /><Empty icon="list" title="Bu liste bulunamadı." text="Silinmiş olabilir." /></Screen>;
 
   const save = () => { store.listRename(l.id, name); setEditing(false); };
   return (
-    <Screen>
+    <Screen><Backdrop />
       <BackLink label="Kütüphanem" onPress={back} />
       {editing ? (
         <View style={{ flexDirection: 'row', gap: 8 }}>

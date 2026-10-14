@@ -54,8 +54,9 @@ function Shelves({ uid }: { uid: string }) {
           {bd ? <Image source={{ uri: bd }} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} /> : <LinearGradient colors={[alpha(u.color, 0.45), C.bg]} style={StyleSheet.absoluteFill} />}
           <LinearGradient colors={['rgba(21,23,29,0.55)', 'rgba(21,23,29,0.1)', 'rgba(21,23,29,0.55)', C.bg]} locations={[0, 0.3, 0.7, 1]} style={StyleSheet.absoluteFill} />
           <Press accessibilityRole="button" accessibilityLabel="Evrenler sayfasına dön" onPress={() => (router.canGoBack() ? router.back() : router.replace('/universes'))} hitSlop={8}
-            style={{ position: 'absolute', top: insets.top + 8, left: pad - 6, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(21,23,29,0.6)', alignItems: 'center', justifyContent: 'center' }}>
-            <Feather name="chevron-left" size={24} color="#fff" />
+            style={{ position: 'absolute', top: insets.top + 8, left: pad - 6, height: 40, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: 'rgba(21,23,29,0.6)', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Feather name="chevron-left" size={22} color="#fff" />
+            <Text style={{ fontFamily: F.semibold, fontSize: 14, color: '#fff' }}>Evrenler</Text>
           </Press>
           <View style={{ paddingHorizontal: pad, paddingBottom: 6 }}>
             <UniverseLogo u={u} height={tablet ? 80 : 62} maxWidth={tablet ? 360 : 260} />

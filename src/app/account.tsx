@@ -7,6 +7,7 @@ import { ActivityIndicator, Text, TextInput, View, type TextInputProps } from 'r
 import { BackLink, Btn, FadeIn, H1, Muted, Panel, Press, Screen, Small, useToast } from '@/components/ui';
 import { useAccount } from '@/lib/account';
 import { confirm } from '@/lib/confirm';
+import { Backdrop, PageHeader } from '@/components/home';
 import { C, F, R, alpha } from '@/lib/theme';
 
 type Mode = 'signin' | 'signup' | 'reset' | 'newpass';
@@ -75,9 +76,9 @@ export default function Account() {
 
   if (!acc.enabled) {
     return (
-      <Screen>
+      <Screen><Backdrop />
         <BackLink label={fromWelcome ? 'Geri' : 'Profil'} onPress={back} />
-        <H1>Hesap</H1>
+        <PageHeader bold="Hesap" />
         <Panel style={{ marginTop: 20 }}><Muted>Üyelik henüz açılmadı. Kurulum tamamlanınca buradan hesap açabileceksin. O zamana kadar her şey bu cihazda saklanır.</Muted></Panel>
       </Screen>
     );
@@ -116,10 +117,10 @@ export default function Account() {
   const needConsent = mode === 'signup' || mode === 'signin';
 
   return (
-    <Screen>
+    <Screen><Backdrop />
       <BackLink label={fromWelcome ? 'Geri' : 'Profil'} onPress={back} />
       <View style={{ width: '100%', maxWidth: 440, alignSelf: 'center' }}>
-        <H1>{title}</H1>
+        <PageHeader bold={title} />
         <Muted style={{ marginTop: 8 }}>
           {mode === 'newpass' ? 'Hesabın için yeni bir şifre yaz.' : mode === 'reset' ? 'Mail adresini yaz, şifreni yenilemen için bir bağlantı gönderelim.' : 'İzlediklerin, puanların ve listelerin hesabına kaydedilir; telefon değişse de kaybolmaz, her cihazda aynı görünür.'}
         </Muted>

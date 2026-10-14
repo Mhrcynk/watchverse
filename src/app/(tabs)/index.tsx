@@ -15,6 +15,9 @@ import { Btn, FadeIn, Press, Screen, Segmented, Small, tap, useLayout } from '@/
 import { TBY, TYPE_TR, UBY, daysUntil, posterPath, posterUrl, upcomingFor, type Upcoming } from '@/lib/catalog';
 import { usePreview } from '@/components/preview';
 import { StarterCard } from '@/components/starter';
+import { useAccount } from '@/lib/account';
+import { loadCollections, ofKind, todays, type Collection } from '@/lib/collections';
+import { friendFeed } from '@/lib/friends';
 import { libraryEntries } from '@/lib/library';
 import { continueWatching, episodeLabel, fraction, isDone, nextEpisode, nextUp } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -50,6 +53,25 @@ export default function Home() {
   const [cats, setCats] = useState(false);
   const [lists, setLists] = useState<Lists | null>(null);
   const [trend, setTrend] = useState<TItem[]>([]);
+  const [colls, setColls] = useState<Collection[]>([]);
+  const [liked, setLiked] = useState<{ k: string; title: string; p: string | null; year: number | null; who: string }[]>([]);
+  const acc = useAccount();
+  const { openKey } = usePreview();
+  useEffect(() => { if (api) loadCollections(setColls).then(setColls).catch(() => {}); }, [api]);
+  // Arkadaşlarının 4-5 yıldız verdikleri (senin izlemediklerin)
+  useEffect(() => {
+    if (!acc.user) { setLiked([]); return; }
+    friendFeed().then((fs) => {
+      const seen = new Set<string>();
+      const out: typeof liked = [];
+      for (const f of fs) for (const x of f.items) {
+        if ((x.r || 0) < 4 || seen.has(x.k)) continue;
+        seen.add(x.k);
+        out.push({ k: x.k, title: TBY[x.k]?.trTitle || TBY[x.k]?.title || x.t || '', p: TBY[x.k]?.tmdb?.p || x.p, year: TBY[x.k]?.year || (x.y ? Number(x.y) : null), who: f.name || 'Arkadaşın' });
+      }
+      setLiked(out.filter((x) => x.title).slice(0, 20));
+    }).catch(() => {});
+  }, [acc.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!api) return;
     platformLists(setLists).then((v) => v && setLists(v)).catch(() => {});
@@ -67,6 +89,10 @@ export default function Home() {
   const forYou = useForYou(state, kind);
   const soon = useMemo(() => upcomingFor(state.follow), [state.follow]);
   const followed = state.follow.map((u) => UBY[u]).filter(Boolean);
+  const mine = (k: string) => !!(state.watched[k] || state.episodes[k]?.length);
+  const likedNow = liked.filter((x) => !mine(x.k) && (kind === 'all' || (TBY[x.k] ? (kind === 'tv') === !!TBY[x.k].episodes : x.k.startsWith(kind))));
+  // Bugünün koleksiyonları; seçili türde yeterli yapımı olanlar
+  const collNow = todays(colls.filter((c) => ofKind(c, kind).length >= 6), 4);
   const tw = Math.min(340, Math.round(width * 0.82));
   const ps = lists?.platforms || [];
   const P = plat === 'all' ? null : ps.find((x) => x.id === plat) || null;
@@ -116,6 +142,12 @@ export default function Home() {
           )}
           {popular.length >= 5 && <RemoteRow title="Şu an popüler" top10 load={() => Promise.resolve(popular)} deps={[kind, lists?.updated]} note="platformlarda" />}
           {forYou.length >= 3 && <Row title="Senin için">{forYou.map((x, i) => <TItemTile key={x.key} x={x} width={w} index={i} />)}</Row>}
+          {likedNow.length >= 2 && (
+            <Row title="Arkadaşlarının beğendikleri" onMore={() => router.push('/friends')}>
+              {likedNow.map((x, i) => <Tile key={x.k} index={i} width={w} uri={img(x.p, 'w342')} title={x.title} sub={x.who} onPress={() => openKey(x.k, { title: x.title, year: x.year, p: x.p })} />)}
+            </Row>
+          )}
+          {collNow.slice(0, 2).map((c) => <CollectionRow key={c.id} c={c} kind={kind} w={w} />)}
           {followed.length > 0 && (
             <Row title="Evrenlerin" onMore={() => router.push('/universes')}>
               {followed.map((u) => <UniverseCard key={u.id} u={u} state={state} style={{ width: Math.min(280, width * 0.72) }} />)}
@@ -126,6 +158,7 @@ export default function Home() {
               {soon.map((x, i) => <SoonCard key={x.k + x.date} x={x} width={Math.round(w * 1.1)} index={i} />)}
             </Row>
           )}
+          {collNow.slice(2).map((c) => <CollectionRow key={c.id} c={c} kind={kind} w={w} />)}
         </>
       )}
 
@@ -283,5 +316,15 @@ function SoonCard({ x, width, index }: { x: Upcoming; width: number; index: numb
         <Small numberOfLines={1} style={{ marginTop: 2, color: u.color }}>{what}</Small>
       </Press>
     </FadeIn>
+  );
+}
+
+/** Ana sayfada bir koleksiyon satırı */
+function CollectionRow({ c, kind, w }: { c: Collection; kind: Kind; w: number }) {
+  const items = ofKind(c, kind).slice(0, 20);
+  return (
+    <Row title={c.title} onMore={() => router.push({ pathname: '/collection/[id]', params: { id: c.id } })}>
+      {items.map((x, i) => <TItemTile key={x.key} x={x} width={w} index={i} badge={x.note && c.kind === 'award' ? x.note : undefined} />)}
+    </Row>
   );
 }

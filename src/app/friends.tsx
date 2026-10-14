@@ -4,11 +4,12 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { shareLink } from '@/components/share';
-import { BackLink, Btn, Empty, H1, H3, Muted, Panel, Press, Screen, SectionHead, Small, useToast } from '@/components/ui';
+import { BackLink, Btn, Empty, H1, H3, Muted, Panel, Press, Screen, SectionHead, Small, useToast, SkeletonRows } from '@/components/ui';
 import { useAccount } from '@/lib/account';
 import { confirm } from '@/lib/confirm';
 import { ago, feedView, friendFeed, inviteUrl, myProfile, removeFriend, resetInvite, setSharing, type Friend, type MyProfile } from '@/lib/friends';
 import { useStore } from '@/lib/store';
+import { Backdrop, PageHeader } from '@/components/home';
 import { C, F, R, alpha } from '@/lib/theme';
 
 function FriendCard({ f, onRemove }: { f: Friend; onRemove: () => void }) {
@@ -73,9 +74,9 @@ export default function Friends() {
 
   if (!acc.enabled || !acc.user) {
     return (
-      <Screen>
+      <Screen><Backdrop />
         <BackLink label="Profil" onPress={back} />
-        <H1>Arkadaşlar</H1>
+        <PageHeader bold="Arkadaşlar" />
         <Empty icon="users" title="Arkadaşlar için giriş yap." text="Arkadaşlarını davet etmek ve neler izlediklerini görmek için bir hesabın olmalı." action="Giriş yap" onAction={() => router.push('/account')} />
       </Screen>
     );
@@ -83,9 +84,9 @@ export default function Friends() {
 
   if (!store.state.name) {
     return (
-      <Screen>
+      <Screen><Backdrop />
         <BackLink label="Profil" onPress={back} />
-        <H1>Arkadaşlar</H1>
+        <PageHeader bold="Arkadaşlar" />
         <Muted style={{ marginTop: 6, marginBottom: 16 }}>Önce bir ad seç; arkadaşların seni bu adla görecek.</Muted>
         <TextInput value={name} onChangeText={setName} autoFocus placeholder="Adın" placeholderTextColor={C.dim} maxLength={40} accessibilityLabel="Adın"
           style={{ height: 50, borderRadius: R.md, backgroundColor: C.raised, color: C.text, paddingHorizontal: 14, fontFamily: F.regular, fontSize: 16, outlineStyle: 'none' } as never} />
@@ -96,8 +97,9 @@ export default function Friends() {
 
   return (
     <Screen refresh={<RefreshControl refreshing={refreshing} tintColor={C.muted} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}>
+      <Backdrop />
       <BackLink label="Profil" onPress={back} />
-      <H1>Arkadaşlar</H1>
+      <PageHeader bold="Arkadaşlar" />
       <Muted style={{ marginTop: 6 }}>Davet bağlantını gönder; açan kişi seninle arkadaş olur. Birbirinizin son izlediklerini ve puanlarını görürsünüz, notlarınız gizli kalır.</Muted>
 
       <Panel style={{ marginTop: 18 }}>
@@ -118,7 +120,7 @@ export default function Friends() {
 
       <SectionHead title="Arkadaşların" note={list ? `${list.length} kişi` : undefined} />
       {err ? <Empty icon="wifi-off" title="Arkadaşların yüklenemedi." action="Tekrar dene" onAction={load} />
-        : list === null ? <View style={{ paddingVertical: 40, alignItems: 'center' }}><ActivityIndicator color={C.accentSoft} /></View>
+        : list === null ? <SkeletonRows n={3} />
         : list.length ? <View style={{ gap: 12 }}>{list.map((f) => (
           <FriendCard key={f.id} f={f} onRemove={() => confirm(`${f.name} arkadaşlıktan çıkarılsın mı?`, 'Birbirinizin izlediklerini artık görmezsiniz.', 'Çıkar', async () => {
             try { await removeFriend(f.id); setList((l) => (l || []).filter((x) => x.id !== f.id)); toast('Arkadaşlıktan çıkarıldı'); } catch { toast('Çıkarılamadı'); }

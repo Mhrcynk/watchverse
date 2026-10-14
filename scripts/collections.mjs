@@ -37,8 +37,10 @@ const ns = (await (await CFAPI('/storage/kv/namespaces?per_page=100')).json()).r
 if (!ns) { console.log('::warning::KV bulunamadı; koleksiyonlar yazılmadı.'); process.exit(0); }
 const kvGet = async (k) => { const r = await CFAPI(`/storage/kv/namespaces/${ns.id}/values/${k}`); return r.ok ? r.json().catch(() => null) : null; };
 const kvPut = (k, v) => CFAPI(`/storage/kv/namespaces/${ns.id}/values/${k}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(v) });
+// Biçim değişince (V) hemen yeniden üretilir
+const V = 2;
 const old = await kvGet('collections');
-if (!FORCE && old?.updated && Date.now() - Date.parse(old.updated) < 20 * 3600e3) { console.log('Koleksiyonlar güncel; atlandı.'); process.exit(0); }
+if (!FORCE && old?.v === V && old?.updated && Date.now() - Date.parse(old.updated) < 20 * 3600e3) { console.log('Koleksiyonlar güncel; atlandı.'); process.exit(0); }
 
 /* ---------- Wikidata ödülleri ---------- */
 async function qidOf(label, mustInclude) {
@@ -75,15 +77,17 @@ const report = [];
 const collections = [];
 const AWARDS = [
   { id: 'oscar', title: "Oscar'lı filmler", sub: 'Akademi Ödülleri · En İyi Film', label: 'Academy Award for Best Picture', must: 'best picture', m: 'movie' },
-  { id: 'emmy-drama', title: "Emmy'li diziler", sub: 'Emmy · En İyi Drama Dizisi', label: 'Primetime Emmy Award for Outstanding Drama Series', must: 'outstanding drama series', m: 'tv' },
-  { id: 'emmy-comedy', title: "Emmy'li komediler", sub: 'Emmy · En İyi Komedi Dizisi', label: 'Primetime Emmy Award for Outstanding Comedy Series', must: 'outstanding comedy series', m: 'tv' },
+  { id: 'emmy', title: "Emmy'li diziler", sub: 'Emmy · En İyi Drama ve Komedi Dizisi', label: ['Primetime Emmy Award for Outstanding Drama Series', 'Primetime Emmy Award for Outstanding Comedy Series'], must: 'outstanding', m: 'tv' },
   { id: 'palme', title: 'Altın Palmiye', sub: 'Cannes Film Festivali · En iyi film', label: "Palme d'Or", must: 'palme', m: 'movie' },
 ];
 for (const a of AWARDS) {
   try {
-    const qid = await qidOf(a.label, a.must);
-    if (!qid) { report.push(`${a.id}: ödül bulunamadı`); continue; }
-    const w = await winners(qid, a.m);
+    const labels = Array.isArray(a.label) ? a.label : [a.label];
+    const qids = (await Promise.all(labels.map((l) => qidOf(l, a.must)))).filter(Boolean);
+    if (!qids.length) { report.push(`${a.id}: ödül bulunamadı`); continue; }
+    const seenW = new Set();
+    const w = (await Promise.all(qids.map((q) => winners(q, a.m)))).flat().filter((x) => !seenW.has(x.id) && seenW.add(x.id)).sort((x, y) => (y.y || 0) - (x.y || 0));
+    const qid = qids.join('+');
     const items = await hydrate(w, a.m);
     report.push(`${a.id} (${qid}): ${items.length}/${w.length}`);
     if (items.length >= 8) collections.push({ id: a.id, title: a.title, sub: a.sub, kind: 'award', source: 'Wikidata', items });
@@ -96,11 +100,15 @@ async function keywordId(name) {
   const r = await tmdb('/search/keyword', { query: name, language: undefined });
   return (r?.results || []).find((x) => x.name.toLowerCase() === name.toLowerCase())?.id || null;
 }
+const TODAY = new Date().toISOString().slice(0, 10);
+// Türkçe ya da Latin harfli adı olmayanları (ör. yalnızca Japonca ad) alma
+const readable = (t) => !!t && !/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff]/.test(t);
 async function discover(m, params, pages = 2) {
   const out = [];
+  const dateKey = m === 'movie' ? 'primary_release_date.lte' : 'first_air_date.lte';
   for (let page = 1; page <= pages; page++) {
-    const r = await tmdb(`/discover/${m}`, { include_adult: false, without_genres: m === 'movie' ? '99' : '99,10767,10763,10764', ...params, page });
-    for (const x of r?.results || []) if (x.poster_path) out.push(slim(x, m));
+    const r = await tmdb(`/discover/${m}`, { include_adult: false, without_genres: m === 'movie' ? '99' : '99,10767,10763,10764', [dateKey]: TODAY, ...params, page });
+    for (const x of r?.results || []) if (x.poster_path && readable(m === 'movie' ? x.title : x.name)) out.push(slim(x, m));
     if (!r || page >= r.total_pages) break;
   }
   return out;
@@ -111,8 +119,8 @@ const year = new Date().getFullYear();
 try {
   const classics = await discover('movie', { 'primary_release_date.lte': '1979-12-31', 'vote_count.gte': 1500, sort_by: 'vote_average.desc' }, 3);
   collections.push({ id: 'classics', title: 'Klasikler', sub: "1980 öncesinin en sevilen filmleri", kind: 'tmdb', source: 'TMDB', items: classics });
-  const gemsM = await discover('movie', { 'vote_average.gte': 7.4, 'vote_count.gte': 200, 'vote_count.lte': 1500, 'primary_release_date.gte': `${year - 15}-01-01`, sort_by: 'vote_average.desc' });
-  const gemsT = await discover('tv', { 'vote_average.gte': 7.8, 'vote_count.gte': 150, 'vote_count.lte': 1200, 'first_air_date.gte': `${year - 15}-01-01`, sort_by: 'vote_average.desc' });
+  const gemsM = await discover('movie', { 'vote_average.gte': 7.3, 'vote_count.gte': 400, 'vote_count.lte': 2500, 'primary_release_date.gte': `${year - 15}-01-01`, without_genres: '99,16', sort_by: 'vote_average.desc' });
+  const gemsT = await discover('tv', { 'vote_average.gte': 7.8, 'vote_count.gte': 250, 'vote_count.lte': 1500, 'first_air_date.gte': `${year - 15}-01-01`, without_genres: '99,16,10767,10763,10764', sort_by: 'vote_average.desc' });
   collections.push({ id: 'gems', title: 'Gizli hazineler', sub: 'Puanı yüksek ama az bilinen yapımlar', kind: 'tmdb', source: 'TMDB', items: mix(gemsM, gemsT) });
   // Mini diziler: TMDB "Miniseries" türü; 10 bölüm ve altı
   const mini = await discover('tv', { with_type: 2, 'vote_count.gte': 300, sort_by: 'vote_average.desc' }, 3);
@@ -128,6 +136,6 @@ try {
   }
 } catch (e) { report.push(`tmdb: hata ${e.message}`); }
 
-const data = { updated: new Date().toISOString(), collections: collections.filter((c) => c.items.length >= 8) };
+const data = { v: V, updated: new Date().toISOString(), collections: collections.filter((c) => c.items.length >= 8) };
 const w = await kvPut('collections', data);
 console.log(`::notice::Koleksiyonlar (${w.ok ? 'yazıldı' : 'YAZILAMADI ' + w.status}, ${(JSON.stringify(data).length / 1024).toFixed(0)} KB): ${data.collections.map((c) => `${c.id}=${c.items.length}`).join(', ')} || ${report.join(' | ')} || ilkler: ${data.collections.map((c) => `${c.id}: ${c.items.slice(0, 3).map((x) => x.title).join(', ')}`).join(' ; ')}`);

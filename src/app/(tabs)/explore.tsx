@@ -6,9 +6,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { scoreText, usePreview } from '@/components/preview';
 import { PersonChip } from '@/components/people';
+import { loadCollections, type Collection } from '@/lib/collections';
 import { Row, TItemTile } from '@/components/rows';
 import { MediaCard, PosterCard } from '@/components/media';
-import { Btn, Chip, Empty, Eyebrow, Grid, H1, Pills, Press, Screen, SectionHead, Small, useLayout } from '@/components/ui';
+import { Btn, Chip, Empty, Eyebrow, Grid, H1, Pills, Press, Screen, SectionHead, Small, useLayout, SkeletonGrid } from '@/components/ui';
 import { Backdrop, PageHeader } from '@/components/home';
 import { isEn } from '@/lib/i18n';
 import { CATALOG, CATEGORIES, CATEGORY_TR, search as searchCatalog } from '@/lib/catalog';
@@ -99,7 +100,7 @@ function Online() {
             <Pills value={type} onChange={setType} options={[{ id: 'all' as const, label: 'Hepsi' }, { id: 'movie' as const, label: 'Filmler' }, { id: 'tv' as const, label: 'Diziler' }]} />
           </View>
           {err ? <Empty icon="wifi-off" title="Arama yapılamadı." text="İnternet bağlantını kontrol edip tekrar dene." />
-            : res === null ? <View style={{ paddingVertical: 40, alignItems: 'center' }}><ActivityIndicator color={C.accentSoft} /></View>
+            : res === null ? <SkeletonGrid rows={2} />
             : shown.length || (type === 'all' && people.length) ? (
               <>
                 {type === 'all' && people.length > 0 && (
@@ -125,6 +126,7 @@ function Online() {
               </Press>
             ))}
           </View>
+          <CollectionsGrid />
           <PopularList />
           <Btn kind="secondary" icon="globe" label={`Evrenlerdeki ${CATALOG.length} yapıma göz at`} style={{ marginTop: 30, alignSelf: 'flex-start' }} onPress={() => router.push('/universes')} />
         </>
@@ -187,7 +189,7 @@ function Section({ title, load }: { title: string; load: () => Promise<TItem[]> 
   return (
     <>
       <SectionHead title={title} />
-      {items === null ? <View style={{ height: 120, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={C.dim} /></View> : (
+      {items === null ? <SkeletonGrid rows={1} /> : (
         <Rail items={items.map((x) => {
           const r = routeOf(x.key);
           return { key: x.key, uri: img(x.p, 'w342'), title: x.title, sub: [x.year, x.m === 'movie' ? 'Film' : 'Dizi'].filter(Boolean).join(' · '), go: () => router.push(r), badge: r.startsWith('/title/') ? 'Evrende' : state.lib[x.key] ? 'Ekli' : undefined };
@@ -226,5 +228,40 @@ function CatalogOnly() {
       {found.length > limit && <Btn kind="secondary" label="Daha fazla göster" style={{ marginTop: 24 }} onPress={() => setLimit((l) => l + PAGE)} />}
       <Small style={{ marginTop: 24 }}>Tüm film ve dizilerde arama, ara sunucu kurulunca açılır.</Small>
     </Screen>
+  );
+}
+
+/** Koleksiyonlar: ödüllüler, klasikler, mini diziler… her biri kendi sayfasına açılır */
+function CollectionsGrid() {
+  const [all, setAll] = useState<Collection[]>([]);
+  useEffect(() => { loadCollections(setAll).then(setAll).catch(() => {}); }, []);
+  if (!all.length) return null;
+  return (
+    <>
+      <Text accessibilityRole="header" style={{ marginTop: 30, marginBottom: 12, fontFamily: F.bold, fontSize: 18.5, color: C.text }}>Koleksiyonlar</Text>
+      <View style={{ gap: 10 }}>
+        {all.map((c) => {
+          const ps = c.items.filter((x) => x.p).slice(0, 3);
+          return (
+            <Press key={c.id} accessibilityRole="button" accessibilityLabel={`${c.title}, ${c.items.length} yapım`} onPress={() => router.push({ pathname: '/collection/[id]', params: { id: c.id } })} scaleTo={0.98}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12, borderRadius: R.lg, backgroundColor: C.card }}>
+              <View style={{ width: 84, height: 60 }}>
+                {ps.map((x, i) => (
+                  <View key={x.key} style={{ position: 'absolute', left: i * 22, top: 0, width: 40, height: 60, borderRadius: 6, overflow: 'hidden', backgroundColor: C.raised, borderWidth: 1.5, borderColor: C.card, zIndex: 3 - i }}>
+                    <Image source={{ uri: img(x.p, 'w185')! }} style={StyleSheet.absoluteFill} contentFit="cover" />
+                  </View>
+                ))}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 15.5, color: C.text }}>{c.title}</Text>
+                <Text numberOfLines={1} style={{ marginTop: 2, fontFamily: F.regular, fontSize: 12.5, color: C.muted }}>{c.sub}</Text>
+              </View>
+              <Text style={{ fontFamily: F.medium, fontSize: 13, color: C.dim }}>{c.items.length}</Text>
+              <Feather name="chevron-right" size={18} color={C.dim} />
+            </Press>
+          );
+        })}
+      </View>
+    </>
   );
 }

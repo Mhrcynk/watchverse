@@ -7,7 +7,7 @@ import { Backdrop } from '@/components/home';
 import { MediaCard } from '@/components/media';
 import { usePreview } from '@/components/preview';
 import { Row, TItemTile, useTileW } from '@/components/rows';
-import { BackLink, Empty, Grid, Press, Screen, Small, useLayout } from '@/components/ui';
+import { BackLink, Empty, Grid, Press, Screen, Small, useLayout, SkeletonRows } from '@/components/ui';
 import { C, F, R } from '@/lib/theme';
 import { img, person, type PersonDetail } from '@/lib/tmdb';
 
@@ -32,7 +32,7 @@ export default function PersonPage() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/explore'));
 
   if (err) return <Screen><BackLink label="Geri" onPress={back} /><Empty icon="wifi-off" title="Kişi bilgisi alınamadı." text="İnternet bağlantını kontrol edip tekrar dene." /></Screen>;
-  if (!d) return <Screen><BackLink label="Geri" onPress={back} /><View style={{ paddingVertical: 80, alignItems: 'center' }}><ActivityIndicator color={C.accentSoft} /></View></Screen>;
+  if (!d) return <Screen><BackLink label="Geri" onPress={back} /><SkeletonRows n={5} /></Screen>;
 
   const uri = img(d.p, 'w342');
   const facts = [d.dept, d.born ? `${dateTr(d.born)}${d.died ? '' : ` (${age(d.born)} yaşında)`}` : null, d.died && d.born ? `Ölüm: ${dateTr(d.died)} (${age(d.born, d.died)})` : null, d.place].filter(Boolean) as string[];

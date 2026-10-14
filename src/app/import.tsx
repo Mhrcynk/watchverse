@@ -6,6 +6,7 @@ import { BackLink, Bar, Btn, H1, H3, Muted, Panel, Screen, SectionHead, Small, u
 import { matchAll, readFiles, unpack, type Matched, type Raw, type Source } from '@/lib/importer';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
+import { Backdrop, PageHeader } from '@/components/home';
 import { hasApi } from '@/lib/tmdb';
 
 type Step = { s: 'pick' } | { s: 'busy'; label: string; done: number; total: number } | { s: 'review'; source: Source; ok: Matched[]; miss: Raw[] } | { s: 'done'; n: number };
@@ -62,13 +63,13 @@ export default function Import() {
   }
 
   if (!hasApi()) {
-    return <Screen><BackLink label="Profil" onPress={back} /><H1>İçe aktar</H1><Panel style={{ marginTop: 20 }}><Muted>İçe aktarma için arama sunucusu gerekiyor; şu an kurulu değil.</Muted></Panel></Screen>;
+    return <Screen><Backdrop /><BackLink label="Profil" onPress={back} /><PageHeader bold="İçe aktar" /><Panel style={{ marginTop: 20 }}><Muted>İçe aktarma için arama sunucusu gerekiyor; şu an kurulu değil.</Muted></Panel></Screen>;
   }
 
   return (
-    <Screen>
+    <Screen><Backdrop />
       <BackLink label="Profil" onPress={back} />
-      <H1>Başka uygulamadan aktar</H1>
+      <PageHeader bold="Başka uygulamadan aktar" />
       <Muted style={{ marginTop: 6 }}>Geçmişini tek seferde getir. Var olan kayıtların silinmez; yalnızca eksikler eklenir.</Muted>
 
       {step.s === 'pick' && (

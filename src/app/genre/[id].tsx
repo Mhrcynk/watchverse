@@ -2,8 +2,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { TItemTile } from '@/components/rows';
-import { BackLink, Btn, Empty, Grid, H1, Pills, Screen, Small, useLayout } from '@/components/ui';
+import { BackLink, Btn, Empty, Grid, H1, Pills, Screen, Small, useLayout, SkeletonGrid } from '@/components/ui';
 import { C } from '@/lib/theme';
+import { Backdrop, PageHeader } from '@/components/home';
 import { GENRES, byGenre, hasApi, type Kind, type TItem } from '@/lib/tmdb';
 
 export default function GenrePage() {
@@ -22,7 +23,7 @@ export default function GenrePage() {
     return () => { a = false; };
   }, [g?.name, kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!g) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><Empty title="Kategori bulunamadı." /></Screen>;
+  if (!g) return <Screen><Backdrop /><BackLink label="Geri" onPress={() => router.back()} /><Empty title="Kategori bulunamadı." /></Screen>;
   const more = async () => {
     setBusy(true);
     try { const r = await byGenre(g, kind, page + 1); setItems((cur) => { const have = new Set((cur || []).map((x) => x.key)); return [...(cur || []), ...r.filter((x) => x.p && !have.has(x.key))]; }); setPage(page + 1); } catch {}
@@ -30,12 +31,12 @@ export default function GenrePage() {
   };
   const kinds = [{ id: 'all' as Kind, label: 'Hepsi' }, ...(g.tv ? [{ id: 'tv' as Kind, label: 'Diziler' }] : []), ...(g.movie ? [{ id: 'movie' as Kind, label: 'Filmler' }] : [])];
   return (
-    <Screen>
+    <Screen><Backdrop />
       <BackLink label="Geri" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-      <H1 style={{ marginBottom: 14 }}>{g.name}</H1>
+      <View style={{ marginBottom: 14 }}><PageHeader bold={g.name} /></View>
       {kinds.length > 2 && <Pills value={kind} onChange={setKind} options={kinds} />}
       <View style={{ marginTop: 18 }}>
-        {items === null ? <View style={{ paddingVertical: 60, alignItems: 'center' }}><ActivityIndicator color={C.accentSoft} /></View>
+        {items === null ? <SkeletonGrid rows={3} />
           : items.length ? <Grid items={items} cols={posterCols} gap={8} rowGap={10} keyOf={(x) => x.key} render={(x, cw) => <TItemTile x={x} width={cw} />} />
           : <Empty icon="film" title="Bu kategoride yapım bulunamadı." />}
       </View>
