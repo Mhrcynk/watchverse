@@ -50,10 +50,23 @@ async function providerIds() {
   }
   return out;
 }
-async function popularOn(pid, m) {
+/** Apple TV+ Türkiye verisinde yok: kataloğu neredeyse tamamen kendi yapımları olduğu için
+ *  Apple TV+ kanalının dizileri ve Apple Original Films filmleri kullanılır */
+async function appleTv() {
+  const net = await tmdb('/network/2552', { language: undefined }).catch(() => null);
+  if (!net || !/apple/i.test(net.name || '')) return null;
+  const c = await tmdb('/search/company', { query: 'Apple Original Films', language: undefined }).catch(() => null);
+  const comp = (c?.results || []).find((x) => /^apple original films$/i.test(x.name)) || null;
+  const prov = await tmdb('/watch/providers/tv', { language: undefined }).catch(() => null);
+  const logo = (prov?.results || []).find((x) => x.provider_id === 350)?.logo_path || null;
+  return { id: 350, name: 'Apple TV+', at: "Apple TV+'ta", logo, apple: { network: 2552, company: comp?.id || null } };
+}
+async function popularOn(pid, m, apple) {
   const res = [];
   for (const page of [1, 2, 3]) {
-    const j = await tmdb(`/discover/${m}`, { watch_region: 'TR', with_watch_providers: pid, with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc', include_adult: 'false', 'vote_count.gte': m === 'movie' ? 3 : 1, page });
+    const filter = apple ? (m === 'tv' ? { with_networks: apple.network } : apple.company ? { with_companies: apple.company } : null) : { watch_region: 'TR', with_watch_providers: pid, with_watch_monetization_types: 'flatrate' };
+    if (!filter) break;
+    const j = await tmdb(`/discover/${m}`, { ...filter, sort_by: 'popularity.desc', include_adult: 'false', 'vote_count.gte': m === 'movie' ? 3 : 1, page });
     res.push(...(j.results || []).filter((r) => r.poster_path).map((r) => slim(r, m)));
     if ((j.total_pages || 1) <= page) break;
   }
@@ -146,12 +159,13 @@ const kvGet = async (k) => { if (!ns) return null; const r = await CFAPI(`/stora
 const kvPut = (k, v) => CFAPI(`/storage/kv/namespaces/${ns.id}/values/${k}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(v) });
 
 const plats = await providerIds();
+if (!plats.some((p) => p.name === 'Apple TV+')) { const a = await appleTv(); if (a) plats.splice(4, 0, a); else console.log('::warning::Apple TV+ bulunamadı'); }
 const today = new Date().toISOString().slice(0, 10);
 // Geçmiş: { days: { '2026-10-14': { [pid]: { tv: [id…], movie: [id…] } } }, meta: { 'tv:1': slim } }
 const hist = (await kvGet('lists-history')) || { days: {}, meta: {} };
 hist.days[today] = {};
 for (const p of plats) {
-  const [tv, movie] = await Promise.all([popularOn(p.id, 'tv'), popularOn(p.id, 'movie')]);
+  const [tv, movie] = await Promise.all([popularOn(p.id, 'tv', p.apple), popularOn(p.id, 'movie', p.apple)]);
   hist.days[today][p.id] = { tv: tv.map((x) => x.id), movie: movie.map((x) => x.id) };
   for (const x of [...tv, ...movie]) hist.meta[`${x.m}:${x.id}`] = x;
 }
@@ -159,8 +173,8 @@ const days = Object.keys(hist.days).sort().slice(-30);
 hist.days = Object.fromEntries(days.map((d) => [d, hist.days[d]]));
 
 // Son 30 günün ortalama sırası: her gün 1. sıra 60 puan; listede olmadığı gün 0
-const lists = plats.map((p) => {
-  const out = { ...p, tv: [], movie: [], items: [] };
+const lists = plats.map(({ apple, ...p }) => {
+  const out = { ...p, tv: [], movie: [], items: [], ...(apple ? { source: 'apple' } : {}) };
   for (const m of ['tv', 'movie']) {
     const sc = new Map();
     for (const d of days) (hist.days[d][p.id]?.[m] || []).forEach((id, i) => sc.set(id, (sc.get(id) || 0) + (60 - i)));

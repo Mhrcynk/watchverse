@@ -7,7 +7,7 @@ import { keyOf, type TItem } from './tmdb';
  * izlenebilen yapımların popülerlik sırası (TMDB / JustWatch).
  */
 type Slim = { id: number; m: 'movie' | 'tv'; title: string; orig: string; date: string | null; p: string | null; b: string | null; vote: number; votes: number; overview: string; lang: string; rank?: number; label?: string | null };
-export type PlatformList = { id: number; name: string; at: string; logo: string | null; source: 'netflix' | 'tmdb'; items: TItem[]; tv: TItem[]; movie: TItem[] };
+export type PlatformList = { id: number; name: string; at: string; logo: string | null; source: 'netflix' | 'apple' | 'tmdb'; items: TItem[]; tv: TItem[]; movie: TItem[] };
 export type Lists = { updated: string; days: number; netflix: { weeks: string[] } | null; platforms: PlatformList[] };
 
 const API = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
@@ -20,7 +20,7 @@ function convert(raw: any): Lists {
     days: raw.days || 1,
     netflix: raw.netflix && Array.isArray(raw.netflix.weeks) ? { weeks: raw.netflix.weeks } : null,
     platforms: (raw.platforms || []).map((p: any) => ({
-      id: p.id, name: p.name, at: p.at, logo: p.logo || null, source: p.source === 'netflix' ? 'netflix' : 'tmdb',
+      id: p.id, name: p.name, at: p.at, logo: p.logo || null, source: p.source === 'netflix' || p.source === 'apple' ? p.source : 'tmdb',
       items: (p.items || []).map(toItem), tv: (p.tv || []).map(toItem), movie: (p.movie || []).map(toItem),
     })),
   };
