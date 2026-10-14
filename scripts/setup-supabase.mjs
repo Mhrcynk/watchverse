@@ -59,19 +59,27 @@ const auth = {
   external_email_enabled: true,
   mailer_autoconfirm: true, // onay maili beklemeden giriş (ücretsiz mail gönderimi çok sınırlı)
   password_min_length: 8,
-  // Türkçe mail metinleri
-  mailer_subjects_confirmation: 'WatchVerse hesabını onayla',
-  mailer_templates_confirmation_content: mail('Hesabını onayla', 'WatchVerse hesabını açmak için aşağıdaki düğmeye dokun.', 'Hesabımı onayla', '{{ .ConfirmationURL }}'),
-  mailer_subjects_recovery: 'WatchVerse şifreni yenile',
-  mailer_templates_recovery_content: mail('Şifreni yenile', 'Yeni bir şifre belirlemek için aşağıdaki düğmeye dokun. Bu isteği sen yapmadıysan bu maili yok sayabilirsin.', 'Şifremi yenile', '{{ .ConfirmationURL }}'),
 };
 // Kendi mail servisin (Resend) bağlıysa: herkese mail gider, hesap açarken onay maili istenir
 const smtp = !!(RESEND_API_KEY && MAIL_FROM);
-if (smtp) Object.assign(auth, { smtp_host: 'smtp.resend.com', smtp_port: '465', smtp_user: 'resend', smtp_pass: RESEND_API_KEY.trim(), smtp_admin_email: MAIL_FROM.trim(), smtp_sender_name: 'WatchVerse', rate_limit_email_sent: 30, mailer_autoconfirm: false });
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) Object.assign(auth, { external_google_enabled: true, external_google_client_id: GOOGLE_CLIENT_ID.trim(), external_google_secret: GOOGLE_CLIENT_SECRET.trim() });
 const a = await api('/config/auth', { method: 'PATCH', body: JSON.stringify(auth) });
 const google = !!auth.external_google_enabled && a.ok;
 if (!a.ok) console.log(`::warning::Giriş ayarları güncellenemedi (${a.status}): ${JSON.stringify(a.j).slice(0, 300)}`);
+// Mail servisi ayrı gönderilir; sorun çıkarsa giriş ayarlarını bozmasın
+let mailOk = false;
+if (smtp) {
+  const m = await api('/config/auth', { method: 'PATCH', body: JSON.stringify({
+    smtp_host: 'smtp.resend.com', smtp_port: '465', smtp_user: 'resend', smtp_pass: RESEND_API_KEY.trim(), smtp_admin_email: MAIL_FROM.trim(), smtp_sender_name: 'WatchVerse', rate_limit_email_sent: 30, mailer_autoconfirm: false,
+    // Türkçe mail metinleri
+  mailer_subjects_confirmation: 'WatchVerse hesabını onayla',
+  mailer_templates_confirmation_content: mail('Hesabını onayla', 'WatchVerse hesabını açmak için aşağıdaki düğmeye dokun.', 'Hesabımı onayla', '{{ .ConfirmationURL }}'),
+  mailer_subjects_recovery: 'WatchVerse şifreni yenile',
+  mailer_templates_recovery_content: mail('Şifreni yenile', 'Yeni bir şifre belirlemek için aşağıdaki düğmeye dokun. Bu isteği sen yapmadıysan bu maili yok sayabilirsin.', 'Şifremi yenile', '{{ .ConfirmationURL }}'),
+  }) });
+  mailOk = m.ok;
+  if (!m.ok) console.log(`::warning::Mail servisi ayarlanamadı (${m.status}): ${JSON.stringify(m.j).slice(0, 300)}`);
+}
 
 // 3) Uygulamanın kullanacağı herkese açık anahtar
 const k = await api('/api-keys?reveal=false');
@@ -89,4 +97,4 @@ if (e.ok && Array.isArray(e.j)) errs = e.j.length ? ' | Son 7 gün hatalar: ' + 
 const users = await sql('select count(*)::int as n from auth.users');
 const n = users.ok && Array.isArray(users.j) ? users.j[0]?.n : '?';
 
-console.log(`::notice::Uyelik hazir: ${url} | Google girisi ${google ? 'acik' : 'kapali'} | Mail servisi ${smtp && a.ok ? 'bagli' : 'yok (yalnizca sana gider)'} | ${n} hesap${errs}`);
+console.log(`::notice::Uyelik hazir: ${url} | Google girisi ${google ? 'acik' : 'kapali'} | Mail servisi ${mailOk ? 'bagli' : 'yok (yalnizca sana gider)'} | ${n} hesap${errs}`);
