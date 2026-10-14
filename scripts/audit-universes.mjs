@@ -26,7 +26,7 @@ async function api(p, params = {}) {
   return null;
 }
 const known = new Set(d.catalog.filter((t) => t.tmdb?.id > 0).map((t) => `${t.tmdb.m || t.media}:${t.tmdb.id}`));
-for (const m of d.moved || []) if (m.key) known.add(m.key);
+for (const m of Object.values(d.moved || {})) if (m?.k) known.add(m.k);
 const TODAY = new Date().toISOString().slice(0, 10);
 const out = {};
 for (const u of d.universes) {

@@ -199,8 +199,10 @@ async function buildTitle(src, c) {
       const n = s < last.season_number ? tm[s] || 0 : last.episode_number;
       for (let e = 1; e <= n; e++) ep.push([s, e, null]);
     }
-    // Tek bölümlük tanıtım ya da kısa yapımları alma (seri kayıtları hariç)
-    if (ep.length < (c.collection ? 1 : 3)) return null;
+    // Tek bölümlük tanıtım ya da kısa yapımları alma (seri kayıtları hariç).
+    // Yeni başlayan dizi: henüz 1-2 bölüm yayınlanmış olsa da sezonu en az 3 bölüm olarak duyurulduysa hemen ekle
+    const announced = Object.values(tm).reduce((a, b) => a + b, 0);
+    if (!ep.length || (!c.collection && ep.length < 3 && announced < 3)) return null;
     type = 'Dizi';
   } else {
     minutes = en.runtime || 0;

@@ -1,11 +1,11 @@
-# Evren denetimi: katalogda eksik kalmış olabilecek yapımları listeler (hiçbir şeyi değiştirmez)
+# Evren denetimi: katalogda eksik kalmış olabilecek yapımları listeler (kataloğa dokunmaz)
 name: Evren denetimi
 
 on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   audit:
@@ -18,8 +18,13 @@ jobs:
       - name: Denetle
         env:
           TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
-        run: node scripts/audit-universes.mjs
-      - uses: actions/upload-artifact@v4
-        with:
-          name: audit
-          path: audit.json
+        run: node scripts/audit-universes.mjs 2>&1 | tee audit.txt; test ${PIPESTATUS[0]} -eq 0 || { echo "::error::$(tail -c 600 audit.txt | tr '\n' ' ')"; exit 1; }
+      - name: Sonucu ayrı dala yaz
+        run: |
+          git config user.name "watchverse-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan audit
+          git rm -rf --cached . > /dev/null
+          git add -f audit.json audit.txt
+          git commit -m "Evren denetimi sonucu" > /dev/null
+          git push -f origin audit
