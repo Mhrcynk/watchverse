@@ -91,7 +91,7 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
                         <Small>{l.items.length} yapım</Small>
                       </View>
                       <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: on ? C.accent : C.dim, backgroundColor: on ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-                        {on && <Feather name="check" size={14} color="#fff" />}
+                        {on && <Feather name="check" size={14} color={C.onAccent} />}
                       </View>
                     </Press>
                   );

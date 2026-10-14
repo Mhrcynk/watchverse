@@ -243,6 +243,9 @@ export const EN: Record<string, string> = {
   'Hesabını istediğin an Profil → Hesap bölümünden silebilirsin.': 'You can delete your account any time under Profile → Account.',
   'Bu şartlar ve gizlilik metni güncellenebilir. Önemli bir değişiklik olursa uygulamada duyurulur.': 'These terms and the privacy notice may be updated. Important changes will be announced in the app.',
   '14 Ekim 2026': 'October 14, 2026',
+  'Bugün ne izlemek istersin?': 'What do you want to watch today?', 'Öne çıkan yapımlar': 'Featured titles', 'Tür': 'Type',
+  'Netflix Türkiye İlk 10 · Diziler': 'Netflix Türkiye Top 10 · Series', 'Netflix Türkiye İlk 10 · Filmler': 'Netflix Türkiye Top 10 · Movies',
+  "Netflix listesi Netflix'in resmî Türkiye İlk 10 verisidir. Diğer platform listeleri, o platformda Türkiye'de izlenebilen yapımların TMDB/JustWatch popülerliğine göre sıralanır ve her gün güncellenir.": 'The Netflix list is Netflix’s official Top 10 for Türkiye. Other platform lists rank titles streamable on that platform in Türkiye by TMDB/JustWatch popularity and update daily.',
   'Oca': 'Jan', 'Şub': 'Feb', 'Mar': 'Mar', 'Nis': 'Apr', 'May': 'May', 'Haz': 'Jun', 'Tem': 'Jul', 'Ağu': 'Aug', 'Eyl': 'Sep', 'Eki': 'Oct', 'Kas': 'Nov',
   'yapım': 'titles', 'yapım ·': 'titles ·', 'evren': 'universes', 'izlendi': 'watched', 'izlenmedi': 'not watched',
   'Bildirim kaydını sildirmek istersen': 'To have your notification record deleted, write to', 'adresine yazabilirsin.': '.',
@@ -252,7 +255,7 @@ export const EN: Record<string, string> = {
 };
 
 export const EN_PATTERNS: Record<string, string> = {
-  '{0}: {1} saat': '{0}: {1} hours', '{0}: {1} bölüm': '{0}: {1} episodes', '{0}: {1} film': '{0}: {1} movies',
+  '{0}: {1} saat': '{0}: {1} hours', '{0} popüler diziler': 'Popular series {0}', '{0} popüler filmler': 'Popular movies {0}', 'hafta: {0}': 'week of {0}', '{0}, puan {1}': '{0}, rating {1}', '{0}: {1} bölüm': '{0}: {1} episodes', '{0}: {1} film': '{0}: {1} movies',
   '{0}. tanıtım': 'Intro {0}', '{0}. Bölüm': 'Episode {0}', '{0}. bölüm': 'Episode {0}', 'Yüzde {0}': '{0} percent',
   '{0}. sezon {1}. bölüm, {2}, {3}': 'Season {0} episode {1}, {2}, {3}',
   '{0} Öncesi: {1}. Devamı: {2}.': '{0} Before: {1}. Next: {2}.', '{0} Devamı: {1}.': '{0} Next: {1}.', '{0} Öncesi: {1}.': '{0} Before: {1}.',

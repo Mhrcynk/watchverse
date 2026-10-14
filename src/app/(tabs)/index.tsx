@@ -5,17 +5,18 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Brand } from '@/components/brand';
 import { UniverseCard } from '@/components/media';
-import { scoreText, usePreview } from '@/components/preview';
 import { Billboard, RemoteRow, Row, Tile, TItemTile, useTileW, type BillboardItem } from '@/components/rows';
-import { Btn, FadeIn, Press, Screen, Small, tap, useLayout, useToast } from '@/components/ui';
+import { Backdrop, Coverflow, Greeting, SearchPill, TicketCard } from '@/components/home';
+import { isEn } from '@/lib/i18n';
+import { platformLists, type Lists } from '@/lib/platform-lists';
+import { Btn, FadeIn, Press, Screen, Segmented, Small, tap, useLayout } from '@/components/ui';
 import { TBY, TYPE_TR, UBY, daysUntil, posterPath, posterUrl, recentlyAdded, upcomingFor, type Upcoming } from '@/lib/catalog';
-import { catalogOf, libFromItem, libraryEntries } from '@/lib/library';
+import { libraryEntries, shortDate } from '@/lib/library';
 import { continueWatching, episodeLabel, fraction, isDone, nextEpisode, nextUp } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
-import { GENRES, byGenre, detail, discover, hasApi, img, keyOf, platforms, today, trendingKind, type Kind, type TItem } from '@/lib/tmdb';
+import { GENRES, byGenre, detail, hasApi, keyOf, trendingKind, type Kind, type TItem } from '@/lib/tmdb';
 import type { State } from '@/lib/types';
 
 const HOME_GENRES = ['Aksiyon', 'Komedi', 'Dram', 'Suç', 'Bilim kurgu', 'Gerilim', 'Animasyon', 'Belgesel'];
@@ -23,14 +24,16 @@ const HOME_GENRES = ['Aksiyon', 'Komedi', 'Dram', 'Suç', 'Bilim kurgu', 'Gerili
 export default function Home() {
   const store = useStore();
   const { state } = store;
-  const { pad, width, tablet } = useLayout();
+  const { width } = useLayout();
   const insets = useSafeAreaInsets();
   const w = useTileW();
   const api = hasApi();
   const [kind, setKind] = useState<Kind>('all');
   const [cats, setCats] = useState(false);
-  const [plats, setPlats] = useState<{ id: number; name: string; at: string }[]>([]);
-  useEffect(() => { if (api) platforms().then(setPlats).catch(() => {}); }, [api]);
+  const [lists, setLists] = useState<Lists | null>(null);
+  const [featured, setFeatured] = useState<TItem[]>([]);
+  useEffect(() => { if (api) platformLists().then(setLists).catch(() => {}); }, [api]);
+  useEffect(() => { let a = true; if (api) trendingKind(kind).then((r) => a && setFeatured(r.filter((x) => x.p).slice(0, 8))).catch(() => {}); return () => { a = false; }; }, [kind, api]);
 
   const typeOk = (t: 'movie' | 'tv') => kind === 'all' || kind === t;
   const cont = useMemo(() => continueRow(state).filter((x) => typeOk(x.m)), [state, kind]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -38,53 +41,43 @@ export default function Home() {
   const soon = useMemo(() => upcomingFor(state.follow), [state.follow]);
   const fresh = useMemo(() => recentlyAdded().filter((t) => typeOk(t.type === 'Dizi' ? 'tv' : 'movie')).slice(0, 20), [kind]); // eslint-disable-line react-hooks/exhaustive-deps
   const followed = state.follow.map((u) => UBY[u]).filter(Boolean);
-  const progressCount = Object.keys(state.watched).length + Object.keys(state.episodes).length;
-  const backupDue = progressCount >= 5 && (!state.lastBackup || Date.now() - state.lastBackup > 7 * 864e5);
-  const t0 = today();
   const genreRows = HOME_GENRES.map((n) => GENRES.find((g) => g.name === n)!).filter((g) => kind === 'all' || g[kind]);
+  const tw = Math.min(340, Math.round(width * 0.82));
+  // Netflix resmî İlk 10 (dizi/film seçimine göre)
+  const nf = lists?.netflix;
+  const nfRows = nf ? ([['tv', 'Netflix Türkiye İlk 10 · Diziler', nf.tv], ['movie', 'Netflix Türkiye İlk 10 · Filmler', nf.movie]] as const).filter(([m, , l]) => typeOk(m) && l.length >= 5) : [];
+  const platRows = (lists?.platforms || []).filter((p) => p.name !== 'Netflix' || !nf).flatMap((p) =>
+    (kind === 'all' ? (['tv', 'movie'] as const) : [kind as 'tv' | 'movie']).map((m) => ({ key: `${p.id}-${m}`, title: `${p.at} popüler ${m === 'tv' ? 'diziler' : 'filmler'}`, items: p[m] })).filter((r) => r.items.length >= 5));
 
   return (
     <Screen style={{ paddingTop: 0 }}>
-      {/* üst çubuk */}
-      <View style={{ paddingTop: insets.top + 10, paddingBottom: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Brand />
-          <Press accessibilityRole="button" accessibilityLabel="Ara" onPress={() => router.push('/explore')} hitSlop={8} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-            <Feather name="search" size={22} color={C.text} />
-          </Press>
-        </View>
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-          <KindChip label="Diziler" on={kind === 'tv'} onPress={() => setKind(kind === 'tv' ? 'all' : 'tv')} />
-          <KindChip label="Filmler" on={kind === 'movie'} onPress={() => setKind(kind === 'movie' ? 'all' : 'movie')} />
-          {api && <KindChip label="Kategoriler" icon="chevron-down" onPress={() => setCats(true)} />}
-        </View>
+      <Backdrop />
+      <View style={{ paddingTop: insets.top + 18, gap: 18 }}>
+        <Greeting name={state.name} sub="Bugün ne izlemek istersin?" />
+        <SearchPill onFilter={api ? () => setCats(true) : undefined} />
+        <Segmented<Kind> label="Tür" value={kind} onChange={setKind} options={[{ id: 'all', label: 'Hepsi' }, { id: 'tv', label: 'Diziler' }, { id: 'movie', label: 'Filmler' }]} />
       </View>
 
-      {backupDue && (
-        <Press accessibilityRole="button" onPress={() => router.push('/profile')}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, marginBottom: 14, borderRadius: R.md, backgroundColor: alpha(C.amber, 0.1), borderWidth: StyleSheet.hairlineWidth, borderColor: alpha(C.amber, 0.4) }}>
-          <Feather name="shield" size={18} color={C.amber} />
-          <Small style={{ flex: 1, color: C.text }}>İlerlemeni yedekle: Dosyalar'a tek dokunuşla kaydet.</Small>
-          <Feather name="chevron-right" size={18} color={C.dim} />
-        </Press>
-      )}
-
-      {api ? <OnlineBillboard kind={kind} /> : <CatalogBillboard state={state} />}
+      {api ? (
+        featured.length > 0 && (
+          <View style={{ marginTop: 26 }}>
+            <SectionTitle text="Öne çıkan yapımlar" />
+            <Coverflow items={featured} />
+          </View>
+        )
+      ) : <View style={{ marginTop: 18 }}><CatalogBillboard state={state} /></View>}
 
       {cont.length > 0 && (
         <Row title="İzlemeye devam et" note={cont.some((x) => x.badge === 'Yeni bölüm') ? 'yeni bölüm var' : undefined}>
-          {cont.map((x, i) => <Tile key={x.key} index={i} uri={x.poster} title={x.title} width={w} pct={x.pct} badge={x.badge} sub={x.sub} onPress={() => router.push(x.route as never)} />)}
+          {cont.map((x, i) => <TicketCard key={x.key} index={i} width={tw} title={x.title} poster={x.poster} sub={x.sub} badge={x.badge} pct={x.pct} onPress={() => router.push(x.route as never)} />)}
         </Row>
       )}
 
-      {api && <RemoteRow title="Bu hafta en popüler 10" top10 load={() => trendingKind(kind)} deps={[kind]} />}
+      {nfRows.map(([m, title, l]) => <RemoteRow key={m} title={title} top10 load={() => Promise.resolve(l)} deps={[kind, nf?.week]} note={nf ? `hafta: ${shortDate(nf.week)}` : undefined} />)}
 
       {forYou.length >= 3 && (
         <Row title="Senin için">{forYou.map((x, i) => <TItemTile key={x.key} x={x} width={w} index={i} />)}</Row>
       )}
-
-      {api && kind !== 'movie' && <RemoteRow title="Türk dizileri" load={() => discover('tv', { with_origin_country: 'TR', sort_by: 'popularity.desc', 'vote_count.gte': 5 })} deps={[kind]} />}
-      {api && kind !== 'tv' && <RemoteRow title="Yeni Türk filmleri" load={() => discover('movie', { with_origin_country: 'TR', sort_by: 'primary_release_date.desc', 'primary_release_date.lte': t0, 'vote_count.gte': 3 })} deps={[kind]} />}
 
       {followed.length > 0 && (
         <Row title="Evrenlerin" onMore={() => router.push('/universes')}>
@@ -92,10 +85,7 @@ export default function Home() {
         </Row>
       )}
 
-      {api && plats.slice(0, 5).map((p) => (
-        <RemoteRow key={p.id} title={`${p.at} popüler`} deps={[kind, p.id]}
-          load={() => discover(kind === 'movie' ? 'movie' : 'tv', { with_watch_providers: p.id, with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc' })} />
-      ))}
+      {platRows.slice(0, 4).map((r) => <RemoteRow key={r.key} title={r.title} load={() => Promise.resolve(r.items)} deps={[kind, lists?.updated]} />)}
 
       {soon.length > 0 && (
         <Row title="Yakında" note={state.follow.length ? 'evrenlerinde' : undefined}>
@@ -103,18 +93,21 @@ export default function Home() {
         </Row>
       )}
 
-      {api && genreRows.slice(0, 4).map((g) => (
+      {api && genreRows.slice(0, 3).map((g) => (
         <RemoteRow key={g.name} title={g.name} deps={[kind]} load={() => byGenre(g, kind)} onMore={() => router.push({ pathname: '/genre/[id]', params: { id: g.name, k: kind } })} />
       ))}
+
+      {platRows.slice(4).map((r) => <RemoteRow key={r.key} title={r.title} load={() => Promise.resolve(r.items)} deps={[kind, lists?.updated]} />)}
 
       {fresh.length > 0 && (
         <Row title="Evrenlere yeni eklenenler">{fresh.map((t, i) => <Tile key={t.id} index={i} uri={posterUrl(t)} title={t.title} width={w} color={UBY[t.u]?.color} onPress={() => router.push(`/title/${t.id}`)} />)}</Row>
       )}
 
-      {api && genreRows.slice(4).map((g) => (
+      {api && genreRows.slice(3).map((g) => (
         <RemoteRow key={g.name} title={g.name} deps={[kind]} load={() => byGenre(g, kind)} onMore={() => router.push({ pathname: '/genre/[id]', params: { id: g.name, k: kind } })} />
       ))}
 
+      {lists && <Small style={{ marginTop: 28 }}>Netflix listesi Netflix'in resmî Türkiye İlk 10 verisidir. Diğer platform listeleri, o platformda Türkiye'de izlenebilen yapımların TMDB/JustWatch popülerliğine göre sıralanır ve her gün güncellenir.</Small>}
       {!api && (
         <View style={{ marginTop: 30 }}>
           <Small>Tüm film ve dizilerde arama ve listeler, ara sunucu kurulunca açılır.</Small>
@@ -126,42 +119,16 @@ export default function Home() {
   );
 }
 
-function KindChip({ label, on, onPress, icon }: { label: string; on?: boolean; onPress: () => void; icon?: React.ComponentProps<typeof Feather>['name'] }) {
+function SectionTitle({ text }: { text: string }) {
+  const [a, ...b] = text.split(' ');
   return (
-    <Press accessibilityRole="button" accessibilityState={{ selected: !!on }} onPress={() => { tap(); onPress(); }}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: on ? C.text : 'transparent', borderWidth: 1, borderColor: on ? C.text : 'rgba(255,255,255,0.35)' }}>
-      <Text style={{ fontFamily: F.semibold, fontSize: 13.5, color: on ? C.bg : C.text }}>{label}</Text>
-      {icon && <Feather name={icon} size={15} color={on ? C.bg : C.text} />}
-    </Press>
+    <Text accessibilityRole="header" style={{ fontSize: 19, color: C.text, letterSpacing: -0.3, marginBottom: 14 }}>
+      {isEn ? <Text style={{ fontFamily: F.bold }}>{text}</Text> : <><Text style={{ fontFamily: F.bold }}>{a}</Text><Text style={{ fontFamily: F.regular }}>{' ' + b.join(' ')}</Text></>}
+    </Text>
   );
 }
 
 /* ---------- vitrin ---------- */
-function OnlineBillboard({ kind }: { kind: Kind }) {
-  const store = useStore();
-  const { open } = usePreview();
-  const toast = useToast();
-  const { tablet } = useLayout();
-  const [items, setItems] = useState<TItem[]>([]);
-  useEffect(() => { let a = true; trendingKind(kind).then((r) => a && setItems(r.filter((x) => x.p && x.b && x.overview).slice(0, 6))).catch(() => {}); return () => { a = false; }; }, [kind]);
-  const bb: BillboardItem[] = items.map((x) => {
-    const inLib = !!store.state.lib[x.key] || !!catalogOf(x.key);
-    return {
-      key: x.key, title: x.title, image: img(tablet ? x.b : x.p, 'w780'), score: scoreText(x.vote, x.votes),
-      tags: [x.m === 'movie' ? 'Film' : 'Dizi', x.year].filter(Boolean).join(' · '),
-      onInfo: () => open(x),
-      actions: (
-        <>
-          <Btn icon={inLib ? 'check' : 'plus'} kind="secondary" label="Listem" style={{ minWidth: 110, backgroundColor: 'rgba(40,40,46,0.85)' }}
-            onPress={() => { if (catalogOf(x.key)) { open(x); return; } if (store.state.lib[x.key]) { store.libRemove(x.key); toast('Kütüphaneden çıkarıldı'); } else { store.libSave(x.key, libFromItem(x)); tap('success'); toast('Kütüphanene eklendi'); } }} />
-          <Btn icon="info" label="Bilgi" style={{ minWidth: 110 }} onPress={() => open(x)} />
-        </>
-      ),
-    };
-  });
-  return <FadeIn><Billboard items={bb} /></FadeIn>;
-}
-
 function CatalogBillboard({ state }: { state: State }) {
   const { tablet } = useLayout();
   const items: BillboardItem[] = state.follow.map((u) => nextUp(state, u)).filter(Boolean).slice(0, 5).map((t) => ({

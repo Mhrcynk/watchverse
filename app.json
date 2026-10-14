@@ -7,7 +7,7 @@
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#000000",
+    "backgroundColor": "#15171D",
     "primaryColor": "#E3262F",
     "description": "Sevdiğin film ve dizi evrenlerinde nerede kaldığını hatırla, sıradaki hikâyeni doğru sırayla bul.",
     "ios": {
@@ -47,7 +47,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#000000",
+          "backgroundColor": "#15171D",
           "image": "./assets/splash-icon.png",
           "imageWidth": 160,
           "resizeMode": "contain"

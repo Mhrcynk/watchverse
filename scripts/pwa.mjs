@@ -31,8 +31,8 @@ fs.writeFileSync(path.join(out, 'manifest.webmanifest'), JSON.stringify({
   start_url: `${base}/`,
   scope: `${base}/`,
   display: 'standalone',
-  background_color: '#000000',
-  theme_color: '#000000',
+  background_color: '#15171D',
+  theme_color: '#15171D',
   icons: [
     { src: at('icon-192.png'), sizes: '192x192', type: 'image/png' },
     { src: at('icon-512.png'), sizes: '512x512', type: 'image/png' },
@@ -94,7 +94,7 @@ self.addEventListener('fetch', (e) => {
 const head = `
     <meta name="color-scheme" content="dark">
     <style id="wv-pwa">
-      html, body { background-color: #000000 !important; color-scheme: dark; margin: 0; }
+      html, body { background-color: #15171D !important; color-scheme: dark; margin: 0; }
       html { height: 100vh; height: -webkit-fill-available; }
       body { min-height: 100vh; overscroll-behavior: none; }
       * { -webkit-tap-highlight-color: transparent; }
@@ -104,11 +104,11 @@ const head = `
       textarea:focus { box-shadow: 0 0 0 1.5px #E3262F; }
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
       /* iPhone'da ana ekrandan açılınca alt ve üst kenarda boşluk kalmasın */
-      #root { position: fixed; top: 0; right: 0; bottom: 0; left: 0; height: auto !important; background-color: #000000; }
+      #root { position: fixed; top: 0; right: 0; bottom: 0; left: 0; height: auto !important; background-color: #15171D; }
     </style>
     <link rel="manifest" href="${at('manifest.webmanifest')}">
     <link rel="apple-touch-icon" href="${at('apple-touch-icon.png')}">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#15171D">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">

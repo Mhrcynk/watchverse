@@ -1,18 +1,20 @@
-// WatchVerse tasarım dili — web prototipindeki renklerin devamı.
+// WatchVerse tasarım dili: koyu arduvaz zemin, yumuşak kartlar, altın vurgular.
 export const C = {
-  bg: '#000000',
-  card: '#121215',
-  raised: '#1B1B20',
-  line: '#2A2A31',
-  lineSoft: '#1C1C22',
-  text: '#F5F5F7',
-  muted: '#A9A9B2',
-  dim: '#80808A',
-  accent: '#E3262F',
-  accentSoft: '#FF5D65',
-  green: '#4FD6A0',
-  amber: '#F2B84B',
-  danger: '#FF6B6B',
+  bg: '#15171D',
+  card: '#1F222A',
+  raised: '#292D36',
+  line: '#323642',
+  lineSoft: '#252831',
+  text: '#F4F5F8',
+  muted: '#9CA1AC',
+  dim: '#6F7581',
+  accent: '#F2C14E',
+  accentSoft: '#F6D27C',
+  /** altın zemin üstündeki yazı */
+  onAccent: '#1A1712',
+  green: '#5FD3A2',
+  amber: '#F2C14E',
+  danger: '#FF7A7A',
 } as const;
 
 export const F = {
@@ -23,7 +25,7 @@ export const F = {
   heavy: 'Inter_800ExtraBold',
 } as const;
 
-export const R = { sm: 8, md: 12, lg: 16, xl: 22 } as const;
+export const R = { sm: 12, md: 14, lg: 22, xl: 28 } as const;
 
 /** Hareket süreleri (ms): dokunma tepkisi, küçük geçiş, giriş, liste aralığı */
 export const M = { press: 110, fast: 180, base: 260, enter: 340, stagger: 45 } as const;

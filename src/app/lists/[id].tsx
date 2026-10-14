@@ -70,7 +70,7 @@ export default function ListScreen() {
                   onPress={() => (removing ? (store.listToggle(l.id, x), toast('Listeden çıkarıldı')) : router.push((x.k.includes(':') ? routeOf(x.k) : `/title/${x.k}`) as never))} />
                 {removing && (
                   <View pointerEvents="none" style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 14, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
-                    <Feather name="x" size={16} color="#fff" />
+                    <Feather name="x" size={16} color={C.onAccent} />
                   </View>
                 )}
               </View>

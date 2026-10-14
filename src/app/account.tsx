@@ -34,7 +34,7 @@ function Check({ value, onChange, children }: { value: boolean; onChange: (v: bo
   return (
     <Press accessibilityRole="checkbox" accessibilityState={{ checked: value }} onPress={() => onChange(!value)} scaleTo={1} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginTop: 18 }}>
       <View style={{ width: 22, height: 22, borderRadius: 6, marginTop: 1, borderWidth: 1.5, borderColor: value ? C.accent : C.dim, backgroundColor: value ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-        {value && <Feather name="check" size={15} color="#fff" />}
+        {value && <Feather name="check" size={15} color={C.onAccent} />}
       </View>
       <View style={{ flex: 1 }}>{children}</View>
     </Press>

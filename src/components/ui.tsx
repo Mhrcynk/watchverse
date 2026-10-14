@@ -65,11 +65,11 @@ export const Body = mk({ fontFamily: F.regular, fontSize: 15, lineHeight: 23, co
 export const Muted = mk({ fontFamily: F.regular, fontSize: 14, lineHeight: 21, color: C.muted });
 export const Small = mk({ fontFamily: F.regular, fontSize: 12.5, lineHeight: 18, color: C.muted });
 /** Büyük harfli küçük başlık. Türkçe arayüz metni için lang="tr", yapım/evren adları için lang="en" (I/İ dönüşümü). */
-const eyebrowBase: TextStyle = { fontFamily: F.semibold, fontSize: 11.5, letterSpacing: 1.6, color: C.accentSoft };
+const eyebrowBase: TextStyle = { fontFamily: F.medium, fontSize: 13.5, letterSpacing: 0, color: C.muted };
 const upper = (c: ReactNode, lang: string): ReactNode =>
   typeof c === 'string' ? c.toLocaleUpperCase(lang) : Array.isArray(c) ? c.map((x) => upper(x, lang)) : c;
 export function Eyebrow({ children, lang = 'tr', style, ...p }: TxtProps & { lang?: 'tr' | 'en' }) {
-  return <Text {...p} style={[eyebrowBase, style]}>{upper(children, lang)}</Text>;
+  return <Text {...p} style={[eyebrowBase, style]}>{children}</Text>;
 }
 
 /* ---------- etkileşim ---------- */
@@ -126,7 +126,7 @@ export function Btn({ label, icon, kind = 'primary', onPress, style, disabled, a
   label: string; icon?: IconName; kind?: BtnKind; onPress?: () => void; style?: StyleProp<ViewStyle>; disabled?: boolean; accessibilityLabel?: string;
 }) {
   const bg = kind === 'primary' ? C.accent : kind === 'success' ? alpha(C.green, 0.16) : kind === 'secondary' ? C.raised : 'transparent';
-  const fg = kind === 'success' ? C.green : kind === 'quiet' ? C.accentSoft : C.text;
+  const fg = kind === 'success' ? C.green : kind === 'quiet' ? C.accentSoft : kind === 'primary' ? C.onAccent : C.text;
   return (
     <Press
       accessibilityRole="button"
@@ -165,16 +165,16 @@ export function Segmented<T extends string>({ value, options, onChange, label, c
   const segW = w ? (w - 8) / options.length : 0;
   return (
     <View accessibilityRole="tablist" accessibilityLabel={label} onLayout={(e) => setW(e.nativeEvent.layout.width)}
-      style={{ flexDirection: 'row', backgroundColor: C.card, borderRadius: R.md, padding: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line }}>
+      style={{ flexDirection: 'row', backgroundColor: C.card, borderRadius: R.md, padding: 4 }}>
       {segW > 0 && (
-        <Animated.View pointerEvents="none" style={{ position: 'absolute', top: 4, bottom: 4, left: 4, width: segW, borderRadius: R.sm, backgroundColor: color ? alpha(color, 0.2) : C.raised, borderWidth: StyleSheet.hairlineWidth, borderColor: color ? alpha(color, 0.5) : C.line, transform: [{ translateX: x.interpolate({ inputRange: [0, 1], outputRange: [0, segW] }) }] }} />
+        <Animated.View pointerEvents="none" style={{ position: 'absolute', top: 4, bottom: 4, left: 4, width: segW, borderRadius: R.sm - 2, backgroundColor: color ? alpha(color, 0.2) : C.raised, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, transform: [{ translateX: x.interpolate({ inputRange: [0, 1], outputRange: [0, segW] }) }] }} />
       )}
       {options.map((o) => {
         const on = o.id === value;
         return (
           <Pressable key={o.id} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => { tap(); onChange(o.id); }}
             style={{ flex: 1, minHeight: 40, justifyContent: 'center', paddingHorizontal: 2, borderRadius: R.sm, alignItems: 'center' }}>
-            <Text numberOfLines={1} style={{ fontFamily: on ? F.semibold : F.medium, fontSize: 13, color: on ? C.text : C.muted }}>{o.label}</Text>
+            <Text numberOfLines={1} style={{ fontFamily: on ? F.semibold : F.regular, fontSize: 14, color: on ? C.text : C.dim }}>{o.label}</Text>
           </Pressable>
         );
       })}

@@ -110,7 +110,7 @@ function Online() {
             {GENRES.map((g, i) => (
               <Press key={g.name} accessibilityRole="button" onPress={() => router.push({ pathname: '/genre/[id]', params: { id: g.name } })}
                 style={{ width: '48.6%', flexGrow: 1, height: 64, borderRadius: R.md, overflow: 'hidden', justifyContent: 'center', paddingHorizontal: 14, backgroundColor: C.card }}>
-                <LinearGradient colors={[alpha(TONES[i % TONES.length], 0.55), alpha(TONES[i % TONES.length], 0.12)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+                <LinearGradient colors={[alpha(TONES[i % TONES.length], 0.28), alpha(TONES[i % TONES.length], 0.04)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
                 <Text style={{ fontFamily: F.bold, fontSize: 15.5, color: C.text }}>{g.name}</Text>
               </Press>
             ))}

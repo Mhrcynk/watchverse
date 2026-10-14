@@ -79,7 +79,7 @@ function Episodes({ w }: { w: number }) {
       {[1, 2, 3, 4].map((e) => (
         <View key={e} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: e < 3 ? C.accent : C.line, backgroundColor: e < 3 ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-            {e < 3 && <Feather name="check" size={14} color="#fff" />}
+            {e < 3 && <Feather name="check" size={14} color={C.onAccent} />}
           </View>
           <Text style={{ flex: 1, fontFamily: F.medium, fontSize: 14.5, color: e < 3 ? C.muted : C.text }}>{`${e}. Bölüm`}</Text>
           {e === 3 && <Small style={{ color: C.accentSoft }}>Sıradaki</Small>}

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Animated, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useReducedMotion } from '@/lib/motion';
+import { isEn } from '@/lib/i18n';
 import { C, F, R, alpha } from '@/lib/theme';
 import { img, type TItem } from '@/lib/tmdb';
 import { usePreview, scoreText } from './preview';
@@ -21,7 +22,12 @@ export function Row({ title, note, children, onMore }: { title: string; note?: s
   return (
     <View style={{ marginTop: 26 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 10 }}>
-        <Text accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontFamily: F.bold, fontSize: 18.5, color: C.text, letterSpacing: -0.2 }}>{title}</Text>
+        <Text accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontSize: 19, color: C.text, letterSpacing: -0.3 }}>
+          {/* ilk kelime kalın, devamı ince (çeviride metin bölünmesin diye İngilizcede tek parça) */}
+          {isEn || !title.includes(' ') ? <Text style={{ fontFamily: F.bold }}>{title}</Text> : (
+            <><Text style={{ fontFamily: F.bold }}>{title.split(' ')[0]}</Text><Text style={{ fontFamily: F.regular }}>{' ' + title.split(' ').slice(1).join(' ')}</Text></>
+          )}
+        </Text>
         {onMore ? (
           <Press accessibilityRole="button" accessibilityLabel={`${title}: tümünü gör`} onPress={onMore} hitSlop={10} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
             <Text style={{ fontFamily: F.medium, fontSize: 13.5, color: C.muted }}>Tümü</Text>
@@ -43,7 +49,7 @@ export const Tile = memo(function Tile({ uri, title, width, onPress, badge, pct,
   return (
     <FadeIn index={index} from={10}>
       <Press accessibilityRole="button" accessibilityLabel={[title, sub, badge, score].filter(Boolean).join(', ')} onPress={onPress} scaleTo={0.95} style={{ width }}>
-        <View style={{ width, aspectRatio: 2 / 3, borderRadius: R.sm, overflow: 'hidden', backgroundColor: C.card }}>
+        <View style={{ width, aspectRatio: 2 / 3, borderRadius: 16, overflow: 'hidden', backgroundColor: C.card }}>
           <LinearGradient colors={[alpha(color, 0.45), C.card]} style={[StyleSheet.absoluteFill, { justifyContent: 'flex-end', padding: 8 }]}>
             {!uri && <Text numberOfLines={3} style={{ fontFamily: F.bold, fontSize: 13, color: C.text }}>{title}</Text>}
           </LinearGradient>
@@ -51,13 +57,13 @@ export const Tile = memo(function Tile({ uri, title, width, onPress, badge, pct,
           {!!badge && (
             <View style={{ position: 'absolute', left: 0, right: 0, bottom: pct ? 6 : 0, alignItems: 'center' }}>
               <View style={{ backgroundColor: C.accent, paddingHorizontal: 7, paddingVertical: 3, borderTopLeftRadius: 4, borderTopRightRadius: 4 }}>
-                <Text style={{ fontFamily: F.bold, fontSize: 10.5, color: '#fff' }}>{badge}</Text>
+                <Text style={{ fontFamily: F.bold, fontSize: 10.5, color: C.onAccent }}>{badge}</Text>
               </View>
             </View>
           )}
           {!!score && (
-            <View style={{ position: 'absolute', right: 5, top: 5, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(0,0,0,0.72)' }}>
-              <Text style={{ fontFamily: F.bold, fontSize: 10.5, color: C.amber }}>{score}</Text>
+            <View style={{ position: 'absolute', right: 6, top: 6, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 99, backgroundColor: C.accent }}>
+              <Text style={{ fontFamily: F.bold, fontSize: 10.5, color: C.onAccent }}>{score}</Text>
             </View>
           )}
           {pct != null && pct > 0 && <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}><Bar pct={pct * 100} height={4} color={C.accent} /></View>}
@@ -78,12 +84,12 @@ export function TItemTile({ x, width, index, badge }: { x: TItem; width: number;
 export function Top10Tile({ x, n, width }: { x: TItem; n: number; width: number }) {
   const { open } = usePreview();
   const big = Math.round(width * 1.25);
-  const stroke = Platform.OS === 'web' ? ({ WebkitTextStroke: `2px ${C.dim}`, color: C.bg } as any) : { color: '#3A3A42' };
+  const stroke = Platform.OS === 'web' ? ({ WebkitTextStroke: `2px ${C.line}`, color: C.bg } as any) : { color: C.line };
   return (
     <FadeIn index={n}>
       <Press accessibilityRole="button" accessibilityLabel={`${n}. sıra: ${x.title}`} onPress={() => open(x)} scaleTo={0.95} style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
         <Text style={[{ fontFamily: F.heavy, fontSize: big, lineHeight: big * 1.02, letterSpacing: -big * 0.08, marginRight: -width * 0.16, zIndex: 0 }, stroke]}>{n}</Text>
-        <View style={{ width, aspectRatio: 2 / 3, borderRadius: R.sm, overflow: 'hidden', backgroundColor: C.card, zIndex: 1 }}>
+        <View style={{ width, aspectRatio: 2 / 3, borderRadius: 16, overflow: 'hidden', backgroundColor: C.card, zIndex: 1 }}>
           {x.p && <Image source={{ uri: img(x.p, 'w342')! }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />}
         </View>
       </Press>
@@ -101,7 +107,7 @@ export function RowLoading({ width }: { width: number }) {
 }
 
 /** Uzaktan yüklenen satır: veri gelince görünür, boşsa hiç çıkmaz */
-export function RemoteRow({ title, load, deps = [], top10, onMore, filter }: { title: string; load: () => Promise<TItem[]>; deps?: unknown[]; top10?: boolean; onMore?: () => void; filter?: (x: TItem) => boolean }) {
+export function RemoteRow({ title, load, deps = [], top10, onMore, filter, note }: { title: string; load: () => Promise<TItem[]>; deps?: unknown[]; top10?: boolean; onMore?: () => void; filter?: (x: TItem) => boolean; note?: string }) {
   const w = useTileW();
   const [items, setItems] = useState<TItem[] | null>(null);
   useEffect(() => {
@@ -111,7 +117,7 @@ export function RemoteRow({ title, load, deps = [], top10, onMore, filter }: { t
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   if (items && items.length < (top10 ? 5 : 3)) return null;
   return (
-    <Row title={title} onMore={onMore}>
+    <Row title={title} onMore={onMore} note={note}>
       {items === null ? <RowLoading width={w} /> : top10 ? items.map((x, i) => <Top10Tile key={x.key} x={x} n={i + 1} width={w} />) : items.map((x, i) => <TItemTile key={x.key} x={x} width={w} index={i} />)}
     </Row>
   );

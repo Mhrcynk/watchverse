@@ -122,7 +122,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
     <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', padding: 28 }}>
       <Text style={{ fontSize: 22, fontWeight: '700', color: C.text, textAlign: 'center' }}>Bir şeyler ters gitti</Text>
       <Text style={{ marginTop: 10, fontSize: 15, lineHeight: 22, color: C.muted, textAlign: 'center', maxWidth: 340 }}>Kayıtların güvende; sorun kaydedildi. Tekrar denemek için aşağıdaki düğmeye dokun.</Text>
-      <Text accessibilityRole="button" onPress={() => retry()} style={{ marginTop: 22, paddingHorizontal: 22, paddingVertical: 13, borderRadius: 12, overflow: 'hidden', backgroundColor: C.accent, color: '#fff', fontSize: 15, fontWeight: '600' }}>Tekrar dene</Text>
+      <Text accessibilityRole="button" onPress={() => retry()} style={{ marginTop: 22, paddingHorizontal: 22, paddingVertical: 13, borderRadius: 12, overflow: 'hidden', backgroundColor: C.accent, color: C.onAccent, fontSize: 15, fontWeight: '600' }}>Tekrar dene</Text>
     </View>
   );
 }

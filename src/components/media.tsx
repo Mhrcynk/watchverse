@@ -206,7 +206,7 @@ export const MediaCard = memo(function MediaCard({ uri, title, sub, width, onPre
           <Poster uri={uri} title={title} width={width} />
           {!!badge && (
             <View style={{ position: 'absolute', left: 8, top: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 99, backgroundColor: C.accent }}>
-              <Text style={{ fontFamily: F.bold, fontSize: 11, color: '#fff' }}>{badge}</Text>
+              <Text style={{ fontFamily: F.bold, fontSize: 11, color: C.onAccent }}>{badge}</Text>
             </View>
           )}
           {pct != null && pct > 0 && (
