@@ -25,7 +25,7 @@ export async function shareLink(url: string, title: string, toast: (m: string) =
   toast((await copyText(url)) ? 'Bağlantı kopyalandı' : url);
 }
 
-export function ShareListButton({ list }: { list: UList }) {
+export function ShareListButton({ list, compact }: { list: UList; compact?: boolean }) {
   const acc = useAccount();
   const store = useStore();
   const toast = useToast();
@@ -35,6 +35,7 @@ export function ShareListButton({ list }: { list: UList }) {
 
   if (list.share) {
     const slug = list.share;
+    if (compact) return <Btn icon="share-2" kind="secondary" label="Paylaş" onPress={() => shareLink(shareUrl(slug), list.name, toast)} />;
     return (
       <>
         <Btn icon="share-2" label="Bağlantıyı paylaş" onPress={() => shareLink(shareUrl(slug), list.name, toast)} />

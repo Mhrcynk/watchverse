@@ -30,7 +30,7 @@ export default function ListScreen() {
       <Screen>
         <BackLink label="Kütüphanem" onPress={back} />
         <H1>Yeni liste</H1>
-        <Muted style={{ marginTop: 6, marginBottom: 18 }}>Bir ad ver; sonra film ve dizilerin sayfasındaki "Listeye ekle" ile doldur.</Muted>
+        <Muted style={{ marginTop: 6, marginBottom: 18 }}>Bir ad ver; sonra bir yapımda "Kaydet"e dokunup bu listeyi seç.</Muted>
         <TextInput value={name} onChangeText={setName} autoFocus placeholder="Örn. Hafta sonu, Eşimle izleyeceklerim" placeholderTextColor={C.dim} maxLength={60} accessibilityLabel="Liste adı" onSubmitEditing={create} returnKeyType="done" style={inputStyle} />
         <Btn label="Oluştur" style={{ marginTop: 14 }} disabled={!name.trim()} onPress={create} />
       </Screen>
@@ -75,7 +75,7 @@ export default function ListScreen() {
                 )}
               </View>
             )} />
-        ) : <Empty icon="list" title="Bu liste henüz boş." text={'Bir film ya da dizinin sayfasında "Listeye ekle"ye dokun.'} action="Keşfet'e git" onAction={() => router.push('/explore')} />}
+        ) : <Empty icon="list" title="Bu liste henüz boş." text={'Bir yapımda "Kaydet"e dokunup bu listeyi seç.'} action="Keşfet'e git" onAction={() => router.push('/explore')} />}
       </View>
 
       <Btn kind="quiet" label="Listeyi sil" style={{ alignSelf: 'flex-start', marginTop: 28 }}

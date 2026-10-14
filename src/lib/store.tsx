@@ -97,6 +97,11 @@ export function sanitize(input: unknown): State {
       .map((x) => ({ k: x.k, t: x.t.slice(0, 200), p: typeof x.p === 'string' ? x.p : null, y: typeof x.y === 'number' ? x.y : null, at: typeof x.at === 'number' ? x.at : Date.now() }));
     out.lists[id] = { id, name: l.name.slice(0, 60) || 'Liste', items: items.slice(0, 1000), created: Number(l.created) || Date.now(), updated: Number(l.updated) || Date.now(), share: typeof l.share === 'string' && /^[a-z0-9]{8,24}$/.test(l.share) ? l.share : undefined };
   }
+  // Listedeki her yapım kütüphanede de durur (listeler kütüphanenin içindeki klasörlerdir)
+  for (const l of Object.values(out.lists)) for (const x of l.items) {
+    if (TBY[x.k]) { if (!out.list.includes(x.k)) out.list.push(x.k); continue; }
+    if (!out.lib[x.k]) { const [m, n] = x.k.split(':'); out.lib[x.k] = { m: m as LibItem['m'], id: Number(n), title: x.t, year: x.y, p: x.p, b: null, added: x.at }; }
+  }
   out.log = {};
   for (const [mon, v] of Object.entries(s.log || {})) if (/^\d{4}-\d{2}$/.test(mon) && v && typeof v === 'object') out.log[mon] = { f: Math.max(0, Number(v.f) || 0), e: Math.max(0, Number(v.e) || 0), m: Math.max(0, Number(v.m) || 0) };
   out.branches = {};

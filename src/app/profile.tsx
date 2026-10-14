@@ -7,7 +7,7 @@ import { Platform, StyleSheet, Switch, Text, TextInput, View } from 'react-nativ
 import { Backdrop } from '@/components/home';
 import { usePreview } from '@/components/preview';
 import { Row, Tile, useTileW } from '@/components/rows';
-import { Btn, Chip, FadeIn, Press, Screen, Small, useToast } from '@/components/ui';
+import { BackLink, Btn, Chip, FadeIn, Press, Screen, Small, useToast } from '@/components/ui';
 import { pickBackupFile, saveBackupFile } from '@/lib/backup-file';
 import { TBY, VIEWS, VIEW_TR } from '@/lib/catalog';
 import { confirm } from '@/lib/confirm';
@@ -67,6 +67,7 @@ export default function Profile() {
   return (
     <Screen>
       <Backdrop />
+      <BackLink label="Ana sayfa" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
       <Header />
 
       <StatStrip items={[[state.follow.length, 'Evren'], [fs.films, 'Film'], [fs.eps, 'Bölüm'], [Math.round(fs.minutes / 60), 'Saat']]} />
@@ -155,10 +156,11 @@ export default function Profile() {
 
       {acc.user && (
         <Group title="Hesap">
-          <Item icon="log-out" label="Çıkış yap" onPress={() => confirm('Çıkış yapılsın mı?', 'Kayıtların hesabında kalır. Bu cihazdaki kayıtlar da silinmez.', 'Çıkış yap', async () => { await acc.signOut(); toast('Çıkış yapıldı'); })} />
+          <Item icon="log-out" label="Çıkış yap" onPress={() => confirm('Çıkış yapılsın mı?', 'Kayıtların hesabında kalır. Bu cihazdaki kayıtlar da silinmez.', 'Çıkış yap', async () => { await acc.signOut(); toast('Çıkış yapıldı'); router.replace('/welcome'); })} />
           <Item icon="trash-2" label="Hesabı sil" danger onPress={() => confirm('Hesabın kalıcı olarak silinsin mi?', 'Hesabın ve sunucudaki tüm kayıtların hemen silinir; geri alınamaz. Bu cihazdaki kayıtlar kalır.', 'Hesabı sil', async () => {
             const r = await acc.deleteAccount();
             toast(r ? r : 'Hesabın silindi');
+            if (!r) router.replace('/welcome');
           })} />
         </Group>
       )}

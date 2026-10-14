@@ -2,9 +2,9 @@ import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { TIER_TR, UBY } from '@/lib/catalog';
+import { TBY, TIER_TR, UBY } from '@/lib/catalog';
 import { catalogOf, libFromDetail, libFromItem } from '@/lib/library';
 import { EASE_OUT, ND } from '@/lib/motion';
 import { useStore } from '@/lib/store';
@@ -12,11 +12,13 @@ import { C, F, M, R, alpha } from '@/lib/theme';
 import { detail, img, type TDetail, type TItem } from '@/lib/tmdb';
 import type { Title } from '@/lib/types';
 import { Btn, Small, tap, useToast } from './ui';
-import { itemFromTitle, itemFromTItem, useListPicker } from './lists';
+import { isSaved, itemFromTitle, itemFromTItem, useListPicker } from './lists';
+import { useTrailer } from './trailer';
 
 type IconName = React.ComponentProps<typeof Feather>['name'];
-type Ctx = { open: (x: TItem) => void; openTitle: (t: Title) => void };
-const PreviewCtx = createContext<Ctx>({ open: () => {}, openTitle: (t) => router.push(`/title/${t.id}`) });
+type Lite = { title: string; year: number | null; p: string | null };
+type Ctx = { open: (x: TItem) => void; openTitle: (t: Title) => void; openKey: (k: string, f: Lite) => void };
+const PreviewCtx = createContext<Ctx>({ open: () => {}, openTitle: (t) => router.push(`/title/${t.id}`), openKey: () => {} });
 export const usePreview = () => useContext(PreviewCtx);
 
 export const scoreText = (v: number, votes: number) => (v > 0 && votes >= 15 ? `★ ${v.toFixed(1)}` : null);
@@ -41,6 +43,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   const store = useStore();
   const toast = useToast();
   const { pick } = useListPicker();
+  const { play } = useTrailer();
 
   const show = useCallback((it: TItem, t: Title | null) => {
     setD(null); setCat(t); setX(it);
@@ -51,12 +54,18 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
     show(t && !it.overview && t.summary ? { ...it, overview: t.summary } : it, t);
   }, [show]);
   const openTitle = useCallback((t: Title) => show(fromTitle(t), t), [show]);
+  /** Kütüphane ve liste kayıtları: katalog kimliği ya da "movie:123" anahtarı */
+  const openKey = useCallback((k: string, f: Lite) => {
+    if (TBY[k]) return openTitle(TBY[k]);
+    const [m, n] = k.split(':');
+    open({ key: k, m: m as TItem['m'], id: Number(n), title: f.title, orig: f.title, year: f.year, date: null, p: f.p, b: null, overview: '', vote: 0, votes: 0, lang: '' });
+  }, [open, openTitle]);
   useEffect(() => { if (x) { a.setValue(0); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [x]); // eslint-disable-line react-hooks/exhaustive-deps
   const close = (then?: () => void) => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setX(null); setCat(null); then?.(); });
 
   const s = store.state;
   const key = x?.key || '';
-  const inLib = cat ? s.list.includes(cat.id) : !!(x && s.lib[key]);
+  const inLib = !!x && (cat ? isSaved(s, cat.id) : isSaved(s, key));
   const watched = cat ? !!s.watched[cat.id] : !!(x && s.watched[key]);
   const isMovie = cat ? cat.type !== 'Dizi' && !cat.episodes : x?.m === 'movie';
   const runtime = cat && !cat.episodes ? cat.minutes : d?.runtime;
@@ -65,10 +74,12 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   const u = cat ? UBY[cat.u] : null;
   const yt = cat?.yt || d?.yt;
 
-  const toggleLib = () => {
+  const saveOpen = () => {
     if (!x) return;
-    if (cat) { const v = store.toggleList(cat.id); if (v) tap('success'); toast(v ? 'Kütüphanene eklendi' : 'Kütüphaneden çıkarıldı'); return; }
-    if (inLib) { store.libRemove(key); toast('Kütüphaneden çıkarıldı'); } else { store.libSave(key, d ? libFromDetail(d) : libFromItem(x)); tap('success'); toast('Kütüphanene eklendi'); }
+    // TMDB yapımında ayrıntı varsa önce zengin kaydı yaz (sezonlar, süre)
+    if (!cat && !inLib) store.libSave(key, d ? libFromDetail(d) : libFromItem(x));
+    const it = cat ? itemFromTitle(cat) : itemFromTItem(x);
+    close(() => pick(it));
   };
   const toggleWatched = () => {
     if (!x) return;
@@ -79,7 +90,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   const goDetail = () => close(() => router.push(cat ? `/title/${cat.id}` : `/show/${key}`));
 
   return (
-    <PreviewCtx.Provider value={{ open, openTitle }}>
+    <PreviewCtx.Provider value={{ open, openTitle, openKey }}>
       {children}
       <Modal transparent visible={!!x} animationType="none" onRequestClose={() => close()}>
         <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', opacity: a, justifyContent: 'flex-end' }}>
@@ -110,13 +121,14 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
               </View>
 
               <View style={{ paddingHorizontal: 16 }}>
-                <Btn icon={inLib ? 'check' : 'plus'} kind={inLib ? 'success' : 'primary'} label={inLib ? 'Kütüphanemde' : 'Kütüphaneme ekle'}
-                  accessibilityLabel={inLib ? 'Kütüphanemde, çıkarmak için dokun' : 'Kütüphaneme ekle'} onPress={toggleLib} />
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                  {isMovie && <Action icon="check-circle" label={watched ? 'İzlendi' : 'İzledim'} on={watched} onPress={toggleWatched} />}
-                  <Action icon="list" label="Listeye ekle" onPress={() => { const it = cat ? itemFromTitle(cat) : itemFromTItem(x); close(() => pick(it)); }} />
-                  {!!yt && <Action icon="play" label="Fragman" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${yt}`)} />}
-                </View>
+                <Btn icon="bookmark" kind={inLib ? 'success' : 'primary'} label={inLib ? 'Kütüphanende' : 'Kaydet'}
+                  accessibilityLabel={inLib ? 'Kütüphanende; listeleri düzenle' : 'Kütüphaneme kaydet'} onPress={saveOpen} />
+                {(isMovie || !!yt) && (
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                    {isMovie && <Action icon="check-circle" label={watched ? 'İzlendi' : 'İzledim'} on={watched} onPress={toggleWatched} />}
+                    {!!yt && <Action icon="play" label="Fragman" onPress={() => play(yt, x.title)} />}
+                  </View>
+                )}
               </View>
 
               <Pressable accessibilityRole="button" onPress={goDetail}

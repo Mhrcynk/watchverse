@@ -35,7 +35,7 @@ const WANT = [
   ['Netflix', ['netflix'], "Netflix'te"], ['Disney+', ['disneyplus'], "Disney+'ta"], ['Prime Video', ['amazonprimevideo', 'primevideo'], "Prime Video'da"],
   ['HBO Max', ['hbomax', 'max'], "HBO Max'te"], ['Apple TV+', ['appletvplus', 'appletv'], "Apple TV+'ta"], ['TOD', ['tod', 'todtv'], "TOD'da"],
   ['Exxen', ['exxen'], "Exxen'de"], ['tabii', ['tabii'], "tabii'de"], ['Gain', ['gain'], "Gain'de"], ['MUBI', ['mubi'], "MUBI'de"],
-  ['puhutv', ['puhutv'], "puhutv'de"], ['TV+', ['tvplus'], "TV+'ta"], ['Tivibu', ['tivibu'], "Tivibu'da"], ['Crunchyroll', ['crunchyroll'], "Crunchyroll'da"],
+  ['puhutv', ['puhutv'], "puhutv'de"], ['TV+', ['tvplus'], "TV+'ta"], ['Tivibu', ['tivibu'], "Tivibu'da"],
   ['BluTV', ['blutv'], "BluTV'de"],
 ];
 const norm = (n) => n.toLowerCase().replace(/\+/g, 'plus').replace(/[^a-z0-9]/g, '');

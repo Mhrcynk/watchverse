@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ConfirmProvider, ToastProvider, useToast } from '@/components/ui';
 import { PreviewProvider } from '@/components/preview';
+import { TrailerProvider } from '@/components/trailer';
 import { ListPickerProvider } from '@/components/lists';
 import { SharedListsSync } from '@/components/share';
 import { FriendsSync } from '@/components/friends-sync';
@@ -86,7 +87,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
   if (!go) return null;
   return (
     <ThemeProvider value={theme}>
-      <AccountProvider><ToastProvider><ConfirmProvider><ListPickerProvider><PreviewProvider>
+      <AccountProvider><ToastProvider><ConfirmProvider><ListPickerProvider><TrailerProvider><PreviewProvider>
         <StatusBar style="light" />
         <CatalogSync onChange={bump} />
         <LibrarySync />
@@ -109,9 +110,10 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="import" />
           <Stack.Screen name="friends" />
           <Stack.Screen name="history" />
+          <Stack.Screen name="profile" />
           <Stack.Screen name="davet/[code]" />
         </Stack>
-      </PreviewProvider></ListPickerProvider></ConfirmProvider></ToastProvider></AccountProvider>
+      </PreviewProvider></TrailerProvider></ListPickerProvider></ConfirmProvider></ToastProvider></AccountProvider>
     </ThemeProvider>
   );
 }

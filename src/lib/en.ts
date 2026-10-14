@@ -272,6 +272,12 @@ export const EN: Record<string, string> = {
   'Son izlediklerin': 'Recently watched', 'Evrenlerini düzenle': 'Edit your universes', 'Evren': 'Universes', 'İzlemediğin yapımdan sonrakileri gizler': 'Hides what comes after titles you haven’t watched',
   'Evren listelerinde göster': 'Show in universe lists', 'Açık: yeni bölüm ve yeni yapımlar': 'On: new episodes and new titles', 'Yeni bölüm çıkınca haber ver': 'Get notified about new episodes',
   'Kütüphanemde, çıkarmak için dokun': 'In my library, tap to remove', 'Bölümler, evren ve ayrıntılar': 'Episodes, universe and details', 'Evrendeki yeri ve ayrıntılar': 'Place in the universe and details',
+  'Kütüphanende': 'In your library', 'Kütüphanende; listeleri düzenle': 'In your library; edit lists', 'Kütüphaneme kaydet': 'Save to my library', 'Listelerin': 'Your lists',
+  'İzleyeceklerin ve izlediklerin': 'What you plan to watch and have watched', 'Henüz listen yok. "Hafta sonu" gibi bir liste açıp kütüphaneni gruplayabilirsin.': 'No lists yet. Create one like "Weekend" to group your library.',
+  'Kütüphanenden çıkarıldı': 'Removed from your library', 'Kütüphanenden çıkarılsın mı?': 'Remove from your library?', 'Bu yapım için işaretlediğin izleme kayıtları da silinir.': 'Your watch records for this title will be deleted too.',
+  'Kaydettiğin her şey ve listelerin bir arada.': 'Everything you saved and your lists, together.', 'İzleyeceklerin boş.': 'Nothing to watch yet.', 'Bir yapım bulup "Kaydet"e dokun.': 'Find a title and tap "Save".',
+  'Bir yapımda "Kaydet"e dokunup bu listeyi seç.': 'Tap "Save" on a title and pick this list.', 'En son dokunduğun en üstte.': 'Most recently touched first.', 'Listeyi düzenle': 'Edit list',
+  'Fragmanı kapat': 'Close trailer', 'Ana sayfa': 'Home', 'Bir ad ver; sonra bir yapımda "Kaydet"e dokunup bu listeyi seç.': 'Give it a name, then tap "Save" on a title and pick this list.', 'paylaşılıyor': 'shared',
   'Aç': 'Turn on', 'Hızlı erişim': 'Quick access', 'İzlemediklerinin devamını gizler': 'Hides what follows unwatched titles', 'Hesap aç, her cihazda aynı görünsün.': 'Create an account to see it on every device.', 'Kayıtların': 'Your data', 'Yedekten geri yükle': 'Restore from backup', 'Kaynaklar ve haklar': 'Sources and rights', 'Adını ekle': 'Add your name',
   'Hesapsız kullanıyorsun': 'Using without an account', 'Kayıtların bu cihazda': 'Your data is on this device', 'Dil · Language': 'Language', 'Adı kaydet': 'Save name', 'Adını düzenle': 'Edit your name', 'WatchVerse 1.0': 'WatchVerse 1.0',
 };
@@ -311,6 +317,7 @@ export const EN_PATTERNS: Record<string, string> = {
   '· {0} bölüm': '· {0} episodes', '· {0}/{1} izlendi': '· {0}/{1} watched', '{0}{1} bölüm · toplam {2}': '{0}{1} episodes · {2} total', '{0} bölüm izlendi': '{0} episodes watched',
   '{0} · Diğer uyarlamalar': '{0} · Other adaptations', '{0} · Diğer diziler': '{0} · Other series', '{0} · Özel yapımlar': '{0} · Specials', '{0} · Animasyon': '{0} · Animation', '{0} · Yan diziler': '{0} · Spin-offs', '{0} · Ek yapımlar': '{0} · Extras', '{0} · Diziler': '{0} · Series',
   // en sonda genel kalıp: "A · B" parçalarını ayrı ayrı çevir
+  '{0} fragmanı': '{0} trailer',
   '{0} kayıt, yeniden eskiye.': '{0} entries, newest first.',
   '{0} · {1}': '{0} · {1}',
 };

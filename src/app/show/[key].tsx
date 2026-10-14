@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Row, TItemTile, useTileW } from '@/components/rows';
 import { BackLink, Bar, Btn, Chip, Empty, Eyebrow, FadeIn, H1, Muted, Panel, Pills, Press, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
@@ -13,6 +13,7 @@ import { catalogOf, libFromDetail, libProgress, routeOf, shortDate } from '@/lib
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
 import { itemFromDetail, useListPicker } from '@/components/lists';
+import { useTrailer } from '@/components/trailer';
 import { detail, epIndex, hasApi, img, parseKey, season as loadSeason, today, type TDetail, type TEpisode } from '@/lib/tmdb';
 
 export default function Show() {
@@ -22,6 +23,7 @@ export default function Show() {
   const { state } = store;
   const toast = useToast();
   const { pick } = useListPicker();
+  const { play } = useTrailer();
   const { tablet, width, pad } = useLayout();
   const insets = useSafeAreaInsets();
   const tileW = useTileW();
@@ -93,7 +95,7 @@ export default function Show() {
               <Feather name="chevron-left" size={24} color="#fff" />
             </Press>
             {!!d.yt && (
-              <Press accessibilityRole="button" accessibilityLabel="Fragmanı izle" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${d.yt}`)}
+              <Press accessibilityRole="button" accessibilityLabel="Fragmanı izle" onPress={() => play(d.yt!, d.title)}
                 style={{ position: 'absolute', alignSelf: 'center', top: '38%', width: 58, height: 58, borderRadius: 29, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center' }}>
                 <Feather name="play" size={24} color="#fff" style={{ marginLeft: 3 }} />
               </Press>
@@ -113,15 +115,14 @@ export default function Show() {
             {!d.pl.length && <Chip label="Türkiye'de abonelikte yok" />}
             {d.m === 'tv' && d.next && <Chip icon="calendar" label={`Yeni bölüm ${shortDate(d.next.date)}`} color={C.accentSoft} />}
           </View>
-          <Btn icon={inLib ? 'check' : 'plus'} kind={inLib ? 'success' : 'primary'} label={inLib ? 'Kütüphanemde' : 'Kütüphaneme ekle'} style={{ marginTop: 16 }}
-            onPress={() => { if (inLib) { store.libRemove(key); toast('Kütüphaneden çıkarıldı'); } else { save(); tap('success'); toast('Kütüphanene eklendi'); } }} />
+          <Btn icon="bookmark" kind={inLib ? 'success' : 'primary'} label={inLib ? 'Kütüphanende' : 'Kaydet'} style={{ marginTop: 16 }}
+            accessibilityLabel={inLib ? 'Kütüphanende; listeleri düzenle' : 'Kütüphaneme kaydet'} onPress={() => { pick(itemFromDetail(d)); if (!inLib) save(); }} />
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
             {d.m === 'movie' && (
               <Btn style={{ flex: 1 }} icon="check" kind={done ? 'success' : 'secondary'} label={done ? 'İzlendi' : 'İzledim'}
                 onPress={() => { if (!inLib) save(); store.watchKey(key, !done); tap(done ? 'light' : 'success'); toast(done ? 'İzleme işareti kaldırıldı' : 'İzlendi olarak kaydedildi'); }} />
             )}
-            {!!d.yt && <Btn style={{ flex: 1 }} icon="youtube" kind="secondary" label="Fragman" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${d.yt}`)} />}
-            <Btn style={{ flex: 1 }} icon="list" kind="secondary" label="Listeye ekle" onPress={() => pick(itemFromDetail(d))} />
+            {!!d.yt && <Btn style={{ flex: 1 }} icon="play" kind="secondary" label="Fragman" onPress={() => play(d.yt!, d.title)} />}
           </View>
         </View>
       </FadeIn>

@@ -14,7 +14,8 @@ import { duration } from '@/lib/format';
 import { episodeLabel, fraction, isDone, nextEpisode, readiness, remaining, route, totalMinutes, watchedEps } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
-import { itemFromTitle, useListPicker } from '@/components/lists';
+import { isSaved, itemFromTitle, useListPicker } from '@/components/lists';
+import { useTrailer } from '@/components/trailer';
 
 export default function TitleDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,6 +23,7 @@ export default function TitleDetail() {
   const { state } = store;
   const toast = useToast();
   const { pick } = useListPicker();
+  const { play } = useTrailer();
   const { tablet, width } = useLayout();
   const t = TBY[id || ''];
   const seasons = useMemo(() => (t ? [...new Set(t.ep.map((e) => e[0]))] : []), [t]);
@@ -45,7 +47,7 @@ export default function TitleDetail() {
 
   const u = UBY[t.u];
   const done = isDone(state, t);
-  const inList = state.list.includes(t.id);
+  const inList = isSaved(state, t.id);
   const r = readiness(state, t.id);
   const missing = r.deps.filter((d) => !isDone(state, d));
   const list = route(state, t.u);
@@ -90,10 +92,8 @@ export default function TitleDetail() {
               <Btn icon="check" kind={done ? 'success' : 'primary'}
                 label={done ? 'İzlendi · Geri al' : t.episodes ? 'Diziyi tamamladım' : 'İzledim'}
                 onPress={() => { const v = store.toggleWatched(t.id); tap(v ? 'success' : 'light'); toast(v ? 'İzlendi olarak kaydedildi' : 'İzleme işareti kaldırıldı'); }} />
-              {!!t.yt && <Btn icon="youtube" kind="secondary" label="Fragman" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${t.yt}`)} />}
-              <Btn icon={inList ? 'bookmark' : 'plus'} kind="secondary" label={inList ? 'Kütüphanemde' : 'Kütüphaneme ekle'}
-                onPress={() => { const v = store.toggleList(t.id); toast(v ? 'Kütüphanene eklendi' : 'Kütüphaneden çıkarıldı'); }} />
-              <Btn icon="list" kind="secondary" label="Listeye ekle" onPress={() => pick(itemFromTitle(t))} />
+              {!!t.yt && <Btn icon="play" kind="secondary" label="Fragman" onPress={() => play(t.yt!, t.trTitle || t.title)} />}
+              <Btn icon="bookmark" kind={inList ? 'success' : 'secondary'} label={inList ? 'Kütüphanende' : 'Kaydet'} accessibilityLabel={inList ? 'Kütüphanende; listeleri düzenle' : 'Kütüphaneme kaydet'} onPress={() => pick(itemFromTitle(t))} />
             </View>
           </View>
         </View>
