@@ -34,6 +34,21 @@ jobs:
 
       - run: npm ci
 
+      - name: Site adresini belirle
+        id: site
+        env:
+          CUSTOM_DOMAIN: ${{ secrets.CUSTOM_DOMAIN }}
+        run: |
+          D=$(echo "$CUSTOM_DOMAIN" | sed -E 's#^https?://##; s#/.*$##' | tr -d '[:space:]')
+          OLD="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          if [ -n "$D" ]; then
+            echo "url=https://$D/" >> "$GITHUB_OUTPUT"; echo "base=" >> "$GITHUB_OUTPUT"; echo "domain=$D" >> "$GITHUB_OUTPUT"
+            echo "::notice::Site adresi: https://$D/"
+          else
+            echo "url=$OLD" >> "$GITHUB_OUTPUT"; echo "base=/${{ github.event.repository.name }}" >> "$GITHUB_OUTPUT"; echo "domain=" >> "$GITHUB_OUTPUT"
+          fi
+          echo "old=$OLD" >> "$GITHUB_OUTPUT"
+
       - name: Yeni bölüm, sezon ve yapımları bul
         if: github.event_name != 'push'
         env:
@@ -60,7 +75,7 @@ jobs:
           TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          SITE_URL: ${{ steps.site.outputs.url }}
         run: node scripts/notify.mjs || true
 
       - name: Katalogu kaydet
@@ -95,7 +110,10 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          SITE_URL: ${{ steps.site.outputs.url }}
+          OLD_SITE_URL: ${{ steps.site.outputs.old }}
         run: node scripts/setup-supabase.mjs
 
       - name: Web uygulamasını hazırla
@@ -105,11 +123,13 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ steps.supa.outputs.supabase_url }}
           EXPO_PUBLIC_SUPABASE_KEY: ${{ steps.supa.outputs.supabase_key }}
           EXPO_PUBLIC_BUILD: ${{ github.sha }}
-          EXPO_BASE_URL: /${{ github.event.repository.name }}
-          EXPO_PUBLIC_CATALOG_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/catalog.json
+          EXPO_BASE_URL: ${{ steps.site.outputs.base }}
+          EXPO_PUBLIC_CATALOG_URL: ${{ steps.site.outputs.url }}catalog.json
+          DOMAIN: ${{ steps.site.outputs.domain }}
         run: |
           npx expo export --platform web --output-dir dist
           node scripts/pwa.mjs dist "$EXPO_BASE_URL"
+          if [ -n "$DOMAIN" ]; then echo "$DOMAIN" > dist/CNAME; fi
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

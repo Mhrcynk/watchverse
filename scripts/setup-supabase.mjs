@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const { SUPABASE_ACCESS_TOKEN: TOKEN, SUPABASE_PROJECT_REF: REF_RAW, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SITE_URL } = process.env;
+const { SUPABASE_ACCESS_TOKEN: TOKEN, SUPABASE_PROJECT_REF: REF_RAW, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SITE_URL, OLD_SITE_URL, RESEND_API_KEY, MAIL_FROM } = process.env;
 const out = (k, v) => process.env.GITHUB_OUTPUT && fs.appendFileSync(process.env.GITHUB_OUTPUT, `${k}=${v}\n`);
 const empty = () => { out('supabase_url', ''); out('supabase_key', ''); };
 
@@ -22,6 +22,17 @@ if (!TOKEN || !REF_RAW) { console.log('::warning::Supabase bilgileri yok; üyeli
 // Proje kimliği ya da proje adresi yapıştırılmış olabilir
 const REF = (REF_RAW.match(/([a-z]{20})/) || [])[1];
 if (!REF) { console.log('::error::SUPABASE_PROJECT_REF geçersiz. Proje adresindeki 20 harflik kimliği yapıştır.'); empty(); process.exit(0); }
+
+function mail(title, text, cta, url) {
+  return `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#000;padding:32px 20px;color:#F5F5F7">
+<div style="max-width:440px;margin:0 auto;background:#121215;border-radius:16px;padding:28px">
+<div style="font-weight:800;font-size:20px">Watch<span style="color:#FF5D65">Verse</span></div>
+<h1 style="font-size:22px;margin:24px 0 8px">${title}</h1>
+<p style="font-size:15px;line-height:22px;color:#A9A9B2;margin:0 0 22px">${text}</p>
+<a href="${url}" style="display:inline-block;background:#E3262F;color:#fff;text-decoration:none;font-weight:600;padding:13px 22px;border-radius:12px">${cta}</a>
+<p style="font-size:12px;color:#80808A;margin:24px 0 0">Düğme çalışmazsa bu adresi tarayıcına yapıştır:<br>${url}</p>
+</div></div>`;
+}
 
 async function api(p, init = {}) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}${p}`, { ...init, headers: { Authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json', ...(init.headers || {}) } });
@@ -44,11 +55,19 @@ console.log('Veritabanı hazır.');
 const site = (SITE_URL || '').replace(/\/?$/, '/');
 const auth = {
   site_url: site,
-  uri_allow_list: [site + '**', 'http://localhost:8081/**'].join(','),
+  uri_allow_list: [...new Set([site + '**', OLD_SITE_URL ? OLD_SITE_URL.replace(/\/?$/, '/') + '**' : '', 'http://localhost:8081/**'].filter(Boolean))].join(','),
   external_email_enabled: true,
   mailer_autoconfirm: true, // onay maili beklemeden giriş (ücretsiz mail gönderimi çok sınırlı)
   password_min_length: 8,
+  // Türkçe mail metinleri
+  mailer_subjects_confirmation: 'WatchVerse hesabını onayla',
+  mailer_templates_confirmation_content: mail('Hesabını onayla', 'WatchVerse hesabını açmak için aşağıdaki düğmeye dokun.', 'Hesabımı onayla', '{{ .ConfirmationURL }}'),
+  mailer_subjects_recovery: 'WatchVerse şifreni yenile',
+  mailer_templates_recovery_content: mail('Şifreni yenile', 'Yeni bir şifre belirlemek için aşağıdaki düğmeye dokun. Bu isteği sen yapmadıysan bu maili yok sayabilirsin.', 'Şifremi yenile', '{{ .ConfirmationURL }}'),
 };
+// Kendi mail servisin (Resend) bağlıysa: herkese mail gider, hesap açarken onay maili istenir
+const smtp = !!(RESEND_API_KEY && MAIL_FROM);
+if (smtp) Object.assign(auth, { smtp_host: 'smtp.resend.com', smtp_port: '465', smtp_user: 'resend', smtp_pass: RESEND_API_KEY.trim(), smtp_admin_email: MAIL_FROM.trim(), smtp_sender_name: 'WatchVerse', rate_limit_email_sent: 30, mailer_autoconfirm: false });
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) Object.assign(auth, { external_google_enabled: true, external_google_client_id: GOOGLE_CLIENT_ID.trim(), external_google_secret: GOOGLE_CLIENT_SECRET.trim() });
 const a = await api('/config/auth', { method: 'PATCH', body: JSON.stringify(auth) });
 const google = !!auth.external_google_enabled && a.ok;
@@ -70,4 +89,4 @@ if (e.ok && Array.isArray(e.j)) errs = e.j.length ? ' | Son 7 gün hatalar: ' + 
 const users = await sql('select count(*)::int as n from auth.users');
 const n = users.ok && Array.isArray(users.j) ? users.j[0]?.n : '?';
 
-console.log(`::notice::Uyelik hazir: ${url} | Google girisi ${google ? 'acik' : 'kapali'} | ${n} hesap${errs}`);
+console.log(`::notice::Uyelik hazir: ${url} | Google girisi ${google ? 'acik' : 'kapali'} | Mail servisi ${smtp && a.ok ? 'bagli' : 'yok (yalnizca sana gider)'} | ${n} hesap${errs}`);
