@@ -15,7 +15,11 @@ export type TDetail = TItem & {
   tagline: string; runtime: number | null; genres: string[]; status: string; countries: string[];
   seasons: TSeason[]; aired: number; last: { s: number; e: number; date: string } | null; next: { s: number; e: number; date: string } | null;
   pl: string[]; yt: string | null; recs: TItem[]; at: number;
+  /** başroller ve yönetmen / yaratıcı */
+  cast: Person[]; makers: Person[];
 };
+export type Person = { id: number; name: string; role: string; p: string | null };
+export type PersonDetail = { id: number; name: string; p: string | null; bio: string; born: string | null; died: string | null; place: string | null; dept: string; acting: (TItem & { role: string })[]; directing: TItem[] };
 export type TEpisode = { s: number; e: number; name: string; date: string | null; runtime: number | null; overview: string; still: string | null };
 
 export const keyOf = (m: Media, id: number) => `${m}:${id}`;
@@ -73,9 +77,37 @@ const items = (arr: any[] | undefined, m?: Media) => (arr || []).map((r) => item
 
 /* ---------- arama ve listeler ---------- */
 export async function search(q: string): Promise<TItem[]> {
+  return (await searchAll(q)).items;
+}
+/** Film, dizi ve kişiler (oyuncu, yönetmen) birlikte */
+export async function searchAll(q: string): Promise<{ items: TItem[]; people: (Person & { known: string })[] }> {
   const j = await get<any>('/search/multi', { query: q.trim(), include_adult: 'false', region: 'TR' }, 30);
   // Önce afişi olan ve oy almış olanlar
-  return items(j.results).sort((a, b) => Number(!!b.p) - Number(!!a.p) || b.votes - a.votes).slice(0, 40);
+  const list = items(j.results).sort((a, b) => Number(!!b.p) - Number(!!a.p) || b.votes - a.votes).slice(0, 40);
+  const people = (j.results || []).filter((r: any) => r.media_type === 'person' && r.id && r.name)
+    .sort((a: any, b: any) => Number(!!b.profile_path) - Number(!!a.profile_path) || (b.popularity || 0) - (a.popularity || 0)).slice(0, 12)
+    .map((r: any) => ({ id: r.id, name: r.name, role: deptTr(r.known_for_department), p: r.profile_path || null, known: (r.known_for || []).map((k: any) => k.title || k.name).filter(Boolean).slice(0, 2).join(', ') }));
+  return { items: list, people };
+}
+const DEPT: Record<string, string> = { Acting: 'Oyuncu', Directing: 'Yönetmen', Writing: 'Senarist', Production: 'Yapımcı', Sound: 'Müzik', Camera: 'Görüntü', Editing: 'Kurgu', Creator: 'Yaratıcı' };
+export const deptTr = (d?: string) => (d ? DEPT[d] || d : '');
+
+/** Kişi sayfası: biyografi ve yapımları (oyunculuk ve yönetmenlik ayrı) */
+export async function person(id: number): Promise<PersonDetail> {
+  const j = await get<any>(`/person/${id}`, { append_to_response: 'combined_credits' }, 720, true);
+  let bio: string = (j.biography || '').trim();
+  if (!bio && !isEn) { try { bio = ((await get<any>(`/person/${id}`, { language: 'en-US' }, 720, true)).biography || '').trim(); } catch {} }
+  const seen = new Set<string>();
+  const acting = (j.combined_credits?.cast || [])
+    .filter((c: any) => !(c.media_type === 'tv' && [10767, 10763, 10764].some((g) => (c.genre_ids || []).includes(g))) && !/^(Self|Himself|Herself|Kendisi)/i.test(c.character || ''))
+    .map((c: any) => { const x = item(c); return x ? { ...x, role: c.character || '' } : null; })
+    .filter((x: any) => x && !seen.has(x.key) && seen.add(x.key))
+    .sort((a: any, b: any) => b.votes - a.votes);
+  const seenD = new Set<string>();
+  const directing = (j.combined_credits?.crew || []).filter((c: any) => c.job === 'Director' || c.job === 'Creator' || c.department === 'Directing')
+    .map((c: any) => item(c)).filter((x: TItem | null): x is TItem => !!x && !seenD.has(x.key) && !!seenD.add(x.key))
+    .sort((a: TItem, b: TItem) => b.votes - a.votes);
+  return { id: j.id, name: j.name || '', p: j.profile_path || null, bio, born: j.birthday || null, died: j.deathday || null, place: j.place_of_birth || null, dept: deptTr(j.known_for_department), acting, directing };
 }
 /** Yalnızca film ya da yalnızca dizi arar (içe aktarma için); yıl verilirse ona göre daraltır */
 export async function searchKind(m: Media, q: string, year?: number): Promise<TItem[]> {
@@ -106,7 +138,7 @@ const NAME: [RegExp, string][] = [
 export const niceProvider = (n: string) => (NAME.find(([re]) => re.test(n)) || [null, n])[1];
 
 export async function detail(m: Media, id: number, fresh = false): Promise<TDetail> {
-  const j = await get<any>(`/${m}/${id}`, { append_to_response: 'watch/providers,videos,recommendations' }, fresh ? 0 : 360, true);
+  const j = await get<any>(`/${m}/${id}`, { append_to_response: 'watch/providers,videos,recommendations,credits' }, fresh ? 0 : 360, true);
   const base = item(j, m)!;
   const t = today();
   const seasons: TSeason[] = (j.seasons || []).filter((s: any) => s.season_number > 0)
@@ -125,6 +157,11 @@ export async function detail(m: Media, id: number, fresh = false): Promise<TDeta
     seasons, aired, last, next,
     pl: [...new Set<string>(prov.map((p: any) => niceProvider(p.provider_name)))],
     yt: vids[0]?.key || null, recs: items(j.recommendations?.results).slice(0, 16), at: Date.now(),
+    cast: (j.credits?.cast || []).slice(0, 14).map((c: any) => ({ id: c.id, name: c.name, role: c.character || '', p: c.profile_path || null })),
+    makers: [
+      ...(j.created_by || []).map((c: any) => ({ id: c.id, name: c.name, role: 'Yaratıcı', p: c.profile_path || null })),
+      ...(j.credits?.crew || []).filter((c: any) => c.job === 'Director').map((c: any) => ({ id: c.id, name: c.name, role: 'Yönetmen', p: c.profile_path || null })),
+    ].filter((x, i, a) => a.findIndex((y) => y.id === x.id) === i).slice(0, 4),
   };
 }
 

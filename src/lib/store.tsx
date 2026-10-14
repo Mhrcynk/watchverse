@@ -25,6 +25,8 @@ export const initialState = (): State => ({
   lib: {},
   lists: {},
   log: {},
+  dropped: {},
+  rewatch: {},
   branches: {},
   spoiler: true,
   dv: 3,
@@ -102,6 +104,10 @@ export function sanitize(input: unknown): State {
     if (TBY[x.k]) { if (!out.list.includes(x.k)) out.list.push(x.k); continue; }
     if (!out.lib[x.k]) { const [m, n] = x.k.split(':'); out.lib[x.k] = { m: m as LibItem['m'], id: Number(n), title: x.t, year: x.y, p: x.p, b: null, added: x.at }; }
   }
+  out.dropped = {};
+  for (const [k, v] of Object.entries(s.dropped || {})) if (known(k) && typeof v === 'number' && v) out.dropped[k] = v;
+  out.rewatch = {};
+  for (const [k, v] of Object.entries(s.rewatch || {})) if (known(k) && Number.isInteger(v) && v > 0) out.rewatch[k] = Math.min(v, 99);
   out.log = {};
   for (const [mon, v] of Object.entries(s.log || {})) if (/^\d{4}-\d{2}$/.test(mon) && v && typeof v === 'object') out.log[mon] = { f: Math.max(0, Number(v.f) || 0), e: Math.max(0, Number(v.e) || 0), m: Math.max(0, Number(v.m) || 0) };
   out.branches = {};
@@ -159,6 +165,10 @@ type Actions = {
   libRemove: (key: string) => void;
   watchKey: (key: string, value: boolean) => void;
   setEpsKey: (key: string, nums: number[], value: boolean) => void;
+  /** diziyi yarıda bıraktım / yeniden başladım */
+  setDropped: (key: string, on: boolean) => void;
+  /** filmi bir kez daha izledim (+1) ya da geri al (−1) */
+  rewatch: (key: string, delta: 1 | -1) => void;
   ensureDevice: () => string;
   /** Kendi listeler */
   listCreate: (name: string, first?: ListItem | ListItem[]) => string;
@@ -179,7 +189,17 @@ type Ctx = { state: State; ready: boolean } & Actions;
 const StoreContext = createContext<Ctx | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setRaw] = useState<State>(initialState);
+  const [state, setRawInner] = useState<State>(initialState);
+  // Bırakılan bir dizide yeni bölüm işaretlenirse otomatik olarak yeniden başlamış sayılır
+  const setRaw = useCallback((fn: State | ((s: State) => State)) => setRawInner((prev) => {
+    const next = typeof fn === 'function' ? fn(prev) : fn;
+    if (next === prev || next.episodes === prev.episodes || !next.dropped) return next;
+    let dropped = next.dropped;
+    for (const [k, v] of Object.entries(next.dropped)) {
+      if (v > 0 && (next.episodes[k]?.length || 0) > (prev.episodes[k]?.length || 0)) { if (dropped === next.dropped) dropped = { ...dropped }; dropped[k] = -Date.now(); }
+    }
+    return dropped === next.dropped ? next : { ...next, dropped };
+  }), []);
   const [ready, setReady] = useState(false);
   const ref = useRef(state);
   ref.current = state;
@@ -316,6 +336,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const episodes = { ...s.episodes };
       if (set.size) episodes[key] = [...set].filter((n) => n >= 1).sort((a, b) => a - b); else delete episodes[key];
       return { ...s, episodes, touched: { ...s.touched, [key]: Date.now() }, log: bumpEps(s, key, s.episodes[key] || [], episodes[key] || []) };
+    }),
+    setDropped: (key, on) => setRaw((s) => ({ ...s, dropped: { ...s.dropped, [key]: on ? Date.now() : -Date.now() }, touched: { ...s.touched, [key]: Date.now() } })),
+    rewatch: (key, delta) => setRaw((s) => {
+      const n = Math.max(0, (s.rewatch[key] || 0) + delta);
+      const rewatch = { ...s.rewatch }; if (n) rewatch[key] = n; else delete rewatch[key];
+      const m = minutesOf(s, key);
+      // yeniden izleme de o ayın izleme süresine eklenir; izleme zamanı en son izlemeye taşınır
+      return { ...s, rewatch, log: bump(s, { f: delta, m: m * delta }), watched: delta > 0 ? { ...s.watched, [key]: Date.now() } : s.watched, touched: { ...s.touched, [key]: Date.now() } };
     }),
     listCreate(name, first) {
       const id = newId();

@@ -120,7 +120,7 @@ export default function Home() {
             </Row>
           )}
           {soon.length > 0 && (
-            <Row title="Yakında" note={state.follow.length ? 'evrenlerinde' : undefined}>
+            <Row title="Yakında" onMore={() => router.push('/calendar')}>
               {soon.map((x, i) => <SoonCard key={x.k + x.date} x={x} width={Math.round(w * 1.1)} index={i} />)}
             </Row>
           )}

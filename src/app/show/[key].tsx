@@ -12,6 +12,8 @@ import { duration } from '@/lib/format';
 import { catalogOf, libFromDetail, libProgress, routeOf, shortDate } from '@/lib/library';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
+import { RecommendBanner, TitleExtras } from '@/components/extras';
+import { CastRow } from '@/components/people';
 import { itemFromDetail, useListPicker } from '@/components/lists';
 import { useTrailer } from '@/components/trailer';
 import { detail, epIndex, hasApi, img, parseKey, season as loadSeason, today, type TDetail, type TEpisode } from '@/lib/tmdb';
@@ -115,7 +117,9 @@ export default function Show() {
             {!d.pl.length && <Chip label="Türkiye'de abonelikte yok" />}
             {d.m === 'tv' && d.next && <Chip icon="calendar" label={`Yeni bölüm ${shortDate(d.next.date)}`} color={C.accentSoft} />}
           </View>
-          <Btn icon="bookmark" kind={inLib ? 'success' : 'primary'} label={inLib ? 'Kütüphanende' : 'Kaydet'} style={{ marginTop: 16 }}
+          <View style={{ height: 16 }} />
+          <RecommendBanner />
+          <Btn icon="bookmark" kind={inLib ? 'success' : 'primary'} label={inLib ? 'Kütüphanende' : 'Kaydet'}
             accessibilityLabel={inLib ? 'Kütüphanende; listeleri düzenle' : 'Kütüphaneme kaydet'} onPress={() => { pick(itemFromDetail(d)); if (!inLib) save(); }} />
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
             {d.m === 'movie' && (
@@ -124,6 +128,7 @@ export default function Show() {
             )}
             {!!d.yt && <Btn style={{ flex: 1 }} icon="play" kind="secondary" label="Fragman" onPress={() => play(d.yt!, d.title)} />}
           </View>
+          <TitleExtras k={key} title={d.title} path={`show/${key}`} movie={d.m === 'movie'} done={done} started={pr.done > 0 || inLib} />
         </View>
       </FadeIn>
 
@@ -134,6 +139,8 @@ export default function Show() {
           {!!d.overview && <Text style={{ fontFamily: F.regular, fontSize: 16, lineHeight: 25, color: C.text, marginTop: 8 }}>{d.overview}</Text>}
         </Panel>
       ) : null}
+
+      <CastRow cast={d.cast || []} makers={d.makers || []} />
 
       <Panel style={{ marginTop: 14 }}>
         <Eyebrow>Senin değerlendirmen</Eyebrow>

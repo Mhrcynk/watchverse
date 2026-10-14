@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 import { Backdrop, PageHeader } from '@/components/home';
 import { MediaCard } from '@/components/media';
 import { usePreview } from '@/components/preview';
@@ -13,12 +13,16 @@ import { useStore } from '@/lib/store';
 import { C, F, R } from '@/lib/theme';
 import { img } from '@/lib/tmdb';
 
-type Part = 'watching' | 'plan' | 'done';
-const PARTS: [Part, string][] = [['watching', 'İzliyorum'], ['plan', 'İzleyeceğim'], ['done', 'Bitirdim']];
+type Part = 'watching' | 'plan' | 'done' | 'dropped';
+const PARTS: [Part, string][] = [['watching', 'İzliyorum'], ['plan', 'İzleyeceğim'], ['done', 'Bitirdim'], ['dropped', 'Bıraktım']];
+type Sort = 'recent' | 'az' | 'year';
+const SORTS: [Sort, string][] = [['recent', 'Son işlem'], ['az', 'A–Z'], ['year', 'Yıl']];
+const norm = (x: string) => x.toLocaleLowerCase('tr').normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
 const EMPTY: Record<Part, [string, string]> = {
   watching: ['Şu an izlediğin bir dizi yok.', 'Bir dizinin bölümünü işaretlediğinde burada görünür.'],
   plan: ['İzleyeceklerin boş.', 'Bir yapım bulup "Kaydet"e dokun.'],
   done: ['Henüz bitirdiğin bir şey yok.', 'İzlediğin filmler ve bitirdiğin diziler burada birikir.'],
+  dropped: ['Yarıda bıraktığın bir şey yok.', 'Bir dizinin sayfasında "Bıraktım"a dokunursan burada durur.'],
 };
 
 /** Kütüphanem: kaydedilen her şey; listeler aynı filtre satırında klasör gibi durur */
@@ -30,9 +34,17 @@ export default function Library() {
   const lists = useMemo(() => Object.values(state.lists).sort((a, b) => b.updated - a.updated), [state.lists]);
   const first: Part = e.watching.length ? 'watching' : e.plan.length ? 'plan' : 'done';
   const [sel, setSel] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const [sort, setSort] = useState<Sort>('recent');
+  const match = (title: string) => !q.trim() || norm(title).includes(norm(q.trim()));
+  const order = <T,>(arr: T[], title: (x: T) => string, year: (x: T) => number | null) =>
+    sort === 'recent' ? arr : [...arr].sort((a, b) => (sort === 'az' ? title(a).localeCompare(title(b), 'tr') : (year(b) || 0) - (year(a) || 0)));
   const cur = sel && (PARTS.some(([p]) => p === sel) || state.lists[sel]) ? sel : first;
   const list = state.lists[cur];
 
+  const listItems = list ? order(list.items.filter((x) => match(x.t)), (x) => x.t, (x) => x.y) : [];
+  const partItems = list ? [] : order(e[cur as Part].filter((x) => match(x.title)), (x) => x.title, (x) => x.year);
+  const noHit = !!q.trim() && (list ? list.items.length > 0 && !listItems.length : e[cur as Part].length > 0 && !partItems.length);
   const openEntry = (k: string) => {
     if (TBY[k]) return openTitle(TBY[k]);
     const c = catalogOf(k); if (c) return openTitle(c);
@@ -46,11 +58,27 @@ export default function Library() {
       <PageHeader bold="Kütüphanem" sub="Kaydettiğin her şey ve listelerin bir arada." />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -pad, marginTop: 18 }} contentContainerStyle={{ gap: 8, paddingHorizontal: pad }}>
-        {PARTS.map(([p, label]) => <Chip key={p} label={`${label} · ${e[p].length}`} active={cur === p} onPress={() => setSel(p)} />)}
+        {PARTS.filter(([p]) => p !== 'dropped' || e.dropped.length || cur === 'dropped').map(([p, label]) => <Chip key={p} label={`${label} · ${e[p].length}`} active={cur === p} onPress={() => setSel(p)} />)}
         {lists.length > 0 && <View style={{ width: 1, marginHorizontal: 4, backgroundColor: C.line }} />}
         {lists.map((l) => <Chip key={l.id} icon="folder" label={`${l.name} · ${l.items.length}`} active={cur === l.id} onPress={() => setSel(l.id)} />)}
         <Chip icon="plus" label="Yeni liste" onPress={() => router.push('/lists/new')} />
       </ScrollView>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 }}>
+        <View style={{ flex: 1, height: 42, borderRadius: 14, backgroundColor: C.card, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 }}>
+          <Feather name="search" size={16} color={C.muted} />
+          <TextInput value={q} onChangeText={setQ} placeholder="Kütüphanende ara" placeholderTextColor={C.dim} accessibilityLabel="Kütüphanende ara" returnKeyType="search"
+            style={{ flex: 1, height: 42, color: C.text, fontFamily: F.regular, fontSize: 14.5, outlineStyle: 'none' } as never} />
+          {!!q && <Press accessibilityRole="button" accessibilityLabel="Aramayı temizle" onPress={() => setQ('')} hitSlop={8}><Feather name="x" size={16} color={C.muted} /></Press>}
+        </View>
+        <Press accessibilityRole="button" accessibilityLabel={`Sıralama: ${SORTS.find(([k]) => k === sort)![1]}`} onPress={() => setSort(SORTS[(SORTS.findIndex(([k]) => k === sort) + 1) % SORTS.length][0])} scaleTo={0.95}
+          style={{ height: 42, paddingHorizontal: 12, borderRadius: 14, backgroundColor: C.card, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Feather name="bar-chart-2" size={15} color={C.accent} style={{ transform: [{ rotate: '90deg' }] }} />
+          <Text style={{ fontFamily: F.semibold, fontSize: 13, color: C.text }}>{SORTS.find(([k]) => k === sort)![1]}</Text>
+        </Press>
+      </View>
+
+      {noHit && <Small style={{ marginTop: 18 }}>“{q.trim()}” için bu bölümde bir şey yok.</Small>}
 
       {list ? (
         <>
@@ -67,7 +95,7 @@ export default function Library() {
           </View>
           <View style={{ marginTop: 16 }}>
             {list.items.length ? (
-              <Grid items={list.items} cols={posterCols} gap={14} rowGap={22} keyOf={(x) => x.k}
+              <Grid items={listItems} cols={posterCols} gap={14} rowGap={22} keyOf={(x) => x.k}
                 render={(x, cw) => <MediaCard uri={img(x.p, 'w342')} title={x.t} sub={x.y ? String(x.y) : undefined} width={cw} onPress={() => openKey(x.k, { title: x.t, year: x.y, p: x.p })} />} />
             ) : <Empty icon="folder" title="Bu liste boş." text={'Bir yapımda "Kaydet"e dokunup bu listeyi seç.'} action="Keşfet'e git" onAction={() => router.push('/explore')} />}
           </View>
@@ -75,7 +103,7 @@ export default function Library() {
       ) : (
         <View style={{ marginTop: 20 }}>
           {e[cur as Part].length ? (
-            <Grid items={e[cur as Part]} cols={posterCols} gap={14} rowGap={22} keyOf={(x) => x.key}
+            <Grid items={partItems} cols={posterCols} gap={14} rowGap={22} keyOf={(x) => x.key}
               render={(x, cw) => <MediaCard uri={x.poster} title={x.title} sub={x.sub} badge={x.tag} pct={cur === 'watching' ? x.pct : undefined} width={cw} onPress={() => openEntry(x.key)} />} />
           ) : <Empty icon="bookmark" title={EMPTY[cur as Part][0]} text={EMPTY[cur as Part][1]} action="Keşfet'e git" onAction={() => router.push('/explore')} />}
           {e[cur as Part].length > 0 && <Small style={{ marginTop: 20 }}>En son dokunduğun en üstte.</Small>}

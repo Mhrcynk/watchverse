@@ -18,9 +18,9 @@ async function pushList(l: UList, ownerName: string, slug: string) {
 }
 
 /** Bağlantıyı paylaşma penceresi ya da panoya kopyalama */
-export async function shareLink(url: string, title: string, toast: (m: string) => void) {
+export async function shareLink(url: string, title: string, toast: (m: string) => void, text?: string) {
   if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'share' in navigator) {
-    try { await navigator.share({ title, url }); return; } catch (e) { if ((e as Error)?.name === 'AbortError') return; }
+    try { await navigator.share(text ? { title, text, url } : { title, url }); return; } catch (e) { if ((e as Error)?.name === 'AbortError') return; }
   }
   toast((await copyText(url)) ? 'Bağlantı kopyalandı' : url);
 }

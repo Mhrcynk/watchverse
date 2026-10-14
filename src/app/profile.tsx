@@ -105,6 +105,7 @@ export default function Profile() {
       )}
 
       <Group title="Hızlı erişim">
+        <Item icon="calendar" label="Yayın takvimi" onPress={() => router.push('/calendar')} />
         <Item icon="bar-chart-2" label="İstatistikler" onPress={() => router.push('/stats')} />
         <Item icon="users" label="Arkadaşlar" onPress={() => router.push('/friends')} />
         <Item icon="sliders" label="Evrenlerini düzenle" onPress={() => router.push('/onboarding')} />

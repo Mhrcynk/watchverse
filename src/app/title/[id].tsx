@@ -1,5 +1,5 @@
 import { isEn } from '@/lib/i18n';
-import { detail } from '@/lib/tmdb';
+import { detail, hasApi, type Person } from '@/lib/tmdb';
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
@@ -14,6 +14,8 @@ import { duration } from '@/lib/format';
 import { episodeLabel, fraction, isDone, nextEpisode, readiness, remaining, route, totalMinutes, watchedEps } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
+import { RecommendBanner, TitleExtras } from '@/components/extras';
+import { CastRow } from '@/components/people';
 import { isSaved, itemFromTitle, useListPicker } from '@/components/lists';
 import { useTrailer } from '@/components/trailer';
 
@@ -37,9 +39,12 @@ export default function TitleDetail() {
   const [showAllDeps, setShowAllDeps] = useState(false);
   // İngilizcede özet TMDB'den İngilizce alınır
   const [enSummary, setEnSummary] = useState<string | null>(null);
+  const [credits, setCredits] = useState<{ cast: Person[]; makers: Person[] } | null>(null);
   useEffect(() => {
-    if (!isEn || !t?.tmdb?.id || t.tmdb.id < 0) return;
-    detail((t.tmdb.m || t.media) as 'movie' | 'tv', t.tmdb.id).then((d) => setEnSummary(d.overview || null), () => {});
+    setCredits(null);
+    if (!t?.tmdb?.id || t.tmdb.id < 0 || !hasApi()) return;
+    // Oyuncular ve (İngilizcede) konu özeti TMDB'den
+    detail((t.tmdb.m || t.media) as 'movie' | 'tv', t.tmdb.id).then((d) => { if (isEn) setEnSummary(d.overview || null); setCredits({ cast: d.cast || [], makers: d.makers || [] }); }, () => {});
   }, [t?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const summary = isEn ? enSummary : t?.summary;
 
@@ -67,6 +72,7 @@ export default function TitleDetail() {
   return (
     <Screen>
       <BackLink label={u.name} onPress={back} />
+      <RecommendBanner />
 
       <View style={{ borderRadius: R.xl, overflow: 'hidden', backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line }}>
         {bd ? <Image source={{ uri: bd }} style={StyleSheet.absoluteFill} contentFit="cover" /> : (
@@ -95,6 +101,7 @@ export default function TitleDetail() {
               {!!t.yt && <Btn icon="play" kind="secondary" label="Fragman" onPress={() => play(t.yt!, t.trTitle || t.title)} />}
               <Btn icon="bookmark" kind={inList ? 'success' : 'secondary'} label={inList ? 'Kütüphanende' : 'Kaydet'} accessibilityLabel={inList ? 'Kütüphanende; listeleri düzenle' : 'Kütüphaneme kaydet'} onPress={() => pick(itemFromTitle(t))} />
             </View>
+            <TitleExtras k={t.id} title={t.trTitle || t.title} path={`title/${t.id}`} movie={!t.episodes} done={done} started={eps > 0} />
           </View>
         </View>
       </View>
@@ -105,6 +112,8 @@ export default function TitleDetail() {
           <Text style={{ fontFamily: F.regular, fontSize: 16, lineHeight: 25, color: C.text, marginTop: 8 }}>{summary}</Text>
         </Panel>
       ) : null}
+
+      {credits && <CastRow cast={credits.cast} makers={credits.makers} />}
 
       <Panel style={{ marginTop: 14 }}>
         <Eyebrow>Senin değerlendirmen</Eyebrow>

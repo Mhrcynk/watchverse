@@ -94,6 +94,10 @@ export type State = {
   lists: Record<string, UList>;
   /** aylık izleme özeti ('2026-10' → sayılar) */
   log: Record<string, MonthLog>;
+  /** yarıda bırakılanlar: +zaman = bıraktı, −zaman = yeniden başladı (eşitlemede büyük olan kazanır) */
+  dropped: Record<string, number>;
+  /** filmlerde ilk izlemeden sonraki ek izleme sayısı */
+  rewatch: Record<string, number>;
   /** bu cihazın kimliği (bildirim ve eşitleme için) */
   device?: string;
   /** son yedek zamanı (ms) */

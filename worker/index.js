@@ -10,6 +10,7 @@ const ALLOW = [
   /^\/(movie|tv)\/\d+$/,
   /^\/(movie|tv)\/\d+\/(watch\/providers|videos|recommendations|credits|images)$/,
   /^\/search\/company$/,
+  /^\/person\/\d+$/,
   /^\/tv\/\d+\/season\/\d+$/,
   /^\/trending\/(all|movie|tv)\/(day|week)$/,
   /^\/discover\/(movie|tv)$/,

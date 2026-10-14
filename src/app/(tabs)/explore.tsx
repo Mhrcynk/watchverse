@@ -5,7 +5,8 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { scoreText, usePreview } from '@/components/preview';
-import { TItemTile } from '@/components/rows';
+import { PersonChip } from '@/components/people';
+import { Row, TItemTile } from '@/components/rows';
 import { MediaCard, PosterCard } from '@/components/media';
 import { Btn, Chip, Empty, Eyebrow, Grid, H1, Pills, Press, Screen, SectionHead, Small, useLayout } from '@/components/ui';
 import { Backdrop, PageHeader } from '@/components/home';
@@ -14,7 +15,7 @@ import { CATALOG, CATEGORIES, CATEGORY_TR, search as searchCatalog } from '@/lib
 import { routeOf } from '@/lib/library';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
-import { GENRES, discover, hasApi, img, niceProvider, providers, search, today, trending, type TItem } from '@/lib/tmdb';
+import { GENRES, discover, hasApi, img, niceProvider, providers, searchAll, today, trending, type Person, type TItem } from '@/lib/tmdb';
 
 const PAGE = 48;
 const PLATFORMS = ['Netflix', 'Disney+', 'Prime Video', 'HBO Max', 'TOD', 'Exxen', 'tabii', 'Gain', 'BluTV', 'Apple TV+'];
@@ -50,6 +51,7 @@ function Online() {
   const { openTitle } = usePreview();
   const [type, setType] = useState<'all' | 'movie' | 'tv'>('all');
   const [res, setRes] = useState<TItem[] | null>(null);
+  const [people, setPeople] = useState<(Person & { known: string })[]>([]);
   const [err, setErr] = useState(false);
   const [plats, setPlats] = useState<{ id: number; name: string }[]>([]);
   const query = q.trim();
@@ -70,7 +72,7 @@ function Online() {
     let alive = true;
     const h = setTimeout(() => {
       setRes(null); setErr(false);
-      search(query).then((r) => alive && setRes(r)).catch(() => alive && setErr(true));
+      searchAll(query).then((r) => { if (alive) { setRes(r.items); setPeople(r.people); } }).catch(() => alive && setErr(true));
     }, 350);
     return () => { alive = false; clearTimeout(h); };
   }, [query]);
@@ -83,7 +85,7 @@ function Online() {
     <Screen>
       <Backdrop />
       <View style={{ marginBottom: 18 }}><PageHeader bold="Keşfet" light={isEn ? undefined : 've bul'} sub="Tüm film ve diziler: ara, kategoriye göz at." /></View>
-      <SearchBox q={q} setQ={setQ} placeholder="Film ya da dizi ara" />
+      <SearchBox q={q} setQ={setQ} placeholder="Film, dizi ya da kişi ara" />
 
       {query.length >= 2 ? (
         <>
@@ -98,8 +100,13 @@ function Online() {
           </View>
           {err ? <Empty icon="wifi-off" title="Arama yapılamadı." text="İnternet bağlantını kontrol edip tekrar dene." />
             : res === null ? <View style={{ paddingVertical: 40, alignItems: 'center' }}><ActivityIndicator color={C.accentSoft} /></View>
-            : shown.length ? (
+            : shown.length || (type === 'all' && people.length) ? (
               <>
+                {type === 'all' && people.length > 0 && (
+                  <Row title="Kişiler" note={`${people.length}`}>
+                    {people.map((p) => <PersonChip key={p.id} p={p} sub={p.known || p.role} />)}
+                  </Row>
+                )}
                 <Small style={{ marginVertical: 14 }}>{shown.length} sonuç</Small>
                 <Grid items={shown} cols={posterCols} gap={14} rowGap={22} keyOf={(x) => x.key}
                   render={(x, cw) => <ResultCard x={x} width={cw} />} />

@@ -74,6 +74,10 @@ export function mergeStates(local: State, remote: State): State {
   for (const [k, v] of Object.entries(local.lists)) { const r = out.lists[k]; out.lists[k] = !r || v.updated >= r.updated ? v : r; }
   out.log = { ...remote.log };
   for (const [k, v] of Object.entries(local.log)) { const r = out.log[k]; out.log[k] = r ? { f: Math.max(v.f, r.f), e: Math.max(v.e, r.e), m: Math.max(v.m, r.m) } : v; }
+  out.dropped = { ...(remote.dropped || {}) };
+  for (const [k, v] of Object.entries(local.dropped || {})) { const r = out.dropped[k]; if (!r || Math.abs(v) >= Math.abs(r)) out.dropped[k] = v; }
+  out.rewatch = { ...(remote.rewatch || {}) };
+  for (const [k, v] of Object.entries(local.rewatch || {})) out.rewatch[k] = Math.max(v, out.rewatch[k] || 0);
   out.device = local.device;
   out.lastBackup = local.lastBackup;
   return out;

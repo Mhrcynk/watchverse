@@ -112,6 +112,8 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="friends" />
           <Stack.Screen name="history" />
           <Stack.Screen name="profile" />
+          <Stack.Screen name="person/[id]" />
+          <Stack.Screen name="calendar" />
           <Stack.Screen name="davet/[code]" />
         </Stack>
         <StackTabBar />
