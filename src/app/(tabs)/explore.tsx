@@ -115,17 +115,8 @@ function Online() {
         </>
       ) : (
         <>
-          <Text accessibilityRole="header" style={{ marginTop: 26, marginBottom: 12, fontFamily: F.bold, fontSize: 18.5, color: C.text }}>Kategoriler</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {GENRES.map((g, i) => (
-              <Press key={g.name} accessibilityRole="button" onPress={() => router.push({ pathname: '/genre/[id]', params: { id: g.name } })}
-                style={{ width: '48.6%', flexGrow: 1, height: 64, borderRadius: R.md, overflow: 'hidden', justifyContent: 'center', paddingHorizontal: 14, backgroundColor: C.card }}>
-                <LinearGradient colors={[alpha(TONES[i % TONES.length], 0.28), alpha(TONES[i % TONES.length], 0.04)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-                <Text style={{ fontFamily: F.bold, fontSize: 15.5, color: C.text }}>{g.name}</Text>
-              </Press>
-            ))}
-          </View>
-          {hasApi() && <PickBanner style={{ marginTop: 26 }} />}
+          <PickBanner style={{ marginTop: 18 }} />
+          <CategoryStrip />
           <PopularList />
           <Btn kind="secondary" icon="globe" label={`Evrenlerdeki ${CATALOG.length} yapıma göz at`} style={{ marginTop: 30, alignSelf: 'flex-start' }} onPress={() => router.push('/universes')} />
         </>
@@ -134,8 +125,42 @@ function Online() {
   );
 }
 
-// Kategori kutularının renk tonları (kırmızıdan mora, siyah zemine uyumlu)
+// Kategori simgeleri ve renk tonları (siyah zemine uyumlu)
 const TONES = ['#E3262F', '#B3122E', '#8E1B4D', '#5E2A84', '#2E4C9A', '#14707A', '#1F7A4A', '#8A6A12', '#A6461A', '#6B6B78'];
+const GICON: Record<string, React.ComponentProps<typeof Feather>['name']> = {
+  Aksiyon: 'zap', Komedi: 'smile', Dram: 'droplet', Suç: 'shield', 'Bilim kurgu': 'cpu', Gerilim: 'activity', Gizem: 'help-circle', Korku: 'moon',
+  Romantik: 'heart', Fantastik: 'star', Macera: 'compass', Animasyon: 'pen-tool', Aile: 'users', Belgesel: 'video', Savaş: 'crosshair', Tarih: 'clock',
+};
+
+/** Kategoriler: telefonda iki sıra halinde yana kayan küçük kapsüller, geniş ekranda hepsi görünür */
+function CategoryStrip() {
+  const { width, pad } = useLayout();
+  const wide = width >= 680;
+  const pill = (g: (typeof GENRES)[number], i: number) => {
+    const tone = TONES[i % TONES.length];
+    return (
+      <Press key={g.name} accessibilityRole="button" accessibilityLabel={`${g.name} kategorisi`} onPress={() => router.push({ pathname: '/genre/[id]', params: { id: g.name } })} scaleTo={0.95}
+        style={{ height: 44, flexDirection: 'row', alignItems: 'center', gap: 9, paddingLeft: 6, paddingRight: 16, borderRadius: 22, backgroundColor: C.card }}>
+        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: alpha(tone, 0.28), alignItems: 'center', justifyContent: 'center' }}>
+          <Feather name={GICON[g.name] || 'film'} size={15} color="#F1F1F4" />
+        </View>
+        <Text style={{ fontFamily: F.semibold, fontSize: 14.5, color: C.text }}>{g.name}</Text>
+      </Press>
+    );
+  };
+  return (
+    <>
+      <Text accessibilityRole="header" style={{ marginTop: 26, marginBottom: 12, fontFamily: F.bold, fontSize: 18.5, color: C.text }}>Kategoriler</Text>
+      {wide ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{GENRES.map(pill)}</View>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -pad }} contentContainerStyle={{ paddingHorizontal: pad, gap: 8, flexDirection: 'column' }}>
+          {[0, 1].map((r) => <View key={r} style={{ flexDirection: 'row', gap: 8 }}>{GENRES.map((g, i) => (i % 2 === r ? pill(g, i) : null))}</View>)}
+        </ScrollView>
+      )}
+    </>
+  );
+}
 
 const ResultCard = memo(function ResultCard({ x, width }: { x: TItem; width: number }) {
   const { state } = useStore();

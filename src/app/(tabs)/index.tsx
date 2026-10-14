@@ -7,7 +7,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UniverseCard } from '@/components/media';
 import { Billboard, RemoteRow, Row, Tile, TItemTile, useTileW, type BillboardItem } from '@/components/rows';
-import { Backdrop, Coverflow, Greeting, PickBanner, SearchPill, TicketCard } from '@/components/home';
+import { Backdrop, Coverflow, Greeting, SearchPill, TicketCard } from '@/components/home';
 import { isEn } from '@/lib/i18n';
 import { mergedPopular, platformLists, popularOf, type Lists, type PlatformList } from '@/lib/platform-lists';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -105,7 +105,6 @@ export default function Home() {
           </View>
         )
       ) : <View style={{ marginTop: 18 }}><CatalogBillboard state={state} /></View>}
-      {api && !P && <PickBanner style={{ marginTop: 22 }} />}
 
       {P ? (
         <>
