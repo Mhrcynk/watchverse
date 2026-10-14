@@ -36,22 +36,25 @@ export function mergedPopular(ps: PlatformList[], kind: 'all' | 'tv' | 'movie', 
   return out.slice(0, limit);
 }
 
-let mem: { at: number; v: Lists } | null = null;
-/** Listeleri getirir; 3 saat önbellekte tutar, sunucuya ulaşılamazsa son kaydı kullanır */
-export async function platformLists(): Promise<Lists | null> {
+let mem: Lists | null = null;
+/** Önce kayıtlı listeyi hemen verir (varsa), ardından sunucudan günceli alıp onUpdate ile bildirir */
+export async function platformLists(onUpdate?: (v: Lists) => void): Promise<Lists | null> {
   if (!API) return null;
-  if (mem && Date.now() - mem.at < 3 * 3600e3) return mem.v;
-  let saved: { at: number; raw: unknown } | null = null;
-  try { saved = JSON.parse((await AsyncStorage.getItem(KEY)) || 'null'); } catch {}
-  if (saved && Date.now() - saved.at < 3 * 3600e3) { mem = { at: saved.at, v: convert(saved.raw) }; return mem.v; }
-  try {
-    const r = await fetch(`${API}/lists`);
-    if (!r.ok) throw new Error(String(r.status));
-    const raw = await r.json();
-    AsyncStorage.setItem(KEY, JSON.stringify({ at: Date.now(), raw })).catch(() => {});
-    mem = { at: Date.now(), v: convert(raw) };
-    return mem.v;
-  } catch {
-    return saved ? convert(saved.raw) : null;
+  let first: Lists | null = mem;
+  if (!first) {
+    try { const saved = JSON.parse((await AsyncStorage.getItem(KEY)) || 'null'); if (saved?.raw) first = convert(saved.raw); } catch {}
   }
+  const fresh = fetch(`${API}/lists?t=${Math.floor(Date.now() / 6e4)}`, { cache: 'no-store' })
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    .then((raw) => {
+      AsyncStorage.setItem(KEY, JSON.stringify({ at: Date.now(), raw })).catch(() => {});
+      const v = convert(raw);
+      const changed = !mem || mem.updated !== v.updated || mem.platforms.length !== v.platforms.length;
+      mem = v;
+      if (changed) onUpdate?.(v);
+      return v;
+    })
+    .catch(() => null);
+  if (first) { mem = mem || first; return first; }
+  return (await fresh) || null;
 }

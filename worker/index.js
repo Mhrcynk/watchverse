@@ -80,7 +80,7 @@ export default {
       if (url.pathname === '/sync' && req.method === 'POST') return await sync(req, env);
       if (url.pathname === '/lists' && req.method === 'GET') {
         const v = await env.WV.get('lists');
-        return v ? new Response(v, { headers: { 'content-type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=900', ...CORS } }) : json({ error: 'yok' }, 404);
+        return v ? new Response(v, { headers: { 'content-type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=60', ...CORS } }) : json({ error: 'yok' }, 404);
       }
       if (url.pathname === '/devices' && req.method === 'GET') return await devices(req, env);
       if (url.pathname === '/') return json({ ok: true, name: 'watchverse' });

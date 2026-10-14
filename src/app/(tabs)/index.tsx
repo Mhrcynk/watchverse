@@ -48,7 +48,14 @@ export default function Home() {
   const [cats, setCats] = useState(false);
   const [lists, setLists] = useState<Lists | null>(null);
   const [trend, setTrend] = useState<TItem[]>([]);
-  useEffect(() => { if (api) platformLists().then(setLists).catch(() => {}); }, [api]);
+  useEffect(() => {
+    if (!api) return;
+    platformLists(setLists).then((v) => v && setLists(v)).catch(() => {});
+    // uygulama öne gelince de tazele
+    const onVis = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') platformLists(setLists).catch(() => {}); };
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
+    return () => { if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis); };
+  }, [api]);
   useEffect(() => { AsyncStorage.getItem(PLAT_KEY).then((v) => { if (v && v !== 'all') setPlatRaw(Number(v)); }).catch(() => {}); }, []);
   useEffect(() => { let a = true; if (api) trendingKind(kind).then((r) => a && setTrend(r.filter((x) => x.p).slice(0, 8))).catch(() => {}); return () => { a = false; }; }, [kind, api]);
   const setPlat = (p: Plat) => { tap(); setPlatRaw(p); AsyncStorage.setItem(PLAT_KEY, String(p)).catch(() => {}); };
