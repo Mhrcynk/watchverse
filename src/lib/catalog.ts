@@ -14,7 +14,12 @@ export type RawCatalog = {
   excluded?: { title: string; reason: string }[];
   changes?: Change[];
   upcoming?: Upcoming[];
+  /** evrenlerden çıkarılan yapımlar: kayıtlar kütüphaneye taşınır */
+  moved?: Record<string, Moved>;
+  /** birleşen ya da kaldırılan evrenler: eski kimlik → yeni kimlik (null: kaldırıldı) */
+  mergedUniverses?: Record<string, string | null>;
 };
+export type Moved = { k: string; title: string; year: number; p: string | null; b: string | null; minutes: number | null; eps: number };
 /** Çıkış tarihi belli yakında gelecekler */
 export type Upcoming = { k: string; id?: string; u: string; title: string; kind: 'season' | 'episode' | 'film' | 'series'; season?: number; episode?: number; date: string; p: string | null };
 
@@ -30,6 +35,8 @@ export const CHANGES: Change[] = [];
 export const UPCOMING: Upcoming[] = [];
 export const UBY: Record<string, Universe> = {};
 export const TBY: Record<string, Title> = {};
+export const MOVED: Record<string, Moved> = {};
+export const MERGED: Record<string, string | null> = {};
 /** Bir yapıma doğrudan bağlanan sonraki yapımlar */
 export const AFTER: Record<string, Title[]> = {};
 const byUniverse: Record<string, Title[]> = {};
@@ -44,6 +51,8 @@ export function applyCatalog(d: RawCatalog) {
   UPCOMING.length = 0; UPCOMING.push(...(d.upcoming || []));
   clear(UBY); for (const u of UNIVERSES) UBY[u.id] = u;
   clear(TBY); for (const t of CATALOG) TBY[t.id] = t;
+  clear(MOVED); Object.assign(MOVED, d.moved || {});
+  clear(MERGED); Object.assign(MERGED, d.mergedUniverses || {});
   clear(byUniverse); for (const t of CATALOG) (byUniverse[t.u] ||= []).push(t);
   clear(AFTER); for (const x of CATALOG) for (const dep of x.deps) (AFTER[dep] ||= []).push(x);
   for (const k of Object.keys(AFTER)) AFTER[k] = AFTER[k].sort((a, b) => a.release - b.release).slice(0, 6);

@@ -8,7 +8,8 @@
 const ALLOW = [
   /^\/search\/(multi|movie|tv)$/,
   /^\/(movie|tv)\/\d+$/,
-  /^\/(movie|tv)\/\d+\/(watch\/providers|videos|recommendations|credits)$/,
+  /^\/(movie|tv)\/\d+\/(watch\/providers|videos|recommendations|credits|images)$/,
+  /^\/search\/company$/,
   /^\/tv\/\d+\/season\/\d+$/,
   /^\/trending\/(all|movie|tv)\/(day|week)$/,
   /^\/discover\/(movie|tv)$/,

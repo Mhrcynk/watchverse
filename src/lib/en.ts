@@ -245,6 +245,19 @@ export const EN: Record<string, string> = {
   '14 Ekim 2026': 'October 14, 2026',
   'Şu an popüler': 'Popular now', 'platformlarda': 'on platforms', 'Tümü ': 'All',
   "Popüler listesi Netflix'in Türkiye için yayımladığı haftalık izlenme sıralamasının son 4 haftasından hazırlanır.": 'The popular list is built from the last 4 weeks of Netflix’s weekly viewing ranking for Türkiye.',
+  've hikâyeler': 'and stories', 've bul': 'and find', 'Tüm film ve diziler: ara, kategoriye göz at.': 'All movies and series: search or browse categories.',
+  'Diğer': 'Other', 'evrenler': 'universes',
+  'Tek hat': 'Linear', 'Alien & Predator': 'Alien & Predator', 'Hızlı ve Öfkeli': 'Fast & Furious', 'Açlık Oyunları': 'The Hunger Games',
+  'Walter White ve Saul Goodman’ın Albuquerque’si: ana dizi, öncesi ve sonrası.': 'Walter White and Saul Goodman’s Albuquerque: the main series, before and after.',
+  'Dutton ailesinin kuşaklar boyu süren Montana hikâyesi.': 'The Dutton family’s Montana saga across generations.',
+  'Kan analisti Dexter Morgan’ın ikili hayatı: ana dizi, öncesi ve devamı.': 'Blood analyst Dexter Morgan’s double life: the main series, prequel and sequels.',
+  'Warren çiftinin dosyaları ve lanetli nesnelerin ortak korku evreni.': 'The Warrens’ case files and a shared universe of cursed objects.',
+  'Dom Toretto ve ailesinin yirmi yılı aşan yarış ve soygun destanı.': 'Dom Toretto and family’s two-decade saga of racing and heists.',
+  'Rivyalı Geralt, Ciri ve Yennefer’in Kıta’daki hikâyesi.': 'Geralt of Rivia, Ciri and Yennefer on the Continent.',
+  'Arrakis’in baharatı, Atreides hanedanı ve Bene Gesserit’in planları.': 'The spice of Arrakis, House Atreides and the Bene Gesserit’s plans.',
+  'Panem’de Katniss’in isyanı ve Snow’un yükselişi.': 'Katniss’s rebellion in Panem and the rise of Snow.',
+  'Ridley Scott’un başlattığı korku serisi, Avcı’nın filmleri ve ikisinin kesiştiği yapımlar.': 'Ridley Scott’s horror saga, the Predator films and their crossovers.',
+  'Heisenberg': 'Heisenberg', 'Dutton Çiftliği': 'Dutton Ranch', 'Karanlık Yolcu': 'Dark Passenger', 'Warren Arşivi': 'Warren Archive', 'Witcher Okulu': 'Witcher School', 'Fremen': 'Fremen', 'Alaycı Kuş': 'Mockingjay',
   'Bugün ne izlemek istersin?': 'What do you want to watch today?', 'Öne çıkan yapımlar': 'Featured titles', 'Tür': 'Type',
   'Netflix Türkiye İlk 10 · Diziler': 'Netflix Türkiye Top 10 · Series', 'Netflix Türkiye İlk 10 · Filmler': 'Netflix Türkiye Top 10 · Movies',
   "Netflix listesi Netflix'in resmî Türkiye İlk 10 verisidir. Diğer platform listeleri, o platformda Türkiye'de izlenebilen yapımların TMDB/JustWatch popülerliğine göre sıralanır ve her gün güncellenir.": 'The Netflix list is Netflix’s official Top 10 for Türkiye. Other platform lists rank titles streamable on that platform in Türkiye by TMDB/JustWatch popularity and update daily.',
@@ -257,7 +270,7 @@ export const EN: Record<string, string> = {
 };
 
 export const EN_PATTERNS: Record<string, string> = {
-  '{0}: {1} saat': '{0}: {1} hours', '{0} yeni': 'New {0}', '{0} en beğenilenler': 'Top rated {0}', '{0} öne çıkanlar': '{0} featured', '{0} popüler diziler': 'Popular series {0}', '{0} popüler filmler': 'Popular movies {0}', 'hafta: {0}': 'week of {0}', '{0}, puan {1}': '{0}, rating {1}', '{0}: {1} bölüm': '{0}: {1} episodes', '{0}: {1} film': '{0}: {1} movies',
+  '{0}: {1} saat': '{0}: {1} hours', '{0} evren: birbirine bağlı filmler ve diziler, doğru sırayla.': '{0} universes: connected movies and series, in the right order.', '{0} evren': '{0} universes', 'Sıradaki: {0}': 'Up next: {0}', '{0} yeni': 'New {0}', '{0} en beğenilenler': 'Top rated {0}', '{0} öne çıkanlar': '{0} featured', '{0} popüler diziler': 'Popular series {0}', '{0} popüler filmler': 'Popular movies {0}', 'hafta: {0}': 'week of {0}', '{0}, puan {1}': '{0}, rating {1}', '{0}: {1} bölüm': '{0}: {1} episodes', '{0}: {1} film': '{0}: {1} movies',
   '{0}. tanıtım': 'Intro {0}', '{0}. Bölüm': 'Episode {0}', '{0}. bölüm': 'Episode {0}', 'Yüzde {0}': '{0} percent',
   '{0}. sezon {1}. bölüm, {2}, {3}': 'Season {0} episode {1}, {2}, {3}',
   '{0} Öncesi: {1}. Devamı: {2}.': '{0} Before: {1}. Next: {2}.', '{0} Devamı: {1}.': '{0} Next: {1}.', '{0} Öncesi: {1}.': '{0} Before: {1}.',

@@ -11,6 +11,7 @@ import { fraction, isDone, universeProgress, nextUp, watchedEps } from '@/lib/pr
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
 import type { State, Title, Universe } from '@/lib/types';
+import { backdropOf, useUniverseLogo } from '@/lib/logos';
 import { Bar, CheckButton, FadeIn, H3, Press, Small, tap, useToast } from './ui';
 
 const hash = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); };
@@ -82,25 +83,43 @@ export function Wordmark({ u, size = 12 }: { u: Universe; size?: number }) {
   );
 }
 
+/** Evren logosu; yüklenemezse evren adı yazıyla */
+export function UniverseLogo({ u, height = 44, maxWidth = 220, align = 'flex-start' }: { u: Universe; height?: number; maxWidth?: number; align?: 'flex-start' | 'center' }) {
+  const logo = useUniverseLogo(u.id);
+  if (logo) {
+    return <Image source={{ uri: logo }} accessibilityLabel={u.name} style={{ height, width: maxWidth, alignSelf: align }} contentFit="contain" contentPosition={align === 'center' ? 'center' : 'left'} transition={200} />;
+  }
+  return (
+    <Text numberOfLines={2} style={{ fontFamily: F.heavy, fontSize: height * 0.62, lineHeight: height * 0.72, color: '#FFFFFF', letterSpacing: -0.8, textAlign: align === 'center' ? 'center' : 'left', opacity: logo === null ? 0.6 : 1 }}>{u.name}</Text>
+  );
+}
+
+/** Evren kartı: arka planda evrenin görseli, üstünde logo, altta ilerleme */
 export function UniverseCard({ u, state, style }: { u: Universe; state: State; style?: StyleProp<ViewStyle> }) {
   const p = universeProgress(state, u.id);
   const n = nextUp(state, u.id);
   const following = state.follow.includes(u.id);
+  const bd = backdropOf(u.id);
   return (
-    <Press accessibilityRole="button" accessibilityLabel={`${u.name}, yüzde ${p.pct}`} onPress={() => router.push(`/universe/${u.id}`)}
-      style={[{ backgroundColor: C.card, borderRadius: R.lg, padding: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: following ? alpha(u.color, 0.45) : C.line, overflow: 'hidden' }, style]}>
-      <LinearGradient colors={[alpha(u.color, 0.16), 'transparent']} start={{ x: 1, y: 0 }} end={{ x: 0.3, y: 0.8 }} style={StyleSheet.absoluteFill} />
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Wordmark u={u} size={10.5} />
-        <Small>{p.pct === 100 ? 'Tamamlandı' : following ? 'Takip ediliyor' : 'Keşfet'}</Small>
+    <Press accessibilityRole="button" accessibilityLabel={`${u.name}, yüzde ${p.pct}`} onPress={() => router.push(`/universe/${u.id}`)} scaleTo={0.98}
+      style={[{ borderRadius: R.lg, overflow: 'hidden', backgroundColor: C.card }, style]}>
+      <View style={{ aspectRatio: 16 / 10, justifyContent: 'flex-end' }}>
+        {bd ? <Image source={{ uri: bd }} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} /> : <LinearGradient colors={[alpha(u.color, 0.5), C.card]} style={StyleSheet.absoluteFill} />}
+        <LinearGradient colors={['rgba(21,23,29,0.15)', 'rgba(21,23,29,0.35)', 'rgba(21,23,29,0.96)']} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
+        {following && (
+          <View style={{ position: 'absolute', top: 12, right: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, backgroundColor: p.pct === 100 ? C.green : C.accent }}>
+            <Text style={{ fontFamily: F.bold, fontSize: 11, color: C.onAccent }}>{p.pct === 100 ? 'Tamamlandı' : 'Takip ediliyor'}</Text>
+          </View>
+        )}
+        <View style={{ padding: 16, paddingBottom: 14 }}>
+          <UniverseLogo u={u} height={42} maxWidth={200} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+            <Small numberOfLines={1} style={{ flex: 1, color: '#D5D8E0' }}>{n && p.done ? `Sıradaki: ${n.title}` : `${p.total} yapım`}</Small>
+            <Text style={{ fontFamily: F.semibold, fontSize: 13, color: C.text }}>{p.pct}%</Text>
+          </View>
+          <View style={{ marginTop: 8 }}><Bar pct={p.pct} color={C.text} height={3} /></View>
+        </View>
       </View>
-      <H3 style={{ marginTop: 14 }} numberOfLines={1}>{u.name}</H3>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, marginBottom: 7 }}>
-        <Small>{p.done} / {p.total} yapım</Small>
-        <Text style={{ fontFamily: F.bold, fontSize: 14, color: C.text }}>{p.pct}%</Text>
-      </View>
-      <Bar pct={p.pct} color={u.color} />
-      <Small numberOfLines={1} style={{ marginTop: 10 }}>{n ? `Sıradaki: ${n.title} · ${n.year}` : 'Bu rotayı tamamladın.'}</Small>
     </Press>
   );
 }
@@ -135,12 +154,12 @@ export const TitleRow = memo(function TitleRow({ t, dim, showUniverse, index }: 
 });
 
 /* ---------- evren listesi kartı ---------- */
-export const TIER_COLOR = (t: Title) => (t.tier === 0 ? UBY[t.u]?.color || C.accent : t.tier === 1 ? '#5B9BE8' : C.dim);
+export const TIER_COLOR = (t: Title) => (t.tier === 0 ? C.accent : t.tier === 1 ? '#86ABEA' : C.dim);
 
-function Tag({ label, color, filled }: { label: string; color: string; filled?: boolean }) {
+function Tag({ label, color, filled, solid }: { label: string; color: string; filled?: boolean; solid?: boolean }) {
   return (
-    <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, backgroundColor: filled ? alpha(color, 0.18) : C.raised }}>
-      <Text style={{ fontFamily: F.semibold, fontSize: 12, color: filled ? color : C.muted }}>{label}</Text>
+    <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, backgroundColor: solid ? color : filled ? alpha(color, 0.16) : C.raised }}>
+      <Text style={{ fontFamily: F.semibold, fontSize: 12, color: solid ? C.onAccent : filled ? color : C.muted }}>{label}</Text>
     </View>
   );
 }
@@ -155,14 +174,16 @@ export const StoryCard = memo(function StoryCard({ t, index, enter = 0, onMarkUn
   const col = TIER_COLOR(t);
   const meta = [t.year, t.animated && t.type !== 'Film' ? 'Animasyon' : TYPE_TR[t.type], t.episodes ? `${t.episodes} bölüm` : t.minutes ? duration(t.minutes) : null].filter(Boolean).join(' · ');
   return (
-    <FadeIn index={enter} style={{ marginBottom: 12, borderRadius: R.lg, backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line, borderLeftWidth: t.tier < 2 ? 3 : StyleSheet.hairlineWidth, borderLeftColor: t.tier < 2 ? col : C.line, opacity: done ? 0.62 : 1 }}>
-      <View style={{ flexDirection: 'row', gap: 10, padding: 14, paddingRight: 8 }}>
+    <FadeIn index={enter} style={{ marginBottom: 12, borderRadius: R.lg, backgroundColor: C.card, opacity: done ? 0.6 : 1 }}>
+      <View style={{ flexDirection: 'row', gap: 10, padding: 12, paddingRight: 8 }}>
         <Press accessibilityRole="button" accessibilityLabel={`${t.title} ayrıntıları`} accessibilityHint={onMarkUntil ? 'Uzun basınca buraya kadar olanları izlendi işaretler' : undefined}
           onPress={() => router.push(`/title/${t.id}`)} onLongPress={onMarkUntil ? () => { tap('success'); onMarkUntil(t); } : undefined} delayLongPress={450}
-          scaleTo={0.985} style={{ flex: 1, flexDirection: 'row', gap: 12, userSelect: 'none', WebkitTouchCallout: 'none' } as any}>
+          scaleTo={0.985} style={{ flex: 1, flexDirection: 'row', gap: 14, userSelect: 'none', WebkitTouchCallout: 'none' } as any}>
           <View>
-            <Art t={t} compact size="w185" style={{ width: 54, borderRadius: 8 }} />
-            <Text style={{ marginTop: 6, textAlign: 'center', fontFamily: F.semibold, fontSize: 12, color: C.dim }}>{index}</Text>
+            <Art t={t} compact size="w185" style={{ width: 62, borderRadius: 12 }} />
+            <View style={{ position: 'absolute', left: -4, top: -4, minWidth: 24, height: 24, paddingHorizontal: 5, borderRadius: 12, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontFamily: F.bold, fontSize: 11.5, color: C.muted }}>{index}</Text>
+            </View>
           </View>
           <View style={{ flex: 1 }}>
             <Text numberOfLines={2} style={{ fontFamily: F.bold, fontSize: 16, lineHeight: 21, color: C.text }}>{t.title}</Text>
@@ -174,7 +195,7 @@ export const StoryCard = memo(function StoryCard({ t, index, enter = 0, onMarkUn
           onPress={() => { const v = toggleWatched(t.id); tap(v ? 'success' : 'light'); toast(v ? 'İzlendi olarak kaydedildi' : 'İzleme işareti kaldırıldı'); }} />
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingBottom: open ? 8 : 14 }}>
-        <Tag label={TIER_TR[t.tier]} color={col} filled={t.tier < 2} />
+        <Tag label={TIER_TR[t.tier]} color={col} solid={t.tier === 0} filled={t.tier === 1} />
         {(t.pl || []).slice(0, 2).map((p) => <Tag key={p} label={p} color={C.muted} />)}
         <Press accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen((o) => !o)} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
           <Text style={{ fontFamily: F.semibold, fontSize: 12.5, color: open ? C.text : C.dim }}>{open ? 'Gizle' : 'Neden?'}</Text>

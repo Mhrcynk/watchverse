@@ -8,6 +8,8 @@ import { scoreText, usePreview } from '@/components/preview';
 import { TItemTile } from '@/components/rows';
 import { MediaCard, PosterCard } from '@/components/media';
 import { Btn, Chip, Empty, Eyebrow, Grid, H1, Pills, Press, Screen, SectionHead, Small, useLayout } from '@/components/ui';
+import { Backdrop, PageHeader } from '@/components/home';
+import { isEn } from '@/lib/i18n';
 import { CATALOG, CATEGORIES, CATEGORY_TR, search as searchCatalog } from '@/lib/catalog';
 import { routeOf } from '@/lib/library';
 import { useStore } from '@/lib/store';
@@ -26,7 +28,7 @@ export default function Explore() {
 function SearchBox({ q, setQ, placeholder }: { q: string; setQ: (v: string) => void; placeholder: string }) {
   const [focus, setFocus] = useState(false);
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: R.md, paddingHorizontal: 14, borderWidth: focus ? 1.5 : StyleSheet.hairlineWidth, borderColor: focus ? C.accent : C.line }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 18, height: 52, paddingHorizontal: 16, borderWidth: 1, borderColor: focus ? C.muted : 'transparent' }}>
       <Feather name="search" size={18} color={C.muted} />
       <TextInput value={q} onChangeText={setQ} placeholder={placeholder} placeholderTextColor={C.dim}
         accessibilityLabel={placeholder} autoCorrect={false} returnKeyType="search" clearButtonMode="while-editing"
@@ -78,8 +80,8 @@ function Online() {
 
   return (
     <Screen>
-      <Eyebrow>Tüm film ve diziler</Eyebrow>
-      <H1 style={{ marginTop: 6, marginBottom: 18 }}>Keşfet</H1>
+      <Backdrop />
+      <View style={{ marginBottom: 18 }}><PageHeader bold="Keşfet" light={isEn ? undefined : 've bul'} sub="Tüm film ve diziler: ara, kategoriye göz at." /></View>
       <SearchBox q={q} setQ={setQ} placeholder="Film ya da dizi ara" />
 
       {query.length >= 2 ? (

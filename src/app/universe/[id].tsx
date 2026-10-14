@@ -3,9 +3,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { StoryCard, Wordmark } from '@/components/media';
+import { StoryCard, UniverseLogo } from '@/components/media';
+import { TicketCard } from '@/components/home';
+import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { backdropOf } from '@/lib/logos';
 import { BackLink, Btn, Empty, Eyebrow, H1, H3, Muted, Panel, Pills, Press, Ring, Screen, Segmented, Small, useLayout, useToast } from '@/components/ui';
-import { CATEGORY_TR, GROUPS, UBY, VIEWS, VIEW_HELP, VIEW_TR, branchesOf, phaseOf, viewTitles } from '@/lib/catalog';
+import { CATEGORY_TR, GROUPS, TYPE_TR, UBY, VIEWS, VIEW_HELP, VIEW_TR, branchesOf, phaseOf, posterUrl, viewTitles } from '@/lib/catalog';
 import { duration } from '@/lib/format';
 import { fraction, isDone, isStarted, pctOf, remaining } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -17,13 +21,15 @@ const PAGE = 60;
 
 export default function UniverseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const u = UBY[id || ''];
   const store = useStore();
   const { state } = store;
   const toast = useToast();
-  const { tablet } = useLayout();
+  const { tablet, pad, width } = useLayout();
+  const insets = useSafeAreaInsets();
+  const bd = u ? backdropOf(u.id) : null;
   const [unseen, setUnseen] = useState(false);
   const [limit, setLimit] = useState(PAGE);
-  const u = UBY[id || ''];
 
   // Evren sayfası açılışta tüm rotaları gösterir; seçilen rota hatırlanır
   const branches = useMemo(() => (u ? branchesOf(u.id) : []), [u]);
@@ -69,37 +75,48 @@ export default function UniverseDetail() {
 
   return (
     <Screen>
-      <BackLink label="Evrenler" onPress={() => (router.canGoBack() ? router.back() : router.replace('/universes'))} />
-
-      <View style={{ borderRadius: R.xl, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: alpha(u.color, 0.35), backgroundColor: C.card }}>
-        <LinearGradient colors={[alpha(u.color, 0.3), 'transparent']} start={{ x: 1, y: 0 }} end={{ x: 0.2, y: 1 }} style={StyleSheet.absoluteFill} />
-        <View style={{ padding: tablet ? 28 : 20, flexDirection: 'row', gap: 18, alignItems: 'center' }}>
-          <View style={{ flex: 1 }}>
-            <Wordmark u={u} />
-            <H1 style={{ marginTop: 14 }}>{u.name}</H1>
-            <Muted style={{ marginTop: 6 }}>{u.desc}</Muted>
-            <Small style={{ marginTop: 8 }}>{CATEGORY_TR[u.category]} · {all.length} yapım · {duration(p.left)} kaldı</Small>
-            <Btn style={{ marginTop: 16, alignSelf: 'flex-start' }} kind={following ? 'success' : 'secondary'} icon={following ? 'check' : 'plus'}
-              label={following ? 'Takip ediliyor' : 'Evreni takip et'}
-              onPress={() => { store.toggleFollow(u.id); toast(following ? `${u.name} takipten çıkarıldı` : `${u.name} takip ediliyor`); }} />
-          </View>
-          <View style={{ alignItems: 'center' }}>
-            <Ring pct={p.pct} size={tablet ? 110 : 84} color={u.color} />
-            <Small style={{ marginTop: 6 }}>{p.done} / {p.total}</Small>
+      {/* üstte tam genişlik görsel, logo ve ilerleme */}
+      <View style={{ marginHorizontal: -pad, marginTop: -(insets.top + (tablet ? 28 : 14)) }}>
+        <View style={{ width: '100%', aspectRatio: tablet ? 21 / 9 : 4 / 3.4, backgroundColor: C.card, justifyContent: 'flex-end' }}>
+          {bd ? <Image source={{ uri: bd }} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} /> : <LinearGradient colors={[alpha(u.color, 0.45), C.bg]} style={StyleSheet.absoluteFill} />}
+          <LinearGradient colors={['rgba(21,23,29,0.55)', 'rgba(21,23,29,0.1)', 'rgba(21,23,29,0.55)', C.bg]} locations={[0, 0.3, 0.7, 1]} style={StyleSheet.absoluteFill} />
+          <Press accessibilityRole="button" accessibilityLabel="Evrenler sayfasına dön" onPress={() => (router.canGoBack() ? router.back() : router.replace('/universes'))} hitSlop={8}
+            style={{ position: 'absolute', top: insets.top + 8, left: pad - 6, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(21,23,29,0.6)', alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name="chevron-left" size={24} color="#fff" />
+          </Press>
+          <View style={{ paddingHorizontal: pad, paddingBottom: 6 }}>
+            <UniverseLogo u={u} height={tablet ? 80 : 62} maxWidth={tablet ? 360 : 260} />
           </View>
         </View>
       </View>
 
-      <Panel style={{ marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-        <View style={{ flex: 1 }}>
-          <Eyebrow style={{ color: u.color }}>{n ? 'Sıradaki' : 'Rota tamamlandı'}</Eyebrow>
-          <H3 style={{ marginTop: 4 }} numberOfLines={2}>{n ? n.title : 'Bu rotadaki yolculuğunu tamamladın.'}</H3>
+      <Muted style={{ marginTop: 12 }}>{u.desc}</Muted>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 16 }}>
+        <View style={{ flex: 1, gap: 10 }}>
+          <Small>{CATEGORY_TR[u.category]} · {all.length} yapım · {duration(p.left)} kaldı</Small>
+          <Btn style={{ alignSelf: 'flex-start' }} kind={following ? 'success' : 'primary'} icon={following ? 'check' : 'plus'}
+            label={following ? 'Takip ediliyor' : 'Evreni takip et'}
+            onPress={() => { store.toggleFollow(u.id); toast(following ? `${u.name} takipten çıkarıldı` : `${u.name} takip ediliyor`); }} />
         </View>
-        {n ? <Btn icon="play" label="Devam et" onPress={() => router.push(`/title/${n.id}`)} /> : <Feather name="award" size={26} color={C.green} />}
-      </Panel>
+        <View style={{ alignItems: 'center' }}>
+          <Ring pct={p.pct} size={tablet ? 100 : 78} color={C.accent} />
+          <Small style={{ marginTop: 6 }}>{p.done} / {p.total}</Small>
+        </View>
+      </View>
 
       <View style={{ marginTop: 22 }}>
-        <Segmented<ListView> label="Liste görünümü" color={u.color} value={view} onChange={(v) => { store.setView(v); setLimit(PAGE); }}
+        {n ? (
+          <TicketCard width={Math.min(width - pad * 2, 560)} title={n.trTitle || n.title} poster={posterUrl(n, 'w342')} sub={`${n.year} · ${TYPE_TR[n.type]}`} badge="Sıradaki" onPress={() => router.push(`/title/${n.id}`)} />
+        ) : (
+          <Panel style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <Feather name="award" size={26} color={C.green} />
+            <H3 style={{ flex: 1 }}>Bu rotadaki yolculuğunu tamamladın.</H3>
+          </Panel>
+        )}
+      </View>
+
+      <View style={{ marginTop: 22 }}>
+        <Segmented<ListView> label="Liste görünümü" value={view} onChange={(v) => { store.setView(v); setLimit(PAGE); }}
           options={VIEWS.map((v) => ({ id: v, label: VIEW_TR[v] }))} />
         <Small style={{ marginTop: 8 }}>{VIEW_HELP[view]}</Small>
       </View>
@@ -113,8 +130,8 @@ export default function UniverseDetail() {
 
       <Press accessibilityRole="switch" accessibilityState={{ checked: unseen }} onPress={() => { setUnseen((x) => !x); setLimit(PAGE); }}
         style={{ marginTop: 16, marginBottom: 6, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <View style={{ width: 22, height: 22, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: unseen ? u.color : 'transparent', borderWidth: unseen ? 0 : 1.5, borderColor: C.line }}>
-          {unseen && <Feather name="check" size={14} color={C.bg} />}
+        <View style={{ width: 22, height: 22, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: unseen ? C.accent : 'transparent', borderWidth: unseen ? 0 : 1.5, borderColor: C.line }}>
+          {unseen && <Feather name="check" size={14} color={C.onAccent} />}
         </View>
         <Text style={{ flex: 1, fontFamily: F.medium, fontSize: 14, color: C.text }}>Sadece izlemediklerim</Text>
         <Small>{shown.length} yapım</Small>

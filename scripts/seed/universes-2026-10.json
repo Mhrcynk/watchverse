@@ -1,0 +1,82 @@
+{
+  "universes": [
+    { "id": "breakingbad", "name": "Breaking Bad", "short": "BREAKING BAD", "color": "#6FAE5E", "category": "Drama", "desc": "Walter White ve Saul Goodman’ın Albuquerque’si: ana dizi, öncesi ve sonrası.", "badge": "Heisenberg",
+      "titles": [
+        { "m": "tv", "q": "Breaking Bad", "year": 2008, "tier": 0, "chrono": 2 },
+        { "m": "tv", "q": "Better Call Saul", "year": 2015, "tier": 0, "chrono": 1 },
+        { "m": "movie", "q": "El Camino: A Breaking Bad Movie", "year": 2019, "tier": 0, "chrono": 3, "deps": ["Breaking Bad"] }
+      ] },
+    { "id": "yellowstone", "name": "Yellowstone", "short": "YELLOWSTONE", "color": "#C79358", "category": "Drama", "desc": "Dutton ailesinin kuşaklar boyu süren Montana hikâyesi.", "badge": "Dutton Çiftliği",
+      "titles": [
+        { "m": "tv", "q": "Yellowstone", "year": 2018, "tier": 0, "chrono": 3 },
+        { "m": "tv", "q": "1883", "year": 2021, "tier": 0, "chrono": 1 },
+        { "m": "tv", "q": "1923", "year": 2022, "tier": 0, "chrono": 2 }
+      ] },
+    { "id": "dexter", "name": "Dexter", "short": "DEXTER", "color": "#C44848", "category": "Drama", "desc": "Kan analisti Dexter Morgan’ın ikili hayatı: ana dizi, öncesi ve devamı.", "badge": "Karanlık Yolcu",
+      "titles": [
+        { "m": "tv", "q": "Dexter", "year": 2006, "tier": 0, "chrono": 2 },
+        { "m": "tv", "q": "Dexter: New Blood", "year": 2021, "tier": 0, "chrono": 3, "deps": ["Dexter"] },
+        { "m": "tv", "q": "Dexter: Original Sin", "year": 2024, "tier": 1, "chrono": 1 },
+        { "m": "tv", "q": "Dexter: Resurrection", "year": 2025, "tier": 0, "chrono": 4, "deps": ["Dexter: New Blood"] }
+      ] },
+    { "id": "conjuring", "name": "The Conjuring", "short": "CONJURING", "color": "#8C7BA8", "category": "Horror", "desc": "Warren çiftinin dosyaları ve lanetli nesnelerin ortak korku evreni.", "badge": "Warren Arşivi",
+      "titles": [
+        { "m": "movie", "q": "The Conjuring", "year": 2013, "tier": 0, "chrono": 5 },
+        { "m": "movie", "q": "Annabelle", "year": 2014, "tier": 1, "chrono": 4 },
+        { "m": "movie", "q": "The Conjuring 2", "year": 2016, "tier": 0, "chrono": 8, "deps": ["The Conjuring"] },
+        { "m": "movie", "q": "Annabelle: Creation", "year": 2017, "tier": 1, "chrono": 2 },
+        { "m": "movie", "q": "The Nun", "year": 2018, "tier": 1, "chrono": 1 },
+        { "m": "movie", "q": "The Curse of La Llorona", "year": 2019, "tier": 2, "chrono": 7 },
+        { "m": "movie", "q": "Annabelle Comes Home", "year": 2019, "tier": 1, "chrono": 6 },
+        { "m": "movie", "q": "The Conjuring: The Devil Made Me Do It", "year": 2021, "tier": 0, "chrono": 9, "deps": ["The Conjuring 2"] },
+        { "m": "movie", "q": "The Nun II", "year": 2023, "tier": 1, "chrono": 3, "deps": ["The Nun"] },
+        { "m": "movie", "q": "The Conjuring: Last Rites", "year": 2025, "tier": 0, "chrono": 10, "deps": ["The Conjuring: The Devil Made Me Do It"] }
+      ] },
+    { "id": "fast", "name": "Hızlı ve Öfkeli", "short": "FAST SAGA", "color": "#4A86E0", "category": "Action", "desc": "Dom Toretto ve ailesinin yirmi yılı aşan yarış ve soygun destanı.", "badge": "Aile",
+      "titles": [
+        { "m": "movie", "q": "The Fast and the Furious", "year": 2001, "tier": 0, "chrono": 1 },
+        { "m": "movie", "q": "2 Fast 2 Furious", "year": 2003, "tier": 0, "chrono": 2 },
+        { "m": "movie", "q": "The Fast and the Furious: Tokyo Drift", "year": 2006, "tier": 0, "chrono": 6 },
+        { "m": "movie", "q": "Fast & Furious", "year": 2009, "tier": 0, "chrono": 3 },
+        { "m": "movie", "q": "Fast Five", "year": 2011, "tier": 0, "chrono": 4 },
+        { "m": "movie", "q": "Fast & Furious 6", "year": 2013, "tier": 0, "chrono": 5 },
+        { "m": "movie", "q": "Furious 7", "year": 2015, "tier": 0, "chrono": 7, "deps": ["The Fast and the Furious: Tokyo Drift"] },
+        { "m": "movie", "q": "The Fate of the Furious", "year": 2017, "tier": 0, "chrono": 8 },
+        { "m": "movie", "q": "Fast & Furious Presents: Hobbs & Shaw", "year": 2019, "tier": 1, "chrono": 9 },
+        { "m": "movie", "q": "F9", "year": 2021, "tier": 0, "chrono": 10 },
+        { "m": "movie", "q": "Fast X", "year": 2023, "tier": 0, "chrono": 11 },
+        { "m": "tv", "q": "Fast & Furious Spy Racers", "year": 2019, "tier": 2, "chrono": null }
+      ] },
+    { "id": "witcher", "name": "The Witcher", "short": "WITCHER", "color": "#A8A8A8", "category": "Fantasy", "desc": "Rivyalı Geralt, Ciri ve Yennefer’in Kıta’daki hikâyesi.", "badge": "Witcher Okulu",
+      "titles": [
+        { "m": "tv", "q": "The Witcher", "year": 2019, "tier": 0, "chrono": 3 },
+        { "m": "movie", "q": "The Witcher: Nightmare of the Wolf", "year": 2021, "tier": 1, "chrono": 2 },
+        { "m": "tv", "q": "The Witcher: Blood Origin", "year": 2022, "tier": 2, "chrono": 1 },
+        { "m": "movie", "q": "The Witcher: Sirens of the Deep", "year": 2025, "tier": 2, "chrono": 4 }
+      ] },
+    { "id": "dune", "name": "Dune", "short": "DUNE", "color": "#DDA35C", "category": "Sci-Fi", "desc": "Arrakis’in baharatı, Atreides hanedanı ve Bene Gesserit’in planları.", "badge": "Fremen",
+      "titles": [
+        { "m": "movie", "q": "Dune", "year": 2021, "tier": 0, "chrono": 2 },
+        { "m": "movie", "q": "Dune: Part Two", "year": 2024, "tier": 0, "chrono": 3, "deps": ["Dune"] },
+        { "m": "tv", "q": "Dune: Prophecy", "year": 2024, "tier": 1, "chrono": 1 },
+        { "m": "movie", "q": "Dune", "year": 1984, "tier": 2, "chrono": null, "branch": "dune-classic" }
+      ] },
+    { "id": "hunger", "name": "Açlık Oyunları", "short": "HUNGER GAMES", "color": "#D2633F", "category": "Sci-Fi", "desc": "Panem’de Katniss’in isyanı ve Snow’un yükselişi.", "badge": "Alaycı Kuş",
+      "titles": [
+        { "m": "movie", "q": "The Hunger Games", "year": 2012, "tier": 0, "chrono": 2 },
+        { "m": "movie", "q": "The Hunger Games: Catching Fire", "year": 2013, "tier": 0, "chrono": 3 },
+        { "m": "movie", "q": "The Hunger Games: Mockingjay - Part 1", "year": 2014, "tier": 0, "chrono": 4 },
+        { "m": "movie", "q": "The Hunger Games: Mockingjay - Part 2", "year": 2015, "tier": 0, "chrono": 5 },
+        { "m": "movie", "q": "The Hunger Games: The Ballad of Songbirds & Snakes", "year": 2023, "tier": 1, "chrono": 1 }
+      ] }
+  ],
+  "groups": { "dune-classic": "Dune · 1984 uyarlaması" },
+  "sources": [
+    { "u": "fast", "collection": "The Fast and the Furious", "media": ["movie"], "branch": "fast-main", "tier": 0 },
+    { "u": "hunger", "collection": "The Hunger Games", "media": ["movie"], "branch": "hunger-main", "tier": 0 },
+    { "u": "dune", "collection": "Dune", "media": ["movie"], "branch": "dune-main", "tier": 0 },
+    { "u": "conjuring", "collection": "The Conjuring", "media": ["movie"], "branch": "conjuring-main", "tier": 0 },
+    { "u": "conjuring", "collection": "Annabelle", "media": ["movie"], "branch": "conjuring-main", "tier": 1 },
+    { "u": "conjuring", "collection": "The Nun", "media": ["movie"], "branch": "conjuring-main", "tier": 1 }
+  ]
+}

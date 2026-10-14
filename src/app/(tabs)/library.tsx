@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { Text } from 'react-native';
 import { MediaCard } from '@/components/media';
+import { Backdrop, PageHeader } from '@/components/home';
 import { ListCover } from '@/components/lists';
 import { Row, useTileW } from '@/components/rows';
 import { Press } from '@/components/ui';
@@ -29,9 +30,8 @@ export default function Library() {
   const lists = Object.values(state.lists).sort((a, b) => b.updated - a.updated);
   return (
     <Screen>
-      <Eyebrow>Senin listen</Eyebrow>
-      <H1 style={{ marginTop: 6 }}>Kütüphanem</H1>
-      <Muted style={{ marginTop: 6, marginBottom: 18 }}>Evrenlerdeki ve sonradan eklediğin tüm film ve diziler bir arada.</Muted>
+      <Backdrop />
+      <PageHeader bold="Kütüphanem" sub="Evrenlerdeki ve sonradan eklediğin tüm film ve diziler bir arada." />
       <Row title="Listelerim" note={lists.length ? `${lists.length} liste` : undefined}>
         {lists.map((l) => (
           <Press key={l.id} accessibilityRole="button" accessibilityLabel={`${l.name}, ${l.items.length} yapım`} onPress={() => router.push(`/lists/${l.id}`)} scaleTo={0.95} style={{ width: tw }}>

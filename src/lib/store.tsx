@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
-import { TBY, UBY, branchesOf } from './catalog';
+import { MERGED, MOVED, TBY, UBY, branchesOf } from './catalog';
 import { loadCachedCatalog } from './remote';
 import type { LibItem, ListItem, ListView, Mode, Order, State, UList } from './types';
 
@@ -34,10 +34,33 @@ export const initialState = (): State => ({
 const isKey = (k: string) => /^(movie|tv):\d+$/.test(k);
 const known = (k: string) => !!TBY[k] || isKey(k);
 
+/** Evrenden çıkarılan yapımların kayıtlarını kütüphane anahtarlarına taşır; birleşen evrenleri yeni adına çevirir */
+function migrateMoved(s: Partial<State>): Partial<State> {
+  const ids = Object.keys(MOVED);
+  const touchesMoved = ids.some((id) => s.watched?.[id] || s.episodes?.[id] || s.ratings?.[id] || s.notes?.[id] || s.list?.includes(id));
+  const touchesMerged = (s.follow || []).some((u) => u in MERGED);
+  if (!touchesMoved && !touchesMerged) return s;
+  const o: Partial<State> = { ...s, watched: { ...s.watched }, episodes: { ...s.episodes }, ratings: { ...s.ratings }, notes: { ...s.notes }, touched: { ...s.touched }, lib: { ...s.lib } };
+  for (const id of ids) {
+    const mv = MOVED[id];
+    const used = s.watched?.[id] || s.episodes?.[id] || s.ratings?.[id] || s.notes?.[id] || s.list?.includes(id);
+    if (!used) continue;
+    const [m, tid] = mv.k.split(':');
+    if (!o.lib![mv.k]) o.lib![mv.k] = { m: m as 'movie' | 'tv', id: Number(tid), title: mv.title, year: mv.year, p: mv.p, b: mv.b, added: Date.now(), runtime: mv.minutes };
+    if (s.watched?.[id]) { o.watched![mv.k] = s.watched[id]; delete o.watched![id]; }
+    if (s.episodes?.[id]) { o.episodes![mv.k] = s.episodes[id]; delete o.episodes![id]; }
+    if (s.ratings?.[id]) { o.ratings![mv.k] = s.ratings[id]; delete o.ratings![id]; }
+    if (s.notes?.[id]) { o.notes![mv.k] = s.notes[id]; delete o.notes![id]; }
+    if (s.touched?.[id]) { o.touched![mv.k] = s.touched[id]; delete o.touched![id]; }
+  }
+  o.follow = [...new Set((s.follow || []).map((u) => (u in MERGED ? MERGED[u] : u)).filter((u): u is string => !!u))];
+  return o;
+}
+
 export function sanitize(input: unknown): State {
   const base = initialState();
   if (!input || typeof input !== 'object') return base;
-  const s = input as Partial<State>;
+  const s = migrateMoved(input as Partial<State>);
   const out: State = { ...base };
   out.onboarded = !!s.onboarded;
   out.name = typeof s.name === 'string' ? s.name.slice(0, 40) : '';

@@ -148,6 +148,22 @@ export function TicketCard({ title, poster, sub, badge, pct, score, onPress, wid
   );
 }
 
+/** Sayfa başlığı: kalın + ince iki parça ve kısa açıklama */
+export function PageHeader({ bold, light, sub, right }: { bold: string; light?: string; sub?: string; right?: React.ReactNode }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 }}>
+      <View style={{ flex: 1 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 30, lineHeight: 36, color: C.text, letterSpacing: -0.8 }}>
+          <Text style={{ fontFamily: F.bold }}>{bold}</Text>
+          {!!light && <Text style={{ fontFamily: F.regular, color: C.muted }}>{' ' + light}</Text>}
+        </Text>
+        {!!sub && <Text style={{ marginTop: 6, fontFamily: F.regular, fontSize: 14.5, lineHeight: 21, color: C.muted }}>{sub}</Text>}
+      </View>
+      {right}
+    </View>
+  );
+}
+
 /** Sayfa zemini: üstte hafif aydınlık, alta doğru koyulaşan arduvaz */
 export function Backdrop() {
   return (
