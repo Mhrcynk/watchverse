@@ -72,7 +72,8 @@ for (const spec of specs) {
       });
     }
     // ön koşullar: aynı evrendeki adlarla
-    for (const x of made) { x.deps = x._deps.map((q) => made.find((y) => norm(y._q) === norm(q))?.id).filter(Boolean); delete x._deps; delete x._q; }
+    for (const x of made) x.deps = x._deps.map((q) => made.find((y) => norm(y._q) === norm(q))?.id).filter(Boolean);
+    for (const x of made) { delete x._deps; delete x._q; }
     if (made.length < 2) { report.push(`${u.id}: yeterli yapım bulunamadı, eklenmedi`); continue; }
     const { titles, ...meta } = u;
     d.universes.push({ ...meta, defaultBranch: 'all' });
