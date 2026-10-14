@@ -7,19 +7,33 @@ import { keyOf, type TItem } from './tmdb';
  * izlenebilen yapımların popülerlik sırası (TMDB / JustWatch).
  */
 type Slim = { id: number; m: 'movie' | 'tv'; title: string; orig: string; date: string | null; p: string | null; b: string | null; vote: number; votes: number; overview: string; lang: string; rank?: number; label?: string | null };
-export type PlatformList = { id: number; name: string; at: string; tv: TItem[]; movie: TItem[] };
-export type Lists = { updated: string; netflix: { week: string; tv: TItem[]; movie: TItem[] } | null; platforms: PlatformList[] };
+export type PlatformList = { id: number; name: string; at: string; logo: string | null; source: 'netflix' | 'tmdb'; items: TItem[]; tv: TItem[]; movie: TItem[] };
+export type Lists = { updated: string; days: number; netflix: { weeks: string[] } | null; platforms: PlatformList[] };
 
 const API = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
-const KEY = 'watchverse:lists';
+const KEY = 'watchverse:lists2';
 const toItem = (x: Slim): TItem => ({ key: keyOf(x.m, x.id), m: x.m, id: x.id, title: x.title, orig: x.orig, year: x.date ? Number(x.date.slice(0, 4)) : null, date: x.date, p: x.p, b: x.b, overview: x.overview, vote: x.vote, votes: x.votes, lang: x.lang });
 
 function convert(raw: any): Lists {
   return {
     updated: raw.updated,
-    netflix: raw.netflix ? { week: raw.netflix.week, tv: (raw.netflix.tv || []).map(toItem), movie: (raw.netflix.movie || []).map(toItem) } : null,
-    platforms: (raw.platforms || []).map((p: any) => ({ id: p.id, name: p.name, at: p.at, tv: (p.tv || []).map(toItem), movie: (p.movie || []).map(toItem) })),
+    days: raw.days || 1,
+    netflix: raw.netflix && Array.isArray(raw.netflix.weeks) ? { weeks: raw.netflix.weeks } : null,
+    platforms: (raw.platforms || []).map((p: any) => ({
+      id: p.id, name: p.name, at: p.at, logo: p.logo || null, source: p.source === 'netflix' ? 'netflix' : 'tmdb',
+      items: (p.items || []).map(toItem), tv: (p.tv || []).map(toItem), movie: (p.movie || []).map(toItem),
+    })),
   };
+}
+/** Seçili türe göre platformun popüler listesi */
+export const popularOf = (p: PlatformList, kind: 'all' | 'tv' | 'movie') => (kind === 'all' ? p.items : p[kind]);
+/** Tüm platformlardan sırayla birer yapım: "Şu an popüler" */
+export function mergedPopular(ps: PlatformList[], kind: 'all' | 'tv' | 'movie', limit = 20) {
+  const out: TItem[] = [];
+  const seen = new Set<string>();
+  const lists = ps.map((p) => popularOf(p, kind));
+  for (let i = 0; out.length < limit && i < 30; i++) for (const l of lists) { const x = l[i]; if (x && !seen.has(x.key)) { seen.add(x.key); out.push(x); } }
+  return out.slice(0, limit);
 }
 
 let mem: { at: number; v: Lists } | null = null;
