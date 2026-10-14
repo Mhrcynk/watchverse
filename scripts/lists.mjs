@@ -33,7 +33,7 @@ const slim = (r, m) => ({
 // Türkiye'de hizmet veren abonelik platformları (TMDB/JustWatch adlarıyla eşleşir)
 const WANT = [
   ['Netflix', ['netflix'], "Netflix'te"], ['Disney+', ['disneyplus'], "Disney+'ta"], ['Prime Video', ['amazonprimevideo', 'primevideo'], "Prime Video'da"],
-  ['HBO Max', ['hbomax', 'max'], "HBO Max'te"], ['Apple TV+', ['appletvplus', 'appletv'], "Apple TV+'ta"], ['TOD', ['tod'], "TOD'da"],
+  ['HBO Max', ['hbomax', 'max'], "HBO Max'te"], ['Apple TV+', ['appletvplus', 'appletv'], "Apple TV+'ta"], ['TOD', ['tod', 'todtv'], "TOD'da"],
   ['Exxen', ['exxen'], "Exxen'de"], ['tabii', ['tabii'], "tabii'de"], ['Gain', ['gain'], "Gain'de"], ['MUBI', ['mubi'], "MUBI'de"],
   ['puhutv', ['puhutv'], "puhutv'de"], ['TV+', ['tvplus'], "TV+'ta"], ['Tivibu', ['tivibu'], "Tivibu'da"], ['Crunchyroll', ['crunchyroll'], "Crunchyroll'da"],
   ['BluTV', ['blutv'], "BluTV'de"],
@@ -53,7 +53,7 @@ async function providerIds() {
 async function popularOn(pid, m) {
   const res = [];
   for (const page of [1, 2, 3]) {
-    const j = await tmdb(`/discover/${m}`, { watch_region: 'TR', with_watch_providers: pid, with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc', include_adult: 'false', 'vote_count.gte': m === 'movie' ? 5 : 2, page });
+    const j = await tmdb(`/discover/${m}`, { watch_region: 'TR', with_watch_providers: pid, with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc', include_adult: 'false', 'vote_count.gte': m === 'movie' ? 3 : 1, page });
     res.push(...(j.results || []).filter((r) => r.poster_path).map((r) => slim(r, m)));
     if ((j.total_pages || 1) <= page) break;
   }
@@ -64,18 +64,25 @@ async function popularOn(pid, m) {
 const UA = { 'user-agent': 'WatchVerse/1.0 (watchverse.destek@gmail.com) list builder' };
 async function pool(items, n, fn) { const q = [...items]; await Promise.all(Array.from({ length: n }, async () => { for (let x = q.shift(); x !== undefined; x = q.shift()) await fn(x); })); }
 /** TMDB → Wikidata → Türkçe Wikipedia sayfa adı (önbellekli; sayfası yoksa '') */
+const diag = { keys: 0, qid: 0, site: 0, views: 0, err: '' };
 async function trwikiTitles(keys, cache) {
-  const need = keys.filter((k) => cache[k] === undefined);
+  const need = keys.filter((k) => cache[k] === undefined || cache[k] === '');
+  diag.keys = need.length;
   const qid = {};
   await pool(need, 8, async (k) => {
     const [m, id] = k.split(':');
-    try { const j = await tmdb(`/${m}/${id}/external_ids`, { language: undefined }); qid[k] = j.wikidata_id || null; } catch { qid[k] = null; }
+    try { const j = await tmdb(`/${m}/${id}/external_ids`, { language: undefined }); qid[k] = j.wikidata_id || null; if (qid[k]) diag.qid++; } catch (e) { qid[k] = null; diag.err ||= 'tmdb ' + e.message; }
   });
   const ids = [...new Set(Object.values(qid).filter(Boolean))];
   const site = {};
   for (let i = 0; i < ids.length; i += 50) {
     const u = `https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&props=sitelinks&sitefilter=trwiki&ids=${ids.slice(i, i + 50).join('|')}`;
-    try { const j = await (await fetch(u, { headers: UA })).json(); for (const [q, e] of Object.entries(j.entities || {})) site[q] = e.sitelinks?.trwiki?.title || ''; } catch {}
+    try {
+      const r = await fetch(u, { headers: UA });
+      if (!r.ok) { diag.err ||= 'wikidata ' + r.status; continue; }
+      const j = await r.json();
+      for (const [q, e] of Object.entries(j.entities || {})) { site[q] = e.sitelinks?.trwiki?.title || ''; if (site[q]) diag.site++; }
+    } catch (e) { diag.err ||= 'wikidata ' + e.message; }
   }
   for (const k of need) cache[k] = qid[k] ? site[qid[k]] ?? '' : '';
   return cache;
@@ -86,7 +93,12 @@ async function pageviews(titles) {
   const out = {};
   await pool([...new Set(titles)].filter(Boolean), 6, async (t) => {
     const u = `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/tr.wikipedia/all-access/user/${encodeURIComponent(t.replace(/ /g, '_'))}/daily/${ymd(start)}/${ymd(end)}`;
-    try { const r = await fetch(u, { headers: UA }); out[t] = r.ok ? ((await r.json()).items || []).reduce((n, x) => n + x.views, 0) : 0; } catch { out[t] = 0; }
+    try {
+      const r = await fetch(u, { headers: UA });
+      if (!r.ok && r.status !== 404) diag.err ||= 'pageviews ' + r.status;
+      out[t] = r.ok ? ((await r.json()).items || []).reduce((n, x) => n + x.views, 0) : 0;
+      if (out[t]) diag.views++;
+    } catch (e) { out[t] = 0; diag.err ||= 'pageviews ' + e.message; }
   });
   return out;
 }
@@ -203,6 +215,7 @@ for (const l of lists) if (!l.source) l.source = 'tmdb';
 
 const data = { updated: new Date().toISOString(), days: days.length, wiki: wikiOk > 0, netflix: netflixMeta, platforms: lists.filter((l) => l.items.length >= 6) };
 const top = (arr) => arr.slice(0, 5).map((x) => x.title).join(', ');
+console.log(`::notice::Wikipedia: ${JSON.stringify(diag)}`);
 console.log(`::notice::Listeler (${days.length} günlük, Wikipedia eşleşen ${wikiOk}): ${data.platforms.map((l) => `${l.name}: ${top(l.items)}`).join(' || ')}`);
 
 if (!ns) { console.log('::warning::Cloudflare bilgileri ya da depolama alanı yok; listeler sunucuya yazılmadı.'); process.exit(0); }
