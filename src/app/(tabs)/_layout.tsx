@@ -21,10 +21,13 @@ const TABS = [
 ] as const;
 
 export default function TabsLayout() {
-  const { state } = useStore();
+  const { state, setState } = useStore();
   const { tablet } = useLayout();
   const insets = useSafeAreaInsets();
   const acc = useAccount();
+  // Yeni kullanıcı: evren seçimi ekranı yok; doğrudan ana sayfa ve orada "Başlarken" kartı
+  const fresh = acc.ready && (acc.user ? acc.firstSync : acc.guest) && !state.onboarded;
+  useEffect(() => { if (fresh) setState((s) => (s.onboarded ? s : { ...s, onboarded: true, starter: true })); }, [fresh, setState]);
   // Açılış: önce tanıtım ve giriş, sonra evren seçimi
   if (!acc.ready) return <View style={{ flex: 1, backgroundColor: C.bg }} />;
   if (!acc.user && !acc.guest) return <Redirect href="/welcome" />;
@@ -32,7 +35,7 @@ export default function TabsLayout() {
     // Hesabın başka cihazdaki kaydı gelirken bekle
     return <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={C.accent} /></View>;
   }
-  if (!state.onboarded) return <Redirect href="/onboarding" />;
+  if (!state.onboarded) return <View style={{ flex: 1, backgroundColor: C.bg }} />;
   return (
     <Tabs
       tabBar={tablet ? undefined : (props) => <GlassTabBar {...props} />}

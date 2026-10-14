@@ -1,6 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/components/brand';
@@ -15,6 +15,9 @@ export default function Onboarding() {
   const store = useStore();
   const { state } = store;
   const editing = state.onboarded;
+  // Başlarken kartından: yalnızca evren seçimi, izlediklerini işaretleme adımı yok
+  const { only } = useLocalSearchParams<{ only?: string }>();
+  const quick = only === 'universes';
   const { tablet, width } = useLayout();
   const [step, setStep] = useState(1); // tanıtım artık hoş geldin ekranında
   const [sel, setSel] = useState<string[]>(state.follow.length ? state.follow : []);
@@ -75,10 +78,10 @@ export default function Onboarding() {
   if (step === 1) {
     return (
       <Screen>
-        <Steps step={step} />
-        <Eyebrow>01 · Evrenlerin</Eyebrow>
+        {!quick && <Steps step={step} />}
+        <Eyebrow>{quick ? 'Evrenlerin' : '01 · Evrenlerin'}</Eyebrow>
         <H1 style={{ marginTop: 8 }}>Hangi dünyalara dönmek istersin?</H1>
-        <Muted style={{ marginTop: 8, marginBottom: 22 }}>En az bir evren seç. Sonra istediğin zaman değiştirebilirsin.</Muted>
+        <Muted style={{ marginTop: 8, marginBottom: 22 }}>{quick ? 'Takip ettiğin evrenler ana sayfanda ve bildirimlerinde öne çıkar. İstediğin zaman değiştirebilirsin.' : 'En az bir evren seç. Sonra istediğin zaman değiştirebilirsin.'}</Muted>
         <Grid items={UNIVERSES} cols={cols} gap={12} keyOf={(u) => u.id} render={(u) => {
             const on = sel.includes(u.id);
             return (
@@ -97,7 +100,9 @@ export default function Onboarding() {
           }} />
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 26 }}>
           {editing && <Btn kind="secondary" label="Vazgeç" onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />}
-          <Btn style={{ flex: 1 }} label={`Devam et · ${sel.length} evren`} disabled={!sel.length} onPress={() => { setStep(2); setOpen(sel[0] || null); }} />
+          {quick
+            ? <Btn style={{ flex: 1 }} label={`Kaydet · ${sel.length} evren`} disabled={!sel.length} onPress={() => { store.setState((s) => ({ ...s, follow: sel })); tap('success'); if (router.canGoBack()) router.back(); else router.replace('/'); }} />
+            : <Btn style={{ flex: 1 }} label={`Devam et · ${sel.length} evren`} disabled={!sel.length} onPress={() => { setStep(2); setOpen(sel[0] || null); }} />}
         </View>
       </Screen>
     );

@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Btn, FadeIn, Press, Screen, Segmented, Small, tap, useLayout } from '@/components/ui';
 import { TBY, TYPE_TR, UBY, daysUntil, posterPath, posterUrl, upcomingFor, type Upcoming } from '@/lib/catalog';
 import { usePreview } from '@/components/preview';
+import { StarterCard } from '@/components/starter';
 import { libraryEntries } from '@/lib/library';
 import { continueWatching, episodeLabel, fraction, isDone, nextEpisode, nextUp } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -82,6 +83,7 @@ export default function Home() {
         <SearchPill onFilter={api ? () => setCats(true) : undefined} />
         <Segmented<Kind> label="Tür" value={kind} onChange={setKind} options={[{ id: 'all', label: 'Hepsi' }, { id: 'tv', label: 'Diziler' }, { id: 'movie', label: 'Filmler' }]} />
       </View>
+      <StarterCard />
       {ps.length > 0 && <PlatformBar ps={ps} value={plat} onChange={setPlat} />}
 
       {api ? (

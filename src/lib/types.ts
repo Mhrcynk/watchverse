@@ -68,6 +68,8 @@ export type MonthLog = { f: number; e: number; m: number };
 export type State = {
   v: 2;
   onboarded: boolean;
+  /** ana sayfadaki "Başlarken" kartı gösterilsin mi (yeni hesaplarda açık, kapatılınca kapanır) */
+  starter?: boolean;
   name: string;
   follow: string[];
   /** film ve özel yapımlar: izlenme zamanı (ms) */

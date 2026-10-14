@@ -57,6 +57,8 @@ const hasData = (s: State) => Object.keys(s.watched).length + Object.keys(s.epis
 export function mergeStates(local: State, remote: State): State {
   const out: State = { ...remote, ...local };
   out.onboarded = local.onboarded || remote.onboarded;
+  // Başlarken kartı bir cihazda kapatıldıysa her yerde kapalı kalsın
+  out.starter = !!local.starter && (!remote.onboarded || !!remote.starter);
   out.follow = [...new Set([...remote.follow, ...local.follow])];
   out.list = [...new Set([...remote.list, ...local.list])];
   out.watched = { ...remote.watched };
@@ -159,7 +161,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       // Ama cihazda önceki başka bir hesabın kaydı varsa yeni hesaba aktarılmaz.
       if (m.uid && !sameUser) {
         const cur = stateRef.current;
-        apply(sanitize({ onboarded: true, name: '', view: cur.view, dv: 3 }));
+        apply(sanitize({ onboarded: true, starter: true, name: '', view: cur.view, dv: 3 }));
       }
       meta.current = { uid, rev: 0 };
       return;

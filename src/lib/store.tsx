@@ -65,6 +65,7 @@ export function sanitize(input: unknown): State {
   const s = migrateMoved(input as Partial<State>);
   const out: State = { ...base };
   out.onboarded = !!s.onboarded;
+  out.starter = s.starter === true;
   out.name = typeof s.name === 'string' ? s.name.slice(0, 40) : '';
   out.follow = Array.isArray(s.follow) ? [...new Set(s.follow.filter((u) => !!UBY[u]))] : [];
   out.list = Array.isArray(s.list) ? [...new Set(s.list.filter((id) => !!TBY[id]))] : [];
