@@ -108,6 +108,7 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="stats" />
           <Stack.Screen name="import" />
           <Stack.Screen name="friends" />
+          <Stack.Screen name="history" />
           <Stack.Screen name="davet/[code]" />
         </Stack>
       </PreviewProvider></ListPickerProvider></ConfirmProvider></ToastProvider></AccountProvider>

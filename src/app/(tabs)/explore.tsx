@@ -47,6 +47,7 @@ function SearchBox({ q, setQ, placeholder }: { q: string; setQ: (v: string) => v
 function Online() {
   const { posterCols } = useLayout();
   const [q, setQ] = useState('');
+  const { openTitle } = usePreview();
   const [type, setType] = useState<'all' | 'movie' | 'tv'>('all');
   const [res, setRes] = useState<TItem[] | null>(null);
   const [err, setErr] = useState(false);
@@ -89,7 +90,7 @@ function Online() {
           {local.length > 0 && (
             <>
               <SectionHead title="Evrenlerde" note={`${local.length}`} />
-              <Rail items={local.map((t) => ({ key: t.id, uri: t.tmdb?.p ? `https://image.tmdb.org/t/p/w342${t.tmdb.p}` : null, title: t.title, sub: `${t.year} · ${t.type === 'Film' ? 'Film' : t.type === 'Dizi' ? 'Dizi' : 'Özel yapım'}`, go: () => router.push(`/title/${t.id}`) }))} />
+              <Rail items={local.map((t) => ({ key: t.id, uri: t.tmdb?.p ? `https://image.tmdb.org/t/p/w342${t.tmdb.p}` : null, title: t.title, sub: `${t.year} · ${t.type === 'Film' ? 'Film' : t.type === 'Dizi' ? 'Dizi' : 'Özel yapım'}`, go: () => openTitle(t) }))} />
             </>
           )}
           <View style={{ marginTop: 22 }}>

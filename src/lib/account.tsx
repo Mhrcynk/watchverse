@@ -12,7 +12,7 @@ const META = 'watchverse:sync';
 const GUEST = 'watchverse:guest';
 type Meta = { uid?: string; rev?: number; hash?: string; at?: number };
 export type SyncStatus = 'off' | 'syncing' | 'ok' | 'offline' | 'error';
-export type AccountUser = { id: string; email: string | null; google: boolean };
+export type AccountUser = { id: string; email: string | null; google: boolean; name?: string | null };
 
 type Ctx = {
   enabled: boolean;
@@ -96,6 +96,13 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const [guest, setGuestRaw] = useState(false);
   const [guestLoaded, setGuestLoaded] = useState(false);
   const [firstSync, setFirstSync] = useState(false);
+  // Ad boşsa, ilk eşitlemeden sonra Google hesabındaki ilk ad kullanılır (kişi başına bir kez)
+  const named = useRef<string | null>(null);
+  useEffect(() => {
+    if (!firstSync || !user?.name || named.current === user.id) return;
+    named.current = user.id;
+    if (!store.state.name.trim()) store.setName(user.name);
+  }, [firstSync, user, store]);
   useEffect(() => {
     AsyncStorage.getItem(GUEST).then((v) => setGuestRaw(v === '1')).catch(() => {}).finally(() => setGuestLoaded(true));
   }, []);
@@ -196,8 +203,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (!c) return;
     let alive = true;
     loadMeta().then((m) => { meta.current = m; });
-    const toUser = (u: { id: string; email?: string | null; app_metadata?: { provider?: string; providers?: string[] } } | null | undefined): AccountUser | null =>
-      u ? { id: u.id, email: u.email || null, google: !!u.app_metadata?.providers?.includes('google') || u.app_metadata?.provider === 'google' } : null;
+    const toUser = (u: { id: string; email?: string | null; app_metadata?: { provider?: string; providers?: string[] }; user_metadata?: { full_name?: string; name?: string; given_name?: string } } | null | undefined): AccountUser | null =>
+      u ? { id: u.id, email: u.email || null, google: !!u.app_metadata?.providers?.includes('google') || u.app_metadata?.provider === 'google', name: (u.user_metadata?.given_name || u.user_metadata?.full_name || u.user_metadata?.name || '').trim().split(/\s+/)[0] || null } : null;
     const fallback = setTimeout(() => alive && setReady(true), 4000);
     const { data: sub } = c.auth.onAuthStateChange((event, session) => {
       if (!alive) return;

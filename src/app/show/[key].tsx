@@ -113,7 +113,7 @@ export default function Show() {
             {!d.pl.length && <Chip label="Türkiye'de abonelikte yok" />}
             {d.m === 'tv' && d.next && <Chip icon="calendar" label={`Yeni bölüm ${shortDate(d.next.date)}`} color={C.accentSoft} />}
           </View>
-          <Btn icon={inLib ? 'check' : 'plus'} kind={inLib ? 'success' : 'primary'} label={inLib ? 'Listemde' : 'Listeme ekle'} style={{ marginTop: 16 }}
+          <Btn icon={inLib ? 'check' : 'plus'} kind={inLib ? 'success' : 'primary'} label={inLib ? 'Kütüphanemde' : 'Kütüphaneme ekle'} style={{ marginTop: 16 }}
             onPress={() => { if (inLib) { store.libRemove(key); toast('Kütüphaneden çıkarıldı'); } else { save(); tap('success'); toast('Kütüphanene eklendi'); } }} />
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
             {d.m === 'movie' && (

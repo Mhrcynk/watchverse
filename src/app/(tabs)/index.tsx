@@ -13,6 +13,7 @@ import { mergedPopular, platformLists, popularOf, type Lists, type PlatformList 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Btn, FadeIn, Press, Screen, Segmented, Small, tap, useLayout } from '@/components/ui';
 import { TBY, TYPE_TR, UBY, daysUntil, posterPath, posterUrl, upcomingFor, type Upcoming } from '@/lib/catalog';
+import { usePreview } from '@/components/preview';
 import { libraryEntries } from '@/lib/library';
 import { continueWatching, episodeLabel, fraction, isDone, nextEpisode, nextUp } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -256,7 +257,13 @@ function SoonCard({ x, width, index }: { x: Upcoming; width: number; index: numb
   const when = d <= 0 ? 'Bugün' : d === 1 ? 'Yarın' : d < 60 ? `${d} gün` : `${Number(x.date.slice(8, 10))} ${MONTHS[Number(x.date.slice(5, 7)) - 1]} ${x.date.slice(0, 4)}`;
   const what = x.kind === 'season' ? `${x.season}. sezon başlıyor` : x.kind === 'episode' ? `S${String(x.season).padStart(2, '0')} · B${String(x.episode).padStart(2, '0')}` : x.kind === 'film' ? 'Yeni film' : 'Yeni dizi';
   const img = posterPath(x.p, 'w342');
-  const go = () => (x.id ? router.push(`/title/${x.id}`) : Linking.openURL(`https://www.themoviedb.org/${x.k.startsWith('tv') ? 'tv' : 'movie'}/${x.k.split(':')[1]}`));
+  const { open, openTitle } = usePreview();
+  const go = () => {
+    const t = x.id ? TBY[x.id] : null;
+    if (t) return openTitle(t);
+    const m = x.k.startsWith('tv') ? 'tv' : 'movie';
+    open({ key: x.k, m, id: Number(x.k.split(':')[1]), title: x.title, orig: x.title, year: Number(x.date.slice(0, 4)) || null, date: x.date, p: x.p || null, b: null, overview: '', vote: 0, votes: 0, lang: '' });
+  };
   return (
     <FadeIn index={index}>
       <Press accessibilityRole="button" accessibilityLabel={`${x.title}, ${what}, ${when}`} onPress={go} style={{ width }}>

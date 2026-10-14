@@ -13,6 +13,7 @@ import { C, F, R, alpha } from '@/lib/theme';
 import type { State, Title, Universe } from '@/lib/types';
 import { backdropOf, useUniverseLogo } from '@/lib/logos';
 import { Bar, CheckButton, FadeIn, H3, Press, Small, tap, useToast } from './ui';
+import { usePreview } from './preview';
 
 const hash = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); };
 
@@ -48,11 +49,12 @@ export const Art = memo(function Art({ t, style, compact, brandOnly, size = 'w34
 /** Afiş kartı: ızgara ve yatay raylarda */
 export const PosterCard = memo(function PosterCard({ t, width, showMeta = true }: { t: Title; width?: number; showMeta?: boolean }) {
   const { state } = useStore();
+  const { openTitle } = usePreview();
   const done = isDone(state, t);
   const f = fraction(state, t);
   const u = UBY[t.u];
   return (
-    <Press accessibilityRole="button" accessibilityLabel={`${t.title}, ${t.year}${done ? ', izlendi' : ''}`} onPress={() => router.push(`/title/${t.id}`)} style={{ width }}>
+    <Press accessibilityRole="button" accessibilityLabel={`${t.title}, ${t.year}${done ? ', izlendi' : ''}`} onPress={() => openTitle(t)} style={{ width }}>
       <View>
         <Art t={t} brandOnly={showMeta} style={done ? { opacity: 0.55 } : undefined} />
         {done && (
@@ -127,6 +129,7 @@ export function UniverseCard({ u, state, style }: { u: Universe; state: State; s
 /** Liste satırı: afiş + bilgi + izlendi düğmesi */
 export const TitleRow = memo(function TitleRow({ t, dim, showUniverse, index }: { t: Title; dim?: boolean; showUniverse?: boolean; index?: number }) {
   const { state, toggleWatched } = useStore();
+  const { openTitle } = usePreview();
   const toast = useToast();
   const done = isDone(state, t);
   const eps = watchedEps(state, t.id);
@@ -134,7 +137,7 @@ export const TitleRow = memo(function TitleRow({ t, dim, showUniverse, index }: 
   const status = done ? 'Tamamlandı' : t.episodes ? `${eps} / ${t.episodes} bölüm` : 'İzlenmedi';
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, opacity: dim ? 0.5 : 1 }}>
-      <Press accessibilityRole="button" accessibilityLabel={`${t.title} ayrıntıları`} onPress={() => router.push(`/title/${t.id}`)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <Press accessibilityRole="button" accessibilityLabel={`${t.title} ayrıntıları`} onPress={() => openTitle(t)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <Art t={t} compact size="w185" style={{ width: 48, borderRadius: 8 }} />
         <View style={{ flex: 1 }}>
           <Text numberOfLines={2} style={{ fontFamily: F.semibold, fontSize: 15, lineHeight: 20, color: C.text }}>
@@ -167,6 +170,7 @@ function Tag({ label, color, filled, solid }: { label: string; color: string; fi
 /** Numara, ad, kısa özet, etiketler (düzey · platform · neden?) ve izledim düğmesi */
 export const StoryCard = memo(function StoryCard({ t, index, enter = 0, onMarkUntil }: { t: Title; index: number; enter?: number; onMarkUntil?: (t: Title) => void }) {
   const { state, toggleWatched } = useStore();
+  const { openTitle } = usePreview();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const done = isDone(state, t);
@@ -177,7 +181,7 @@ export const StoryCard = memo(function StoryCard({ t, index, enter = 0, onMarkUn
     <FadeIn index={enter} style={{ marginBottom: 12, borderRadius: R.lg, backgroundColor: C.card, opacity: done ? 0.6 : 1 }}>
       <View style={{ flexDirection: 'row', gap: 10, padding: 12, paddingRight: 8 }}>
         <Press accessibilityRole="button" accessibilityLabel={`${t.title} ayrıntıları`} accessibilityHint={onMarkUntil ? 'Uzun basınca buraya kadar olanları izlendi işaretler' : undefined}
-          onPress={() => router.push(`/title/${t.id}`)} onLongPress={onMarkUntil ? () => { tap('success'); onMarkUntil(t); } : undefined} delayLongPress={450}
+          onPress={() => openTitle(t)} onLongPress={onMarkUntil ? () => { tap('success'); onMarkUntil(t); } : undefined} delayLongPress={450}
           scaleTo={0.985} style={{ flex: 1, flexDirection: 'row', gap: 14, userSelect: 'none', WebkitTouchCallout: 'none' } as any}>
           <View>
             <Art t={t} compact size="w185" style={{ width: 62, borderRadius: 12 }} />

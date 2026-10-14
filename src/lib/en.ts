@@ -267,6 +267,13 @@ export const EN: Record<string, string> = {
   'Hesabını uygulamanın içinden kendin silebilirsin. Diğer talepler için:': 'You can delete your account yourself in the app. For other requests:',
   '25 evrenin film, dizi, kısa ve özel yapımları. Aynı isimli farklı uyarlamalar ayrı tutulur. Oyunlar, çizgi romanlar ve iptal edilen projeler dahil değildir.': 'Movies, series, shorts and specials from 25 universes. Different adaptations with the same name are kept separate. Games, comics and cancelled projects are not included.',
   '. Yeni yapımlar ve sezonlar haftada bir kendiliğinden eklenir. Bölüm ve tarih bilgileri eksik olabilir.': '. New titles and seasons are added automatically once a week. Episode and date info may be incomplete.',
+  // profil (yeni)
+  'Hesap aç, kayıtların kaybolmasın': 'Create an account so nothing gets lost', 'İzlediklerin her cihazda aynı görünür.': 'Your watches look the same on every device.',
+  'Son izlediklerin': 'Recently watched', 'Evrenlerini düzenle': 'Edit your universes', 'Evren': 'Universes', 'İzlemediğin yapımdan sonrakileri gizler': 'Hides what comes after titles you haven’t watched',
+  'Evren listelerinde göster': 'Show in universe lists', 'Açık: yeni bölüm ve yeni yapımlar': 'On: new episodes and new titles', 'Yeni bölüm çıkınca haber ver': 'Get notified about new episodes',
+  'Kütüphanemde, çıkarmak için dokun': 'In my library, tap to remove', 'Bölümler, evren ve ayrıntılar': 'Episodes, universe and details', 'Evrendeki yeri ve ayrıntılar': 'Place in the universe and details',
+  'Aç': 'Turn on', 'Hızlı erişim': 'Quick access', 'İzlemediklerinin devamını gizler': 'Hides what follows unwatched titles', 'Hesap aç, her cihazda aynı görünsün.': 'Create an account to see it on every device.', 'Kayıtların': 'Your data', 'Yedekten geri yükle': 'Restore from backup', 'Kaynaklar ve haklar': 'Sources and rights', 'Adını ekle': 'Add your name',
+  'Hesapsız kullanıyorsun': 'Using without an account', 'Kayıtların bu cihazda': 'Your data is on this device', 'Dil · Language': 'Language', 'Adı kaydet': 'Save name', 'Adını düzenle': 'Edit your name', 'WatchVerse 1.0': 'WatchVerse 1.0',
 };
 
 export const EN_PATTERNS: Record<string, string> = {
@@ -304,5 +311,6 @@ export const EN_PATTERNS: Record<string, string> = {
   '· {0} bölüm': '· {0} episodes', '· {0}/{1} izlendi': '· {0}/{1} watched', '{0}{1} bölüm · toplam {2}': '{0}{1} episodes · {2} total', '{0} bölüm izlendi': '{0} episodes watched',
   '{0} · Diğer uyarlamalar': '{0} · Other adaptations', '{0} · Diğer diziler': '{0} · Other series', '{0} · Özel yapımlar': '{0} · Specials', '{0} · Animasyon': '{0} · Animation', '{0} · Yan diziler': '{0} · Spin-offs', '{0} · Ek yapımlar': '{0} · Extras', '{0} · Diziler': '{0} · Series',
   // en sonda genel kalıp: "A · B" parçalarını ayrı ayrı çevir
+  '{0} kayıt, yeniden eskiye.': '{0} entries, newest first.',
   '{0} · {1}': '{0} · {1}',
 };

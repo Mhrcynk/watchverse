@@ -1,27 +1,40 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { libFromDetail, libFromItem, routeOf } from '@/lib/library';
+import { TIER_TR, UBY } from '@/lib/catalog';
+import { catalogOf, libFromDetail, libFromItem } from '@/lib/library';
 import { EASE_OUT, ND } from '@/lib/motion';
 import { useStore } from '@/lib/store';
-import { C, F, M, R } from '@/lib/theme';
+import { C, F, M, R, alpha } from '@/lib/theme';
 import { detail, img, type TDetail, type TItem } from '@/lib/tmdb';
+import type { Title } from '@/lib/types';
 import { Btn, Small, tap, useToast } from './ui';
-import { itemFromTItem, useListPicker } from './lists';
+import { itemFromTitle, itemFromTItem, useListPicker } from './lists';
 
-type Ctx = { open: (x: TItem) => void };
-const PreviewCtx = createContext<Ctx>({ open: (x) => router.push(routeOf(x.key)) });
+type IconName = React.ComponentProps<typeof Feather>['name'];
+type Ctx = { open: (x: TItem) => void; openTitle: (t: Title) => void };
+const PreviewCtx = createContext<Ctx>({ open: () => {}, openTitle: (t) => router.push(`/title/${t.id}`) });
 export const usePreview = () => useContext(PreviewCtx);
 
 export const scoreText = (v: number, votes: number) => (v > 0 && votes >= 15 ? `★ ${v.toFixed(1)}` : null);
 
-/** Karta dokununca alttan açılan kısa önizleme (Netflix mobildeki gibi) */
+/** Evren kataloğundaki bir yapımı önizleme için TMDB biçimine çevirir */
+const fromTitle = (t: Title): TItem => ({
+  key: t.tmdb ? `${t.tmdb.m || (t.type === 'Dizi' ? 'tv' : 'movie')}:${t.tmdb.id}` : t.id, m: t.tmdb?.m || (t.type === 'Dizi' ? 'tv' : 'movie'), id: t.tmdb?.id || 0,
+  title: t.trTitle || t.title, orig: t.title, year: t.year, date: null, p: t.tmdb?.p || null, b: t.tmdb?.b || null, overview: t.summary || '', vote: 0, votes: 0, lang: 'en',
+});
+
+/**
+ * Bir yapıma dokununca her yerde aynı pencere açılır.
+ * Evren kataloğundaki yapımlarda kayıtlar katalog kimliğiyle, diğerlerinde TMDB anahtarıyla tutulur;
+ * kullanıcı bu farkı görmez: düğmeler ve adları aynıdır.
+ */
 export function PreviewProvider({ children }: { children: ReactNode }) {
   const [x, setX] = useState<TItem | null>(null);
+  const [cat, setCat] = useState<Title | null>(null);
   const [d, setD] = useState<TDetail | null>(null);
   const a = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
@@ -29,37 +42,62 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   const toast = useToast();
   const { pick } = useListPicker();
 
-  const open = useCallback((it: TItem) => {
-    const r = routeOf(it.key);
-    // Evren kataloğundakiler doğrudan kendi sayfasına
-    if (r.startsWith('/title/')) { router.push(r); return; }
-    setD(null); setX(it);
-    detail(it.m, it.id).then(setD).catch(() => {});
+  const show = useCallback((it: TItem, t: Title | null) => {
+    setD(null); setCat(t); setX(it);
+    if (it.id) detail(it.m, it.id).then(setD).catch(() => {});
   }, []);
+  const open = useCallback((it: TItem) => {
+    const t = catalogOf(it.key);
+    show(t && !it.overview && t.summary ? { ...it, overview: t.summary } : it, t);
+  }, [show]);
+  const openTitle = useCallback((t: Title) => show(fromTitle(t), t), [show]);
   useEffect(() => { if (x) { a.setValue(0); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [x]); // eslint-disable-line react-hooks/exhaustive-deps
-  const close = (then?: () => void) => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setX(null); then?.(); });
+  const close = (then?: () => void) => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setX(null); setCat(null); then?.(); });
 
+  const s = store.state;
   const key = x?.key || '';
-  const inLib = !!(x && store.state.lib[key]);
-  const watched = !!(x && store.state.watched[key]);
-  const meta = x ? [x.year, x.m === 'movie' ? 'Film' : 'Dizi', d && x.m === 'movie' && d.runtime ? `${Math.floor(d.runtime / 60)} sa ${d.runtime % 60} dk` : null, d && x.m === 'tv' ? `${d.seasons.length} sezon` : null].filter(Boolean).join(' · ') : '';
-  const score = x ? scoreText(x.vote, x.votes) : null;
+  const inLib = cat ? s.list.includes(cat.id) : !!(x && s.lib[key]);
+  const watched = cat ? !!s.watched[cat.id] : !!(x && s.watched[key]);
+  const isMovie = cat ? cat.type !== 'Dizi' && !cat.episodes : x?.m === 'movie';
+  const runtime = cat && !cat.episodes ? cat.minutes : d?.runtime;
+  const meta = x ? [x.year, x.m === 'movie' ? 'Film' : 'Dizi', isMovie && runtime ? `${Math.floor(runtime / 60)} sa ${runtime % 60} dk` : null, d && x.m === 'tv' ? `${d.seasons.length} sezon` : null].filter(Boolean).join(' · ') : '';
+  const score = x ? scoreText(d?.vote ?? x.vote, d?.votes ?? x.votes) : null;
+  const u = cat ? UBY[cat.u] : null;
+  const yt = cat?.yt || d?.yt;
+
+  const toggleLib = () => {
+    if (!x) return;
+    if (cat) { const v = store.toggleList(cat.id); if (v) tap('success'); toast(v ? 'Kütüphanene eklendi' : 'Kütüphaneden çıkarıldı'); return; }
+    if (inLib) { store.libRemove(key); toast('Kütüphaneden çıkarıldı'); } else { store.libSave(key, d ? libFromDetail(d) : libFromItem(x)); tap('success'); toast('Kütüphanene eklendi'); }
+  };
+  const toggleWatched = () => {
+    if (!x) return;
+    if (cat) { const v = store.toggleWatched(cat.id); tap(v ? 'success' : 'light'); return; }
+    if (!inLib) store.libSave(key, d ? libFromDetail(d) : libFromItem(x));
+    store.watchKey(key, !watched); tap(watched ? 'light' : 'success');
+  };
+  const goDetail = () => close(() => router.push(cat ? `/title/${cat.id}` : `/show/${key}`));
 
   return (
-    <PreviewCtx.Provider value={{ open }}>
+    <PreviewCtx.Provider value={{ open, openTitle }}>
       {children}
       <Modal transparent visible={!!x} animationType="none" onRequestClose={() => close()}>
         <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', opacity: a, justifyContent: 'flex-end' }}>
           <Pressable accessibilityLabel="Kapat" style={StyleSheet.absoluteFill} onPress={() => close()} />
           {x && (
             <Animated.View accessibilityViewIsModal style={{ alignSelf: 'center', width: '100%', maxWidth: 560, backgroundColor: C.raised, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, overflow: 'hidden', paddingBottom: 18 + insets.bottom, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [80, 0] }) }] }}>
-              <View style={{ flexDirection: 'row', gap: 14, padding: 16 }}>
-                <View style={{ width: 96, aspectRatio: 2 / 3, borderRadius: R.sm, overflow: 'hidden', backgroundColor: C.card }}>
+              <View style={{ alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: C.line, marginTop: 10 }} />
+              <View style={{ flexDirection: 'row', gap: 14, padding: 16, paddingTop: 12 }}>
+                <Pressable accessibilityRole="button" accessibilityLabel={`${x.title} ayrıntıları`} onPress={goDetail}
+                  style={{ width: 96, aspectRatio: 2 / 3, borderRadius: R.sm, overflow: 'hidden', backgroundColor: C.card }}>
                   {x.p && <Image source={{ uri: img(x.p, 'w342')! }} style={StyleSheet.absoluteFill} contentFit="cover" />}
-                </View>
+                </Pressable>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-                    <Text numberOfLines={2} style={{ flex: 1, fontFamily: F.bold, fontSize: 19, lineHeight: 24, color: C.text }}>{x.title}</Text>
+                    <View style={{ flex: 1 }}>
+                      {u && <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 12.5, color: C.accent, marginBottom: 3 }}>{u.name} · {TIER_TR[cat!.tier]}</Text>}
+                      <Text numberOfLines={2} style={{ fontFamily: F.bold, fontSize: 19, lineHeight: 24, color: C.text }}>{x.title}</Text>
+                    </View>
                     <Pressable accessibilityRole="button" accessibilityLabel="Kapat" hitSlop={10} onPress={() => close()} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
                       <Feather name="x" size={18} color={C.text} />
                     </Pressable>
@@ -70,27 +108,38 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
                   {!!d?.pl.length && <Small style={{ marginTop: 6, color: C.accentSoft }}>{d.pl.slice(0, 3).join(' · ')}</Small>}
                 </View>
               </View>
-              <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 16 }}>
-                <Btn style={{ flex: 1 }} icon={inLib ? 'check' : 'plus'} kind={inLib ? 'success' : 'primary'} label={inLib ? 'Listemde' : 'Listeme ekle'}
-                  onPress={() => { if (inLib) { store.libRemove(key); toast('Kütüphaneden çıkarıldı'); } else { store.libSave(key, d ? libFromDetail(d) : libFromItem(x)); tap('success'); toast('Kütüphanene eklendi'); } }} />
-                {x.m === 'movie' && (
-                  <Btn kind="secondary" icon="check-circle" label={watched ? 'İzlendi' : 'İzledim'}
-                    onPress={() => { if (!inLib) store.libSave(key, d ? libFromDetail(d) : libFromItem(x)); store.watchKey(key, !watched); tap(watched ? 'light' : 'success'); }} />
-                )}
-                {!!d?.yt && <Btn kind="secondary" icon="play" label="" accessibilityLabel="Fragmanı izle" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${d.yt}`)} />}
-                <Btn kind="secondary" icon="list" label="" accessibilityLabel="Listeye ekle" onPress={() => { const it = itemFromTItem(x); close(() => pick(it)); }} />
+
+              <View style={{ paddingHorizontal: 16 }}>
+                <Btn icon={inLib ? 'check' : 'plus'} kind={inLib ? 'success' : 'primary'} label={inLib ? 'Kütüphanemde' : 'Kütüphaneme ekle'}
+                  accessibilityLabel={inLib ? 'Kütüphanemde, çıkarmak için dokun' : 'Kütüphaneme ekle'} onPress={toggleLib} />
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                  {isMovie && <Action icon="check-circle" label={watched ? 'İzlendi' : 'İzledim'} on={watched} onPress={toggleWatched} />}
+                  <Action icon="list" label="Listeye ekle" onPress={() => { const it = cat ? itemFromTitle(cat) : itemFromTItem(x); close(() => pick(it)); }} />
+                  {!!yt && <Action icon="play" label="Fragman" onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${yt}`)} />}
+                </View>
               </View>
-              <Pressable accessibilityRole="button" onPress={() => close(() => router.push(`/show/${key}`))}
+
+              <Pressable accessibilityRole="button" onPress={goDetail}
                 style={{ marginTop: 14, marginHorizontal: 16, paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.line, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <Feather name="info" size={18} color={C.muted} />
-                <Text style={{ flex: 1, fontFamily: F.semibold, fontSize: 15, color: C.text }}>{x.m === 'tv' ? 'Bölümler ve ayrıntılar' : 'Ayrıntılar'}</Text>
+                <Text style={{ flex: 1, fontFamily: F.semibold, fontSize: 15, color: C.text }}>{cat ? (cat.episodes ? 'Bölümler, evren ve ayrıntılar' : 'Evrendeki yeri ve ayrıntılar') : x.m === 'tv' ? 'Bölümler ve ayrıntılar' : 'Ayrıntılar'}</Text>
                 <Feather name="chevron-right" size={18} color={C.dim} />
               </Pressable>
-              <LinearGradient pointerEvents="none" colors={['rgba(227,38,47,0.18)', 'transparent']} style={[StyleSheet.absoluteFill, { height: 120 }]} />
             </Animated.View>
           )}
         </Animated.View>
       </Modal>
     </PreviewCtx.Provider>
+  );
+}
+
+/** Simge + yazı: her düğmenin ne yaptığı yazıyla belli */
+function Action({ icon, label, onPress, on }: { icon: IconName; label: string; onPress: () => void; on?: boolean }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={on != null ? { checked: on } : undefined} onPress={onPress}
+      style={({ pressed }) => ({ flex: 1, height: 46, borderRadius: R.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: on ? alpha(C.green, 0.16) : alpha('#FFFFFF', pressed ? 0.1 : 0.06) })}>
+      <Feather name={icon} size={16} color={on ? C.green : C.text} />
+      <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 13.5, color: on ? C.green : C.text }}>{label}</Text>
+    </Pressable>
   );
 }
