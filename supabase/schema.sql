@@ -27,7 +27,7 @@ declare
   cur bigint;
 begin
   if uid is null then raise exception 'giris gerekli'; end if;
-  if pg_column_size(p_data) > 2000000 then raise exception 'veri cok buyuk'; end if;
+  if jsonb_typeof(p_data) <> 'object' or pg_column_size(p_data) > 2000000 then raise exception 'veri cok buyuk'; end if;
   select rev into cur from public.user_state where user_id = uid for update;
   if cur is null then
     insert into public.user_state (user_id, data, rev) values (uid, p_data, 1);
@@ -52,13 +52,16 @@ declare uid uuid := auth.uid();
 begin
   if uid is null then raise exception 'giris gerekli'; end if;
   delete from public.user_state where user_id = uid;
+  delete from public.shared_lists where owner = uid;
+  delete from public.friendships where a = uid or b = uid;
+  delete from public.profiles where user_id = uid;
   delete from auth.users where id = uid;
 end;
 $$;
 revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
 
--- 3) Paylaşılan listeler: bağlantıyı bilen herkes görebilir, yalnızca sahibi değiştirebilir
+-- 3) Paylaşılan listeler: bağlantıyı bilen herkes görebilir, yalnızca sahibi değiştirebilir (kullanıcı başı maks. 50 liste)
 create table if not exists public.shared_lists (
   slug text primary key check (slug ~ '^[a-z0-9]{8,24}$'),
   owner uuid not null references auth.users (id) on delete cascade,
@@ -76,12 +79,17 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare uid uuid := auth.uid(); cur uuid;
+declare uid uuid := auth.uid(); cur uuid; cnt int;
 begin
   if uid is null then raise exception 'giris gerekli'; end if;
+  if p_slug !~ '^[a-z0-9]{8,24}$' then raise exception 'gecersiz baglanti'; end if;
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) > 1000 or pg_column_size(p_items) > 400000 then raise exception 'liste cok buyuk'; end if;
   select owner into cur from public.shared_lists where slug = p_slug;
   if cur is not null and cur <> uid then raise exception 'izin yok'; end if;
+  if cur is null then
+    select count(*) into cnt from public.shared_lists where owner = uid;
+    if cnt >= 50 then raise exception 'liste siniri asildi'; end if;
+  end if;
   insert into public.shared_lists (slug, owner, name, owner_name, items, updated_at)
   values (p_slug, uid, left(p_name, 60), left(nullif(p_owner_name, ''), 40), p_items, now())
   on conflict (slug) do update set name = excluded.name, owner_name = excluded.owner_name, items = excluded.items, updated_at = now();
@@ -109,7 +117,7 @@ as $$ select jsonb_build_object('name', name, 'owner', owner_name, 'items', item
 revoke all on function public.get_shared_list(text) from public;
 grant execute on function public.get_shared_list(text) to anon, authenticated;
 
--- 4) Arkadaşlar: davet bağlantısıyla eklenir; arkadaşlar birbirinin son izlediklerini görür
+-- 4) Arkadaşlar: davet bağlantısıyla eklenir; arkadaşlar birbirinin son izlediklerini görür (maks. 200 arkadaş)
 create table if not exists public.profiles (
   user_id uuid primary key references auth.users (id) on delete cascade,
   display_name text not null default '' check (length(display_name) <= 40),
@@ -130,7 +138,6 @@ create table if not exists public.friendships (
 alter table public.friendships enable row level security;
 revoke all on public.friendships from anon, authenticated;
 
--- Kendi profilini oluşturur/günceller, davet kodunu döndürür
 create or replace function public.my_profile(p_name text)
 returns jsonb
 language plpgsql
@@ -168,14 +175,12 @@ security definer
 set search_path = ''
 as $$ update public.profiles set share_activity = p_on, updated_at = now() where user_id = auth.uid(); $$;
 
--- Davet eden kişinin adı (giriş yapmadan da görülebilir)
 create or replace function public.invite_info(p_code text)
 returns text
 language sql
 stable
 security definer
 set search_path = ''
--- Geçerli davette ad yoksa boş metin döner (null = geçersiz davet)
 as $$ select coalesce(display_name, '') from public.profiles where invite_code = p_code; $$;
 
 create or replace function public.accept_invite(p_code text, p_name text)
@@ -184,9 +189,11 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare uid uuid := auth.uid(); other uuid; oname text;
+declare uid uuid := auth.uid(); other uuid; oname text; cnt int;
 begin
   if uid is null then raise exception 'giris gerekli'; end if;
+  select count(*) into cnt from public.friendships where a = uid;
+  if cnt >= 200 then raise exception 'arkadas siniri asildi'; end if;
   select user_id, display_name into other, oname from public.profiles where invite_code = p_code;
   if other is null then raise exception 'davet gecersiz'; end if;
   if other = uid then raise exception 'kendi davetin'; end if;
@@ -203,7 +210,6 @@ security definer
 set search_path = ''
 as $$ delete from public.friendships where (a = auth.uid() and b = p_id) or (a = p_id and b = auth.uid()); $$;
 
--- Arkadaşların son 30 hareketi: izlenenler, bölüm sayısı, puan (notlar paylaşılmaz)
 create or replace function public.friend_feed()
 returns jsonb
 language sql
@@ -241,11 +247,11 @@ grant execute on function public.my_profile(text), public.reset_invite(), public
 revoke all on function public.invite_info(text) from public;
 grant execute on function public.invite_info(text) to anon, authenticated;
 
--- 5) Hata kayıtları: kimlik bilgisi tutulmaz, yalnızca hata metni
+-- 5) Hata kayıtları: spam/kota aşımına karşı saatlik limit korumalı
 create table if not exists public.app_errors (
   id bigint generated always as identity primary key,
   at timestamptz not null default now(),
-  message text not null check (length(message) <= 500),
+  message text not null check (length(message) > 0 and length(message) <= 500),
   stack text check (length(stack) <= 4000),
   screen text check (length(screen) <= 200),
   version text check (length(version) <= 40),
@@ -253,8 +259,30 @@ create table if not exists public.app_errors (
 );
 alter table public.app_errors enable row level security;
 drop policy if exists "anyone can report" on public.app_errors;
-create policy "anyone can report" on public.app_errors for insert to anon, authenticated with check (true);
+-- Sadece son 1 saatteki toplam hata kaydı 300'ün altındaysa yeni kayda izin ver (bot/spam koruması)
+create policy "anyone can report" on public.app_errors
+  for insert to anon, authenticated
+  with check (
+    length(message) > 0
+    and (select count(*) from public.app_errors where at > now() - interval '1 hour') < 300
+  );
 grant insert on public.app_errors to anon, authenticated;
 
 -- 60 günden eski hata kayıtlarını temizle
 delete from public.app_errors where at < now() - interval '60 days';
+
+-- 6) Push abonelikleri: yalnızca sunucu/worker (service_role) erişebilir
+create table if not exists public.push_subscriptions (
+  id uuid default gen_random_uuid() primary key,
+  endpoint text not null unique check (endpoint ~ '^https://'),
+  subscription jsonb not null,
+  created_at timestamptz not null default now()
+);
+alter table public.push_subscriptions enable row level security;
+revoke all on public.push_subscriptions from public, anon, authenticated;
+drop policy if exists "Service role full access on push_subscriptions" on public.push_subscriptions;
+create policy "Service role full access on push_subscriptions"
+  on public.push_subscriptions
+  as restrictive
+  using (auth.role() = 'service_role');
+create index if not exists idx_push_subscriptions_endpoint on public.push_subscriptions(endpoint);
