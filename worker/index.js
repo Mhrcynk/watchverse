@@ -1,9 +1,9 @@
 /**
  * WatchVerse ara sunucusu (Cloudflare Worker)
- * - /tmdb/...  : TMDB isteklerini gizli anahtarla iletir (anahtar uygulamaya hiç girmez)
- * - /sync      : cihazın bildirim aboneliğini ve takip ettiği dizileri kaydeder
- * - /devices   : günlük bildirim görevi için kayıtlı cihazlar (yalnızca yönetici anahtarıyla)
- * Gizli değerler: TMDB_TOKEN (Cloudflare secret). Depolama: WV (KV).
+ * - /tmdb/...  : TMDB isteklerini gizli anahtarla iletir
+ * - /sync      : cihazın bildirim aboneliğini Supabase'e, takip listelerini KV'ye kaydeder
+ * - /devices   : günlük bildirim görevi için kayıtlı cihazlar (Supabase tablosundan)
+ * Gizli değerler: TMDB_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (Cloudflare secrets). Depolama: WV (KV).
  */
 const ALLOW = [
   /^\/search\/(multi|movie|tv)$/,
@@ -46,13 +46,38 @@ async function tmdb(url, env, ctx) {
   return out;
 }
 
+async function saveSubscriptionToSupabase(env, endpoint, subscription) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return;
+  try {
+    await fetch(`${env.SUPABASE_URL}/rest/v1/push_subscriptions`, {
+      method: 'POST',
+      headers: {
+        'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ endpoint, subscription })
+    });
+  } catch (e) {
+    console.error('Supabase push kayıt hatası:', e);
+  }
+}
+
 async function sync(req, env) {
   const raw = await req.text();
   if (raw.length > 60000) return json({ error: 'çok büyük' }, 413);
   let b; try { b = JSON.parse(raw); } catch { return json({ error: 'okunamadı' }, 400); }
   if (!/^[a-f0-9-]{16,64}$/.test(b.id || '')) return json({ error: 'kimlik' }, 400);
+  
+  const sub = b.sub && typeof b.sub.endpoint === 'string' && /^https:\/\//.test(b.sub.endpoint) ? b.sub : null;
+  
+  // Eğer geçerli bir push aboneliği varsa, Supabase'deki güvenli tabloya kaydedelim
+  if (sub) {
+    await saveSubscriptionToSupabase(env, sub.endpoint, sub);
+  }
+
   const rec = {
-    sub: b.sub && typeof b.sub.endpoint === 'string' && /^https:\/\//.test(b.sub.endpoint) ? b.sub : null,
     follow: Array.isArray(b.follow) ? b.follow.filter((x) => typeof x === 'string').slice(0, 40) : [],
     tv: Array.isArray(b.tv) ? b.tv.filter((x) => Number.isInteger(x) && x > 0).slice(0, 600) : [],
     t: Date.now(),
@@ -63,14 +88,25 @@ async function sync(req, env) {
 
 async function devices(req, env) {
   if (req.headers.get('x-admin') !== (await adminKey(env.TMDB_TOKEN))) return json({ error: 'yetki yok' }, 403);
-  const out = [];
-  let cursor;
-  do {
-    const l = await env.WV.list({ prefix: 'dev:', cursor });
-    for (const k of l.keys) { const v = await env.WV.get(k.name); if (v) out.push({ id: k.name.slice(4), ...JSON.parse(v) }); }
-    cursor = l.list_complete ? undefined : l.cursor;
-  } while (cursor);
-  return json(out);
+  
+  // Supabase'den kayıtlı push abonelerini çekelim
+  if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const res = await fetch(`${env.SUPABASE_URL}/rest/v1/push_subscriptions?select=*`, {
+        headers: {
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        }
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        return json(rows.map(r => ({ endpoint: r.endpoint, subscription: r.subscription })));
+      }
+    } catch (e) {
+      console.error('Supabase devices okuma hatası:', e);
+    }
+  }
+  return json([]);
 }
 
 export default {
