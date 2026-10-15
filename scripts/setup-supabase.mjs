@@ -47,7 +47,7 @@ const schema = fs.readFileSync(path.join(here, '..', 'supabase', 'schema.sql'), 
 const s = await sql(schema);
 if (!s.ok) {
   console.log(`::error::Veritabanı kurulamadı (${s.status}): ${JSON.stringify(s.j).slice(0, 300)}`);
-  empty(); process.exit(0);
+  empty(); process.exit(1);
 }
 console.log('Veritabanı hazır.');
 
