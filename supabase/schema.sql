@@ -259,14 +259,37 @@ create table if not exists public.app_errors (
 );
 alter table public.app_errors enable row level security;
 drop policy if exists "anyone can report" on public.app_errors;
--- Sadece son 1 saatteki toplam hata kaydı 300'ün altındaysa yeni kayda izin ver (bot/spam koruması)
+-- RLS cannot count rows hidden from the caller. A private, atomic quota is enforced by a trigger.
 create policy "anyone can report" on public.app_errors
-  for insert to anon, authenticated
-  with check (
-    length(message) > 0
-    and (select count(*) from public.app_errors where at > now() - interval '1 hour') < 300
-  );
-grant insert on public.app_errors to anon, authenticated;
+  for insert to anon, authenticated with check (length(message) > 0);
+revoke all on public.app_errors from public, anon, authenticated;
+grant insert (message, stack, screen, version, platform) on public.app_errors to anon, authenticated;
+create table if not exists public.error_quota (
+  singleton boolean primary key default true check (singleton),
+  window_start timestamptz not null,
+  n integer not null
+);
+alter table public.error_quota enable row level security;
+revoke all on public.error_quota from public, anon, authenticated;
+insert into public.error_quota values (true, now(), 0) on conflict do nothing;
+create or replace function public.limit_error_reports()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare used integer;
+begin
+  update public.error_quota set
+    n = case when window_start <= clock_timestamp() - interval '1 hour' then 1 else n + 1 end,
+    window_start = case when window_start <= clock_timestamp() - interval '1 hour' then clock_timestamp() else window_start end
+  where singleton and (n < 300 or window_start <= clock_timestamp() - interval '1 hour')
+  returning n into used;
+  if used is null then raise exception 'hata kaydi siniri asildi'; end if;
+  new.at := clock_timestamp();
+  return new;
+end;
+$$;
+revoke all on function public.limit_error_reports() from public, anon, authenticated;
+drop trigger if exists limit_error_reports on public.app_errors;
+create trigger limit_error_reports before insert on public.app_errors
+  for each row execute function public.limit_error_reports();
 
 -- 60 günden eski hata kayıtlarını temizle
 delete from public.app_errors where at < now() - interval '60 days';
@@ -286,3 +309,12 @@ create policy "Service role full access on push_subscriptions"
   as restrictive
   using (auth.role() = 'service_role');
 create index if not exists idx_push_subscriptions_endpoint on public.push_subscriptions(endpoint);
+
+-- Idempotent migration for subscriptions created before preferences were stored with them.
+alter table public.push_subscriptions add column if not exists device_id text;
+alter table public.push_subscriptions add column if not exists follow jsonb not null default '[]'::jsonb;
+alter table public.push_subscriptions add column if not exists tv jsonb not null default '[]'::jsonb;
+alter table public.push_subscriptions add column if not exists updated_at timestamptz not null default now();
+create index if not exists push_subscriptions_device on public.push_subscriptions(device_id);
+grant select, insert, update, delete on public.push_subscriptions to service_role;
+delete from public.push_subscriptions where updated_at < now() - interval '180 days';

@@ -39,6 +39,8 @@ jobs:
 
       - run: npm ci
 
+      - run: node --test scripts/test-push-security.mjs
+
       - name: Site adresini belirle
         id: site
         env:
@@ -100,12 +102,29 @@ jobs:
             git push
           fi
 
+      - name: Üyelik ve veritabanını kur ya da güncelle
+        id: supa
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          SITE_URL: ${{ steps.site.outputs.url }}
+          OLD_SITE_URL: ${{ steps.site.outputs.old }}
+        run: node scripts/setup-supabase.mjs
+
       - name: Ara sunucuyu kur ya da güncelle
         id: worker
         env:
           TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/deploy-worker.mjs
 
       - name: Platform listelerini güncelle
@@ -121,19 +140,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: node scripts/collections.mjs || true
-
-      - name: Üyelik ve veritabanını kur ya da güncelle
-        id: supa
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          MAIL_FROM: ${{ secrets.MAIL_FROM }}
-          SITE_URL: ${{ steps.site.outputs.url }}
-          OLD_SITE_URL: ${{ steps.site.outputs.old }}
-        run: node scripts/setup-supabase.mjs
 
       - name: Web uygulamasını hazırla
         env:

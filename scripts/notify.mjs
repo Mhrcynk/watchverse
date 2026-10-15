@@ -42,7 +42,9 @@ async function apiUrl() {
 const API = await apiUrl();
 if (API && TMDB_TOKEN) {
   const key = crypto.createHash('sha256').update(`${TMDB_TOKEN}|watchverse-admin`).digest('hex');
-  const list = await fetch(`${API}/devices`, { headers: { 'x-admin': key } }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  const response = await fetch(`${API}/devices`, { headers: { 'x-admin': key } });
+  if (!response.ok) throw new Error(`Cihazlar alınamadı: HTTP ${response.status}`);
+  const list = await response.json();
   for (const d of list) if (d.sub) subs.push({ sub: d.sub, follow: d.follow || [], tv: d.tv || [] });
   console.log(`Sunucudaki cihaz: ${list.length}`);
 }
