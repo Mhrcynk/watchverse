@@ -41,6 +41,11 @@ export function tr2en(text: string, depth = 0): string {
 }
 let UPPER: Record<string, string> | null = null;
 function translateCore(core: string, depth: number): string {
+  const count = /^(\d+) (yapım|bölüm|sezon|liste|kişi|kayıt|evren)$/.exec(core);
+  if (count) {
+    const nouns: Record<string, [string, string]> = { yapım: ['title', 'titles'], bölüm: ['episode', 'episodes'], sezon: ['season', 'seasons'], liste: ['list', 'lists'], kişi: ['person', 'people'], kayıt: ['item', 'items'], evren: ['universe', 'universes'] };
+    return `${count[1]} ${nouns[count[2]][Number(count[1]) === 1 ? 0 : 1]}`;
+  }
   const hit = EN[core];
   if (hit !== undefined) return hit;
   if (core.length > 2 && core === core.toLocaleUpperCase('tr')) {
@@ -67,6 +72,7 @@ const ATTRS = ['aria-label', 'placeholder', 'title', 'alt'];
 const done = new WeakMap<Node, string>();
 function textNode(n: Text) {
   const v = n.nodeValue || '';
+  if (/^\s*yapım\s*$/.test(v) && n.previousSibling?.nodeType === 3 && n.previousSibling.nodeValue?.trim() === '1') { n.nodeValue = v.replace('yapım', 'title'); done.set(n, n.nodeValue); return; }
   if (done.get(n) === v) return;
   const t = tr2en(v);
   done.set(n, t);

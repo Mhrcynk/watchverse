@@ -69,7 +69,7 @@ function Shelves({ uid }: { uid: string }) {
       <Muted style={{ marginTop: 12 }}>{u.desc}</Muted>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 16 }}>
         <View style={{ flex: 1, gap: 10 }}>
-          <Small>{CATEGORY_TR[u.category]} · {total} yapım · ana hikâyede {duration(p.left)} kaldı</Small>
+          <Small>{CATEGORY_TR[u.category]} · {total} yapım · {p.total > 0 && p.done === p.total ? 'Ana hikâye tamamlandı' : p.left > 0 ? `ana hikâyede ${duration(p.left)} kaldı` : 'Süre bilgisi yok'}</Small>
           <Btn style={{ alignSelf: 'flex-start' }} kind={following ? 'success' : 'primary'} icon={following ? 'check' : 'plus'}
             label={following ? 'Takip ediliyor' : 'Evreni takip et'}
             onPress={() => { store.toggleFollow(u.id); toast(following ? `${u.name} takipten çıkarıldı` : `${u.name} takip ediliyor`); }} />

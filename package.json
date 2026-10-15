@@ -41,7 +41,8 @@
     "typecheck": "tsc --noEmit",
     "posters": "node scripts/resolve-tmdb.mjs",
     "build:web": "expo export --platform web --output-dir dist && node scripts/pwa.mjs dist",
-    "update": "node scripts/update-catalog.mjs"
+    "update": "node scripts/update-catalog.mjs",
+    "test:audit": "node scripts/test-audit.cjs"
   },
   "private": true
 }

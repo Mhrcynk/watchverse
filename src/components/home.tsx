@@ -9,7 +9,7 @@ import { useReducedMotion } from '@/lib/motion';
 import { C, F, R, alpha } from '@/lib/theme';
 import { img, type TItem } from '@/lib/tmdb';
 import { usePreview } from './preview';
-import { Bar, FadeIn, Press, useLayout } from './ui';
+import { Btn, Bar, FadeIn, Press, useLayout } from './ui';
 
 /** Selamlama + profil yuvarlağı */
 export function Greeting({ name, sub }: { name: string; sub: string }) {
@@ -112,13 +112,14 @@ export function Coverflow({ items }: { items: TItem[] }) {
 }
 
 /** Bilet görünümlü kart: solda afiş, sağda ad ve durum; aralarında küçük bir çentik */
-export function TicketCard({ title, poster, sub, badge, pct, score, onPress, width, index = 0 }: {
-  title: string; poster: string | null; sub?: string; badge?: string; pct?: number; score?: string | null; onPress: () => void; width: number; index?: number;
+export function TicketCard({ title, poster, sub, badge, pct, score, onPress, onWatched, watchedLabel, width, index = 0 }: {
+  title: string; poster: string | null; sub?: string; badge?: string; pct?: number; score?: string | null; onPress: () => void; onWatched?: () => void; watchedLabel?: string; width: number; index?: number;
 }) {
   const pw = 86;
   const notch = { position: 'absolute' as const, left: pw + 22, width: 18, height: 18, borderRadius: 9, backgroundColor: C.bg };
   return (
     <FadeIn index={index} from={8}>
+      <View style={{ width }}>
       <Press accessibilityRole="button" accessibilityLabel={[title, sub, badge].filter(Boolean).join(', ')} onPress={onPress} scaleTo={0.97}
         style={{ width, flexDirection: 'row', gap: 16, padding: 12, borderRadius: R.lg, backgroundColor: C.card }}>
         <View style={{ width: pw, aspectRatio: 2 / 3, borderRadius: 14, overflow: 'hidden', backgroundColor: C.raised }}>
@@ -144,6 +145,8 @@ export function TicketCard({ title, poster, sub, badge, pct, score, onPress, wid
           </View>
         </View>
       </Press>
+      {onWatched && <Btn kind="secondary" icon="check" label={watchedLabel || "İzledim"} onPress={onWatched} style={{ marginTop: 6 }} />}
+      </View>
     </FadeIn>
   );
 }

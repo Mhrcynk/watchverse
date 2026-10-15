@@ -1,3 +1,4 @@
+import { changedEpisodes } from '@/lib/audit-logic';
 import { isEn } from '@/lib/i18n';
 import { detail, hasApi, type Person } from '@/lib/tmdb';
 import Feather from '@expo/vector-icons/Feather';
@@ -132,11 +133,11 @@ export default function TitleDetail() {
 
       <Panel style={{ marginTop: 14 }}>
         <Eyebrow>Senin değerlendirmen</Eyebrow>
-        <View accessibilityRole="adjustable" accessibilityLabel={`Puan: ${state.ratings[t.id] || 0} / 5`} style={{ flexDirection: 'row', gap: 4, marginTop: 8 }}>
+        <View accessibilityLabel={`Puan: ${state.ratings[t.id] || 0} / 5`} style={{ flexDirection: 'row', gap: 4, marginTop: 8 }}>
           {[1, 2, 3, 4, 5].map((n) => {
             const on = (state.ratings[t.id] || 0) >= n;
             return (
-              <Press key={n} accessibilityRole="button" accessibilityLabel={`${n} yıldız`} scaleTo={0.85} hitSlop={4}
+              <Press key={n} accessibilityRole="button" accessibilityLabel={`${n} yıldız`} accessibilityState={{ selected: state.ratings[t.id] === n }} aria-pressed={state.ratings[t.id] === n} scaleTo={0.85} hitSlop={4}
                 onPress={() => { store.setRating(t.id, n); tap(); }} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name={on ? 'star' : 'star-outline'} size={28} color={on ? C.amber : C.dim} />
               </Press>
@@ -150,7 +151,7 @@ export default function TitleDetail() {
 
       {t.episodes > 0 && (
         <>
-          <SectionHead title="Bölüm ilerlemen" note={`${eps} / ${t.episodes} · ${duration(remaining(state, t))} kaldı`} />
+          <SectionHead title="Bölüm ilerlemen" note={`${eps} / ${t.episodes} · ${done ? 'Tamamlandı' : remaining(state, t) > 0 ? `${duration(remaining(state, t))} kaldı` : 'Süre bilgisi yok'}`} />
           <Bar pct={fraction(state, t) * 100} color={u.color} height={6} />
           {t.ep.length ? (
             <>
@@ -158,13 +159,13 @@ export default function TitleDetail() {
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
                 <Small>{seasonIdx.filter((x) => state.episodes[t.id]?.includes(x.n)).length} / {seasonIdx.length} bölüm izlendi</Small>
                 <Btn kind="quiet" label={seasonDone ? 'Sezonun işaretlerini kaldır' : 'Sezonu tamamladım'}
-                  onPress={() => { store.setEpisodes(t.id, seasonIdx.map((x) => x.n), !seasonDone); tap('success'); toast(seasonDone ? 'Sezon işaretleri kaldırıldı' : `Sezon ${season} tamamlandı`); }} />
+                  onPress={() => { const nums = seasonIdx.map((x) => x.n); const changed = changedEpisodes(nums, state.episodes[t.id] || [], seasonDone); store.setEpisodes(t.id, nums, !seasonDone); tap('success'); toast(seasonDone ? 'Sezon işaretleri kaldırıldı' : `Sezon ${season} tamamlandı`, { label: 'Geri al', onPress: () => store.setEpisodes(t.id, changed, seasonDone) }); }} />
               </View>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
                 {seasonIdx.map(({ e, n }) => {
                   const on = !!state.episodes[t.id]?.includes(n);
                   return (
-                    <Pressable key={n} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${episodeLabel(t, n)} ${on ? 'izlendi' : 'izlenmedi'}`}
+                    <Pressable key={n} accessibilityRole="checkbox" accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={`${episodeLabel(t, n)} ${on ? 'izlendi' : 'izlenmedi'}`}
                       onPress={() => { store.toggleEpisode(t.id, n); tap(on ? 'light' : 'success'); }}
                       style={({ pressed }) => ({ width: `${100 / epCols - 2.4}%` as `${number}%`, flexGrow: 1, padding: 12, borderRadius: R.md, backgroundColor: on ? alpha(C.green, 0.12) : C.card, borderWidth: 1, borderColor: on ? alpha(C.green, 0.45) : C.line, opacity: pressed ? 0.7 : 1 })}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>

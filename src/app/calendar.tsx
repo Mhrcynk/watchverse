@@ -105,7 +105,7 @@ export default function Calendar() {
                         : <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, backgroundColor: alpha(C.accent, 0.18) }}><Text style={{ fontFamily: F.bold, fontSize: 11.5, color: C.accent }}>Yeni</Text></View>}
                     </Press>
                     {future && !x.seen && (
-                      <Press accessibilityRole="button" accessibilityLabel={`${x.title} bölümünü takvime ekle`} accessibilityState={{ expanded: openRow === rk }}
+                      <Press accessibilityRole="button" accessibilityLabel={`${x.title} bölümünü takvime ekle`} accessibilityState={{ expanded: openRow === rk }} aria-expanded={openRow === rk}
                         onPress={() => { tap(); setOpenRow(openRow === rk ? null : rk); }} style={{ width: 44, height: 44, marginRight: 6, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: openRow === rk ? alpha(C.accent, 0.2) : 'transparent' }}>
                         <Feather name="calendar" size={18} color={openRow === rk ? C.accentSoft : C.muted} />
                       </Press>

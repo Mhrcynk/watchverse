@@ -95,7 +95,7 @@ export default function Stats() {
           <H3>Son 12 ay</H3>
           <View style={{ flexDirection: 'row', gap: 4, padding: 3, borderRadius: R.md, backgroundColor: C.bg }}>
             {(Object.keys(METRIC_TR) as Metric[]).map((m) => (
-              <Press key={m} accessibilityRole="button" accessibilityState={{ selected: metric === m }} onPress={() => setMetric(m)} scaleTo={0.96}
+              <Press key={m} accessibilityRole="button" accessibilityState={{ selected: metric === m }} aria-selected={metric === m} onPress={() => setMetric(m)} scaleTo={0.96}
                 style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: R.sm, backgroundColor: metric === m ? C.raised : 'transparent' }}>
                 <Text style={{ fontFamily: F.semibold, fontSize: 12.5, color: metric === m ? C.text : C.dim }}>{METRIC_TR[m]}</Text>
               </Press>

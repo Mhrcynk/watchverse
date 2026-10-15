@@ -10,16 +10,18 @@ import { isSaved, itemFromTItem, useListPicker } from '@/components/lists';
 import { scoreText } from '@/components/preview';
 import { useTrailer } from '@/components/trailer';
 import { BackLink, Btn, Empty, FadeIn, Press, Screen, Small, tap } from '@/components/ui';
-import { routeOf } from '@/lib/library';
+import { catalogOf, routeOf } from '@/lib/library';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
 import { detail, discover, hasApi, img, platforms, type Media, type TDetail, type TItem } from '@/lib/tmdb';
+import { CATALOG } from '@/lib/catalog';
+import { savedSuggestions } from '@/lib/saved-suggestions';
 import type { State } from '@/lib/types';
 
 type Kind = 'all' | Media;
 type Time = 'short' | 'mid' | 'any';
 type Plat = { id: number; name: string; at: string };
-type Choice = { kind: Kind; time: Time; mood: string; plats: number[] };
+type Choice = { source: 'discover' | 'mine'; kind: Kind; time: Time; mood: string; plats: number[] };
 
 /** Ruh hâli → TMDB türleri ("|" ya da demek) */
 const MOODS: { id: string; label: string; movie?: string; tv?: string }[] = [
@@ -34,9 +36,9 @@ const MOODS: { id: string; label: string; movie?: string; tv?: string }[] = [
   { id: 'real', label: 'Gerçek hayattan', movie: '99', tv: '99' },
 ];
 const KEY = 'watchverse:pick';
-const DEF: Choice = { kind: 'all', time: 'any', mood: 'any', plats: [] };
+const DEF: Choice = { source: 'discover', kind: 'all', time: 'any', mood: 'any', plats: [] };
 
-const seenIt = (s: State, k: string) => !!s.watched[k] || !!s.episodes[k]?.length || isSaved(s, k);
+const seenIt = (s: State, k: string) => { const id = catalogOf(k)?.id || k; return !!s.watched[k] || !!s.watched[id] || !!s.episodes[k]?.length || !!s.episodes[id]?.length || isSaved(s, k); };
 
 /** Bugün ne izlesem? Birkaç seçim, tek öneri */
 export default function Pick() {
@@ -51,6 +53,7 @@ export default function Pick() {
   const [busy, setBusy] = useState(false);
   const [none, setNone] = useState(false);
   const pool = useRef<TItem[]>([]);
+  const currentKey = useRef<string | null>(null);
   const shown = useRef(new Set<string>());
   const page = useRef(1);
   const api = hasApi();
@@ -65,6 +68,7 @@ export default function Pick() {
 
   /** Seçimlere uyan bir sayfa yapım getirir */
   const fetchPage = async (n: number) => {
+    if (ch.source === 'mine') return savedSuggestions(store.state, CATALOG, ch.kind, shown.current);
     const ids = (ch.plats.length ? ch.plats : plats.map((p) => p.id)).join('|');
     const base: Record<string, string | number> = { sort_by: 'popularity.desc', page: n, ...(ids ? { with_watch_providers: ids, with_watch_monetization_types: 'flatrate' } : {}) };
     const q = (m: Media) => {
@@ -91,7 +95,7 @@ export default function Pick() {
   };
 
   const next = async (fresh = false) => {
-    setBusy(true); setNone(false); tap();
+    currentKey.current = null; setBusy(true); setNone(false); tap();
     try {
       if (fresh) { pool.current = []; page.current = 1 + Math.floor(Math.random() * 2); }
       let x = draw();
@@ -103,8 +107,9 @@ export default function Pick() {
       }
       if (!x) { setNone(true); setStep('result'); setCur(null); return; }
       shown.current.add(x.key);
-      setD(null); setCur(x); setStep('result');
-      detail(x.m, x.id).then((v) => setD(v)).catch(() => {});
+      currentKey.current = x.key; setD(null); setCur(x); setStep('result');
+      const selectedKey = x.key;
+      detail(x.m, x.id).then((v) => { if (currentKey.current === selectedKey) setD(v); }).catch(() => {});
     } catch { setNone(true); setStep('result'); setCur(null); } finally { setBusy(false); }
   };
 
@@ -112,21 +117,26 @@ export default function Pick() {
   if (!api) return <Screen><Backdrop /><BackLink label="Geri" onPress={back} /><Empty icon="shuffle" title="Bu araç ara sunucu kurulunca açılır." /></Screen>;
 
   const platName = (id: number) => plats.find((p) => p.id === id)?.name || '';
-  const summary = [ch.kind === 'movie' ? 'Film' : ch.kind === 'tv' ? 'Dizi' : 'Film ya da dizi', ch.plats.length ? ch.plats.map(platName).filter(Boolean).join(', ') : 'Tüm platformlar', ch.time === 'short' ? 'Kısa' : ch.time === 'mid' ? 'Normal süre' : null, mood.id !== 'any' ? mood.label : null].filter(Boolean).join(' · ');
+  const summary = [ch.kind === 'movie' ? 'Film' : ch.kind === 'tv' ? 'Dizi' : 'Film ya da dizi', ch.source === 'mine' ? 'Kendi listemden' : ch.plats.length ? ch.plats.map(platName).filter(Boolean).join(', ') : 'Tüm platformlar', ch.time === 'short' ? 'Kısa' : ch.time === 'mid' ? 'Normal süre' : null, mood.id !== 'any' ? mood.label : null].filter(Boolean).join(' · ');
 
   return (
     <Screen>
       <Backdrop />
       <BackLink label="Geri" onPress={back} />
-      <PageHeader bold="Bugün ne izlesem?" sub={step === 'choose' ? 'Birkaç seçim yap, sana tek bir öneri çıkaralım. İzlediklerin ve kaydettiklerin önerilmez.' : summary} />
+      <PageHeader bold="Bugün ne izlesem?" sub={step === 'choose' ? (ch.source === 'mine' ? 'Kaydettiğin ve henüz başlamadığın yapımlardan birini seçelim.' : 'Birkaç seçim yap, sana tek bir öneri çıkaralım. İzlediklerin ve kaydettiklerin önerilmez.') : summary} />
 
       {step === 'choose' ? (
         <>
+          <Group title="Nereden önerelim?">
+            <Opt label="Yeni bir şey keşfet" on={ch.source === 'discover'} onPress={() => set({ source: 'discover' })} />
+            <Opt label="Kendi listemden öner" on={ch.source === 'mine'} onPress={() => set({ source: 'mine', time: 'any', mood: 'any', plats: [] })} />
+          </Group>
           <Group title="Ne izlemek istersin?">
             {([['all', 'Fark etmez'], ['movie', 'Film'], ['tv', 'Dizi']] as const).map(([id, l]) => (
               <Opt key={id} label={l} on={ch.kind === id} onPress={() => set({ kind: id, mood: id === 'all' || MOODS.find((m) => m.id === ch.mood)?.[id] ? ch.mood : 'any' })} />
             ))}
           </Group>
+          {ch.source === 'discover' && <>
           <Group title="Hangi platformlarda?" note={ch.plats.length ? `${ch.plats.length} seçili` : 'Seçmezsen hepsinde arar'}>
             {plats.map((p) => {
               const on = ch.plats.includes(p.id);
@@ -142,18 +152,19 @@ export default function Pick() {
           <Group title="Havan nasıl?">
             {moods.map((m) => <Opt key={m.id} label={m.label} on={ch.mood === m.id} onPress={() => set({ mood: m.id })} />)}
           </Group>
+          </>}
           <Btn icon="shuffle" label={busy ? 'Aranıyor…' : 'Bana bir şey öner'} disabled={busy} style={{ marginTop: 28 }} onPress={() => { shown.current.clear(); next(true); }} />
         </>
       ) : none || !cur ? (
         <View style={{ marginTop: 10 }}>
-          <Empty icon="search" title="Bu seçimlere uyan yeni bir yapım kalmadı." text="Bir platform ya da tür daha ekleyip tekrar dene." action="Seçimleri değiştir" onAction={() => setStep('choose')} />
+          <Empty icon="search" title="Bu seçimlere uyan yeni bir yapım kalmadı." text={ch.source === 'mine' ? 'Listene yeni yapımlar ekle ya da tür seçimini değiştir.' : 'Bir platform ya da tür daha ekleyip tekrar dene.'} action="Seçimleri değiştir" onAction={() => setStep('choose')} />
         </View>
       ) : (
         <Result key={cur.key} x={cur} d={d} busy={busy}
           onSave={() => pick(itemFromTItem(cur))} saved={isSaved(store.state, cur.key)}
           onTrailer={d?.yt ? () => play(d.yt!, cur.title) : undefined}
           onMore={() => router.push(routeOf(cur.key) as never)}
-          onNext={() => next()} onChange={() => setStep('choose')} chosen={ch.plats} />
+          onNext={() => next()} onChange={() => setStep('choose')} chosen={ch.plats} ownList={ch.source === 'mine'} />
       )}
     </Screen>
   );
@@ -174,7 +185,7 @@ function Group({ title, note, children }: { title: string; note?: string; childr
 /** Seçenek: parmakla rahat dokunulacak boyutta (en az 44 px) */
 function Opt({ label, sub, on, multi, onPress }: { label: string; sub?: string; on: boolean; multi?: boolean; onPress: () => void }) {
   return (
-    <Press accessibilityRole={multi ? 'checkbox' : 'radio'} accessibilityState={multi ? { checked: on } : { selected: on }} accessibilityLabel={sub ? `${label}, ${sub}` : label} onPress={() => { tap(); onPress(); }} scaleTo={0.96}
+    <Press accessibilityRole={multi ? 'checkbox' : 'radio'} accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={sub ? `${label}, ${sub}` : label} onPress={() => { tap(); onPress(); }} scaleTo={0.96}
       style={{ minHeight: 44, paddingHorizontal: 16, paddingVertical: sub ? 7 : 0, borderRadius: R.md, justifyContent: 'center', backgroundColor: on ? alpha(C.accent, 0.2) : C.card, borderWidth: 1, borderColor: on ? C.accent : 'transparent' }}>
       <Text style={{ fontFamily: F.semibold, fontSize: 14.5, color: on ? C.text : '#D5D8E0' }}>{label}</Text>
       {!!sub && <Text style={{ fontFamily: F.regular, fontSize: 12, color: C.muted, marginTop: 1 }}>{sub}</Text>}
@@ -182,8 +193,8 @@ function Opt({ label, sub, on, multi, onPress }: { label: string; sub?: string; 
   );
 }
 
-function Result({ x, d, busy, saved, chosen, onSave, onTrailer, onMore, onNext, onChange }: {
-  x: TItem; d: TDetail | null; busy: boolean; saved: boolean; chosen: number[];
+function Result({ x, d, busy, saved, chosen, ownList, onSave, onTrailer, onMore, onNext, onChange }: {
+  x: TItem; d: TDetail | null; busy: boolean; saved: boolean; chosen: number[]; ownList: boolean;
   onSave: () => void; onTrailer?: () => void; onMore: () => void; onNext: () => void; onChange: () => void;
 }) {
   const rt = d?.runtime;
@@ -211,7 +222,7 @@ function Result({ x, d, busy, saved, chosen, onSave, onTrailer, onMore, onNext, 
           {!!where && <Small style={{ marginTop: 2, color: C.accentSoft }}>{where}</Small>}
         </View>
         <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-          <Text numberOfLines={5} style={{ fontFamily: F.regular, fontSize: 14.5, lineHeight: 21, color: '#D8D8DE' }}>{x.overview}</Text>
+          <Text numberOfLines={5} style={{ fontFamily: F.regular, fontSize: 14.5, lineHeight: 21, color: '#D8D8DE' }}>{d?.overview || x.overview}</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
             <Btn icon="bookmark" kind={saved ? 'success' : 'primary'} label={saved ? 'Kütüphanende' : 'Kaydet'} style={{ flex: 1 }} onPress={onSave} />
             {onTrailer && <Btn icon="play" kind="secondary" label="Fragman" onPress={onTrailer} />}
@@ -226,7 +237,7 @@ function Result({ x, d, busy, saved, chosen, onSave, onTrailer, onMore, onNext, 
         <Feather name="sliders" size={16} color={C.accentSoft} />
         <Text style={{ fontFamily: F.semibold, fontSize: 14.5, color: C.accentSoft }}>Seçimleri değiştir</Text>
       </Press>
-      {chosen.length === 0 && <Small style={{ marginTop: 4 }}>Öneriler Türkiye'deki abonelik platformlarında izlenebilen yapımlardan seçilir.</Small>}
+      {!ownList && chosen.length === 0 && <Small style={{ marginTop: 4 }}>Öneriler Türkiye'deki abonelik platformlarında izlenebilen yapımlardan seçilir.</Small>}
     </FadeIn>
   );
 }

@@ -1,5 +1,13 @@
 /* İngilizce sözlük: Türkçe metin → İngilizce. Kalıplarda {0}, {1} değişken yerleridir. */
 export const EN: Record<string, string> = {
+  'Geri al': 'Undo', 'Liste sırası': 'List order',
+  'En yeni': 'Newest first', 'Puana göre': 'By rating', 'Ada göre': 'By title',
+  'Bu filtreye uygun yapım yok.': 'No titles match this filter.', 'Ana hikâye tamamlandı': 'Main story completed',
+  'Nereden önerelim?': 'Where should we pick from?', 'Yeni bir şey keşfet': 'Discover something new',
+  'Kendi listemden öner': 'Pick from my list', 'Kendi listemden': 'From my list',
+  'Kaydettiğin ve henüz başlamadığın yapımlardan birini seçelim.': 'Pick a saved title you have not started yet.',
+  'Sıradaki bölümü izledim': 'Mark next episode watched',
+
   // --- gezinme ve genel ---
   'Ana Sayfa': 'Home', 'Keşfet': 'Explore', 'Kütüphanem': 'My Library', 'Evrenler': 'Universes', 'Profil': 'Profile',
   'Geri': 'Back', 'Kapat': 'Close', 'Tamam': 'OK', 'Vazgeç': 'Cancel', 'Kaydet': 'Save', 'Sil': 'Delete', 'Düzenle': 'Edit', 'Yenile': 'Refresh',
@@ -412,7 +420,7 @@ export const EN: Record<string, string> = {
   "Altın Palmiye": "Palme d'Or",
   "Klasikler": "Classics",
   "Gizli hazineler": "Hidden gems",
-  "Bir haftasonunda biter": "Binge in a weekend",
+  "Bir hafta sonunda biter": "Binge in a weekend",
   "Gerçek hikâyeler": "True stories",
   "Kitaptan uyarlamalar": "Book adaptations",
   "Akademi Ödülleri · En İyi Film": "Academy Awards · Best Picture",
