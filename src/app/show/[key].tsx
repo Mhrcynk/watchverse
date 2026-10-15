@@ -1,3 +1,4 @@
+import { changedEpisodes } from '@/lib/audit-logic';
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
@@ -149,7 +150,7 @@ export default function Show() {
           {[1, 2, 3, 4, 5].map((n) => {
             const on = (state.ratings[key] || 0) >= n;
             return (
-              <Press key={n} accessibilityRole="button" accessibilityLabel={`${n} yıldız`} scaleTo={0.85} hitSlop={4}
+              <Press key={n} accessibilityRole="button" accessibilityLabel={`${n} yıldız`} accessibilityState={{ selected: state.ratings[key] === n }} aria-pressed={state.ratings[key] === n} scaleTo={0.85} hitSlop={4}
                 onPress={() => { if (!inLib) save(); store.setRating(key, n); tap(); }} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name={on ? 'star' : 'star-outline'} size={28} color={on ? C.amber : C.dim} />
               </Press>
@@ -171,7 +172,7 @@ export default function Show() {
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
                   <Small>{airedEps.filter((e) => seen.has(idx(e))).length} / {airedEps.length} bölüm izlendi</Small>
                   <Btn kind="quiet" label={seasonDone ? 'Sezonun işaretlerini kaldır' : 'Sezonu tamamladım'}
-                    onPress={() => { if (!inLib) save(); store.setEpsKey(key, airedEps.map(idx), !seasonDone); tap('success'); toast(seasonDone ? 'Sezon işaretleri kaldırıldı' : 'Sezon tamamlandı'); }} />
+                    onPress={() => { if (!inLib) save(); const nums = airedEps.map(idx); const changed = changedEpisodes(nums, [...seen], seasonDone); store.setEpsKey(key, nums, !seasonDone); tap('success'); toast(seasonDone ? 'Sezon işaretleri kaldırıldı' : 'Sezon tamamlandı', { label: 'Geri al', onPress: () => store.setEpsKey(key, changed, seasonDone) }); }} />
                 </View>
               )}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
@@ -180,7 +181,7 @@ export default function Show() {
                   const on = seen.has(n);
                   const future = !e.date || e.date > t0;
                   return (
-                    <Pressable key={n} disabled={future} accessibilityRole="checkbox" accessibilityState={{ checked: on, disabled: future }}
+                    <Pressable key={n} disabled={future} accessibilityRole="checkbox" accessibilityState={{ checked: on, disabled: future }} aria-checked={on} aria-disabled={future}
                       accessibilityLabel={`${e.s}. sezon ${e.e}. bölüm, ${e.name}, ${future ? 'henüz yayınlanmadı' : on ? 'izlendi' : 'izlenmedi'}`}
                       onPress={() => { if (!inLib) save(); store.setEpsKey(key, [n], !on); tap(on ? 'light' : 'success'); }}
                       style={({ pressed }) => ({ width: `${100 / epCols - (epCols > 1 ? 2 : 0)}%` as `${number}%`, flexGrow: 1, padding: 10, borderRadius: R.md, backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.lineSoft, opacity: future ? 0.5 : pressed ? 0.75 : 1 })}>

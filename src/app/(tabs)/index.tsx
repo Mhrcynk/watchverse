@@ -11,7 +11,7 @@ import { Backdrop, Coverflow, Greeting, SearchPill, TicketCard } from '@/compone
 import { isEn } from '@/lib/i18n';
 import { mergedPopular, platformLists, popularOf, type Lists, type PlatformList } from '@/lib/platform-lists';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Btn, FadeIn, Press, Screen, Segmented, Small, tap, useLayout } from '@/components/ui';
+import { Btn, FadeIn, Press, Screen, Segmented, Small, tap, useLayout, useToast } from '@/components/ui';
 import { TBY, TYPE_TR, UBY, daysUntil, posterPath, posterUrl, upcomingFor, type Upcoming } from '@/lib/catalog';
 import { usePreview } from '@/components/preview';
 import { StarterCard } from '@/components/starter';
@@ -44,6 +44,18 @@ async function onPlatform(pid: number, kind: Kind, tv: Record<string, string | n
 export default function Home() {
   const store = useStore();
   const { state } = store;
+  const toast = useToast();
+  const markNext = (x: ContItem) => {
+    const t = TBY[x.key];
+    if (t) {
+      if (t.episodes) { const n = nextEpisode(state, t); if (!n) return; store.setEpisodes(t.id, [n], true); toast(`${episodeLabel(t, n)} izlendi`, { label: 'Geri al', onPress: () => store.setEpisodes(t.id, [n], false) }); }
+      else { store.toggleWatched(t.id); toast('İzlendi olarak kaydedildi', { label: 'Geri al', onPress: () => store.toggleWatched(t.id) }); }
+    } else {
+      const li = state.lib[x.key]; if (!li) return;
+      const n = Array.from({ length: li.aired || 0 }, (_, i) => i + 1).find((n) => !state.episodes[x.key]?.includes(n));
+      if (n) { store.setEpsKey(x.key, [n], true); toast(`Bölüm ${n} izlendi`, { label: 'Geri al', onPress: () => store.setEpsKey(x.key, [n], false) }); }
+    }
+  };
   const { width } = useLayout();
   const insets = useSafeAreaInsets();
   const w = useTileW();
@@ -83,7 +95,7 @@ export default function Home() {
   const P = plat === 'all' ? null : ps.find((x) => x.id === plat) || null;
   const t0 = today();
   const popular = P ? popularOf(P, kind) : mergedPopular(ps, kind);
-  const featured = P ? popular.filter((x) => x.p).slice(0, 8) : trend;
+  const featured = P ? popular.filter((x) => x.p).slice(0, 8) : trend.filter((x) => typeOk(x.m));
   const genres = ['Aksiyon', 'Komedi', 'Dram', 'Bilim kurgu'].map((n) => GENRES.find((g) => g.name === n)!).filter((g) => kind === 'all' || g[kind]);
 
   return (
@@ -94,6 +106,11 @@ export default function Home() {
         <SearchPill onFilter={api ? () => setCats(true) : undefined} />
         <Segmented<Kind> label="Tür" value={kind} onChange={setKind} options={[{ id: 'all', label: 'Hepsi' }, { id: 'tv', label: 'Diziler' }, { id: 'movie', label: 'Filmler' }]} />
       </View>
+          {cont.length > 0 && (
+            <Row title="İzlemeye devam et" note={cont.some((x) => x.badge === 'Yeni bölüm') ? 'yeni bölüm var' : undefined}>
+              {cont.map((x, i) => <TicketCard key={x.key} index={i} width={tw} title={x.title} poster={x.poster} sub={x.sub} badge={x.badge} pct={x.pct} watchedLabel={x.m === 'tv' ? 'Sıradaki bölümü izledim' : 'İzledim'} onWatched={TBY[x.key] || ((state.lib[x.key]?.aired || 0) > (state.episodes[x.key]?.length || 0)) ? () => markNext(x) : undefined} onPress={() => router.push(x.route as never)} />)}
+            </Row>
+          )}
       <StarterCard />
       {ps.length > 0 && <PlatformBar ps={ps} value={plat} onChange={setPlat} />}
 
@@ -120,11 +137,6 @@ export default function Home() {
         </>
       ) : (
         <>
-          {cont.length > 0 && (
-            <Row title="İzlemeye devam et" note={cont.some((x) => x.badge === 'Yeni bölüm') ? 'yeni bölüm var' : undefined}>
-              {cont.map((x, i) => <TicketCard key={x.key} index={i} width={tw} title={x.title} poster={x.poster} sub={x.sub} badge={x.badge} pct={x.pct} onPress={() => router.push(x.route as never)} />)}
-            </Row>
-          )}
           {popular.length >= 5 && <RemoteRow title="Şu an popüler" top10 load={() => Promise.resolve(popular)} deps={[kind, lists?.updated]} note="platformlarda" />}
           {forYou.length >= 3 && <Row title="Senin için">{forYou.map((x, i) => <TItemTile key={x.key} x={x} width={w} index={i} />)}</Row>}
           {likedNow.length >= 2 && (
@@ -163,7 +175,7 @@ export default function Home() {
 function PlatformBar({ ps, value, onChange }: { ps: PlatformList[]; value: Plat; onChange: (p: Plat) => void }) {
   const { pad } = useLayout();
   const cell = (key: string, on: boolean, label: string, onPress: () => void, inner: React.ReactNode) => (
-    <Press key={key} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={label} onPress={onPress} scaleTo={0.92} style={{ alignItems: 'center', width: 64 }}>
+    <Press key={key} accessibilityRole="button" accessibilityState={{ selected: on }} aria-pressed={on} accessibilityLabel={label} onPress={onPress} scaleTo={0.92} style={{ alignItems: 'center', width: 64 }}>
       <View style={{ width: 58, height: 58, borderRadius: 18, padding: 2, borderWidth: 2, borderColor: on ? C.text : 'transparent' }}>
         <View style={{ flex: 1, borderRadius: 14, overflow: 'hidden', backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', opacity: on ? 1 : 0.75 }}>{inner}</View>
       </View>

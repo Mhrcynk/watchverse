@@ -153,7 +153,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
 /** Simge + yazı: her düğmenin ne yaptığı yazıyla belli */
 function Action({ icon, label, onPress, on }: { icon: IconName; label: string; onPress: () => void; on?: boolean }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={on != null ? { checked: on } : undefined} onPress={onPress}
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={on != null ? { selected: on } : undefined} aria-pressed={on ?? undefined} onPress={onPress}
       style={({ pressed }) => ({ flex: 1, height: 46, borderRadius: R.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: on ? alpha(C.green, 0.16) : alpha('#FFFFFF', pressed ? 0.1 : 0.06) })}>
       <Feather name={icon} size={16} color={on ? C.green : C.text} />
       <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 13.5, color: on ? C.green : C.text }}>{label}</Text>

@@ -312,7 +312,7 @@ function Mini<T extends string>({ value, options, onChange }: { value: T; option
       {options.map((o) => {
         const on = o.id === value;
         return (
-          <Press key={o.id} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={o.label} onPress={() => onChange(o.id)} scaleTo={0.95}
+          <Press key={o.id} accessibilityRole="radio" accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={o.label} onPress={() => onChange(o.id)} scaleTo={0.95}
             style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99, backgroundColor: on ? C.accent : 'transparent' }}>
             <Text style={{ fontFamily: F.bold, fontSize: 12, color: on ? C.onAccent : C.muted }}>{o.label}</Text>
           </Press>

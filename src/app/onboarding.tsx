@@ -85,7 +85,7 @@ export default function Onboarding() {
         <Grid items={UNIVERSES} cols={cols} gap={12} keyOf={(u) => u.id} render={(u) => {
             const on = sel.includes(u.id);
             return (
-              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={u.name} onPress={() => toggleU(u.id)}
+              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={u.name} onPress={() => toggleU(u.id)}
                 style={({ pressed }) => ({ minHeight: 104, padding: 14, borderRadius: R.lg, backgroundColor: on ? alpha(u.color, 0.14) : C.card, borderWidth: 1, borderColor: on ? u.color : C.line, opacity: pressed ? 0.75 : 1, justifyContent: 'space-between' })}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6 }}>
                   <Wordmark u={u} size={9.5} />
@@ -124,7 +124,7 @@ export default function Onboarding() {
         const isOpen = open === uid;
         return (
           <View key={uid} style={{ marginBottom: 10, borderRadius: R.lg, backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: isOpen ? alpha(u.color, 0.5) : C.line, overflow: 'hidden' }}>
-            <Press accessibilityRole="button" accessibilityState={{ expanded: isOpen }} onPress={() => setOpen(isOpen ? null : uid)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
+            <Press accessibilityRole="button" accessibilityState={{ expanded: isOpen }} aria-expanded={isOpen} onPress={() => setOpen(isOpen ? null : uid)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
               <View style={{ flex: 1 }}>
                 <H3>{u.name}</H3>
                 <Small>{n} / {l.length} izlendi</Small>
@@ -140,7 +140,7 @@ export default function Onboarding() {
                 {l.map((t) => {
                   const on = picked.has(t.id);
                   return (
-                    <Pressable key={t.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${t.title}, ${t.year}`}
+                    <Pressable key={t.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={`${t.title}, ${t.year}`}
                       onPress={() => { tap(); togglePick([t.id], !on); }}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.lineSoft }}>
                       <Feather name={on ? 'check-square' : 'square'} size={20} color={on ? u.color : C.dim} />

@@ -11,7 +11,7 @@ export type Collection = { id: string; title: string; sub: string; kind: 'award'
 const API = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
 const KEY = 'watchverse:collections';
 const toItem = (x: any): CItem => ({ key: keyOf(x.m, x.id), m: x.m, id: x.id, title: x.title, orig: x.orig, year: x.date ? Number(String(x.date).slice(0, 4)) : null, date: x.date, p: x.p, b: x.b, overview: x.overview || '', vote: x.vote || 0, votes: x.votes || 0, lang: x.lang || '', ...(x.note ? { note: String(x.note) } : {}) });
-const convert = (raw: any): Collection[] => (raw?.collections || []).map((c: any) => ({ id: c.id, title: c.title, sub: c.sub || '', kind: c.kind === 'award' ? 'award' : 'tmdb', source: c.source || '', items: (c.items || []).map(toItem) }));
+const convert = (raw: any): Collection[] => (raw?.collections || []).map((c: any) => ({ id: c.id, title: c.title === 'Bir haftasonunda biter' ? 'Bir hafta sonunda biter' : c.title, sub: c.sub || '', kind: c.kind === 'award' ? 'award' : 'tmdb', source: c.source || '', items: (c.items || []).map(toItem) }));
 
 let mem: Collection[] | null = null;
 /** Önce kayıtlıyı hemen verir, sonra sunucudan günceli alıp onUpdate ile bildirir */

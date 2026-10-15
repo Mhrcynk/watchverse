@@ -1,4 +1,4 @@
-import { CATALOG, TBY, UBY, UNIVERSES, depClosure, universeTitles, viewTitles } from './catalog';
+import { CATALOG, TBY, UBY, UNIVERSES, sortTitles, depClosure, universeTitles, viewTitles } from './catalog';
 import type { State, Title } from './types';
 
 export const watchedEps = (s: State, id: string) => s.episodes[id]?.length || 0;
@@ -36,8 +36,8 @@ export function totalMinutes(t: Title) {
 
 export const branchOf = (s: State, u: string) => s.branches[u] || UBY[u]?.defaultBranch || 'all';
 
-/** Seçili rota + modda bir evrenin listesi */
-export const route = (s: State, u: string) => viewTitles(u, branchOf(s, u), s.view);
+/** Seçili rotanın ana hikâyesi. Görünüm yalnızca sıralamayı değiştirir. */
+export const route = (s: State, u: string) => sortTitles(viewTitles(u, branchOf(s, u), 'main'), s.view === 'chrono' ? 'chrono' : 'release');
 
 export function universeProgress(s: State, u: string) {
   const list = route(s, u);

@@ -1,3 +1,4 @@
+import { remoteSearchResults } from '@/lib/audit-logic';
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { memo, useDeferredValue, useEffect, useMemo, useState } from 'react';
@@ -70,6 +71,7 @@ function Online() {
   useEffect(() => {
     if (query.length < 2) { setRes(null); setErr(false); return; }
     let alive = true;
+    setRes(null); setPeople([]); setErr(false);
     const h = setTimeout(() => {
       setRes(null); setErr(false);
       searchAll(query).then((r) => { if (alive) { setRes(r.items); setPeople(r.people); } }).catch(() => alive && setErr(true));
@@ -77,8 +79,8 @@ function Online() {
     return () => { alive = false; clearTimeout(h); };
   }, [query]);
 
-  const local = useMemo(() => (query.length >= 2 ? searchCatalog(query, null).slice(0, 12) : []), [query]);
-  const shown = (res || []).filter((x) => type === 'all' || x.m === type);
+  const local = useMemo(() => (query.length >= 2 ? searchCatalog(query, null).filter((t) => type === 'all' || (t.tmdb?.m || t.media) === type).slice(0, 12) : []), [query, type]);
+  const shown = remoteSearchResults(res || [], local, type);
   const t0 = today();
 
   return (
@@ -111,7 +113,7 @@ function Online() {
                 <Grid items={shown} cols={posterCols} gap={14} rowGap={22} keyOf={(x) => x.key}
                   render={(x, cw) => <ResultCard x={x} width={cw} />} />
               </>
-            ) : <Empty icon="search" title="Sonuç bulunamadı." text="Farklı bir yazım dene; orijinal adıyla da arayabilirsin." />}
+            ) : local.length ? null : <Empty icon="search" title="Sonuç bulunamadı." text="Farklı bir yazım dene; orijinal adıyla da arayabilirsin." />}
         </>
       ) : (
         <>

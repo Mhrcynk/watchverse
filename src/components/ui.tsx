@@ -1,3 +1,4 @@
+import { posterGrid } from '@/lib/audit-logic';
 import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useScrollToTop } from 'expo-router';
@@ -118,7 +119,7 @@ export function CheckButton({ done, color, onPress, label, size = 38 }: { done: 
     Animated.spring(pop, { toValue: 1, friction: 4, tension: 220, useNativeDriver: ND }).start();
   }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <Press accessibilityRole="checkbox" accessibilityState={{ checked: done }} accessibilityLabel={label} hitSlop={8} scaleTo={0.9} onPress={onPress}
+    <Press accessibilityRole="checkbox" accessibilityState={{ checked: done }} aria-checked={done} accessibilityLabel={label} hitSlop={8} scaleTo={0.9} onPress={onPress}
       style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
       <Animated.View style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: done ? color : 'transparent', borderWidth: done ? 0 : 1.5, borderColor: C.line, transform: [{ scale: pop }] }}>
         {done ? <Feather name="check" size={size * 0.48} color={C.bg} /> : <Feather name="plus" size={size * 0.42} color={C.dim} />}
@@ -137,7 +138,7 @@ export function Btn({ label, icon, kind = 'primary', onPress, style, disabled, a
     <Press
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || label}
-      accessibilityState={{ disabled: !!disabled }}
+      accessibilityState={{ disabled: !!disabled }} aria-disabled={!!disabled}
       disabled={disabled}
       onPress={() => { tap(); onPress?.(); }}
       style={[{ minHeight: 46, paddingHorizontal: kind === 'quiet' ? 4 : 18, borderRadius: R.md, backgroundColor: bg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: disabled ? 0.4 : 1, borderWidth: kind === 'secondary' ? StyleSheet.hairlineWidth : 0, borderColor: C.line }, style]}
@@ -155,7 +156,7 @@ export function Chip({ label, icon, color = C.muted, bg = C.card, onPress, activ
       <Text style={{ fontFamily: F.medium, fontSize: 12.5, color: active ? C.text : color }}>{label}</Text>
     </View>
   );
-  return onPress ? <Press accessibilityRole="button" accessibilityState={{ selected: !!active }} onPress={() => { tap(); onPress(); }}>{content}</Press> : content;
+  return onPress ? <Press accessibilityRole="button" accessibilityState={{ selected: !!active }} aria-pressed={!!active} onPress={() => { tap(); onPress(); }}>{content}</Press> : content;
 }
 
 export function Segmented<T extends string>({ value, options, onChange, label, color }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void; label: string; color?: string }) {
@@ -178,7 +179,7 @@ export function Segmented<T extends string>({ value, options, onChange, label, c
       {options.map((o) => {
         const on = o.id === value;
         return (
-          <Pressable key={o.id} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => { tap(); onChange(o.id); }}
+          <Pressable key={o.id} accessibilityRole="tab" accessibilityState={{ selected: on }} aria-selected={on} onPress={() => { tap(); onChange(o.id); }}
             style={{ flex: 1, minHeight: 40, justifyContent: 'center', paddingHorizontal: 2, borderRadius: R.sm, alignItems: 'center' }}>
             <Text numberOfLines={1} style={{ fontFamily: on ? F.semibold : F.regular, fontSize: 14, color: on ? C.text : C.dim }}>{o.label}</Text>
           </Pressable>
@@ -270,30 +271,34 @@ export function BackLink({ label, onPress }: { label: string; onPress: () => voi
 }
 
 /* ---------- bildirim ---------- */
-const ToastCtx = createContext<(msg: string) => void>(() => {});
+type ToastAction = { label: string; onPress: () => void };
+const ToastCtx = createContext<(msg: string, action?: ToastAction) => void>(() => {});
 export const useToast = () => useContext(ToastCtx);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [msg, setMsg] = useState<string | null>(null);
+  const [action, setAction] = useState<ToastAction | undefined>();
   const a = useRef(new Animated.Value(0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();
-  const { tablet } = useLayout();
-  const show = useCallback((m: string) => {
-    setMsg(m);
+  const { tablet, width } = useLayout();
+  const show = useCallback((m: string, action?: ToastAction) => {
+    a.stopAnimation();
+    setMsg(m); setAction(action);
     if (timer.current) clearTimeout(timer.current);
     Animated.spring(a, { toValue: 1, useNativeDriver: Platform.OS !== 'web', friction: 8 }).start();
-    timer.current = setTimeout(() => Animated.timing(a, { toValue: 0, duration: 200, useNativeDriver: Platform.OS !== 'web' }).start(), 2300);
+    timer.current = setTimeout(() => Animated.timing(a, { toValue: 0, duration: 200, useNativeDriver: Platform.OS !== 'web' }).start(({ finished }) => { if (finished) { setMsg(null); setAction(undefined); } }), action ? 6000 : 2300);
   }, [a]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   return (
     <ToastCtx.Provider value={show}>
       {children}
-      <Animated.View pointerEvents="none" accessibilityLiveRegion="polite"
+      <Animated.View pointerEvents={msg ? "box-none" : "none"} accessibilityLiveRegion="polite"
         style={{ position: 'absolute', alignSelf: 'center', bottom: insets.bottom + (tablet ? 28 : 84), opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
         {msg && (
-          <View style={{ backgroundColor: C.text, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 99, maxWidth: 420 }}>
-            <Text style={{ fontFamily: F.semibold, fontSize: 14, color: C.bg, textAlign: 'center' }}>{msg}</Text>
+          <View style={{ backgroundColor: C.text, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 22, maxWidth: Math.min(420, width - 32), flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Text style={{ fontFamily: F.semibold, fontSize: 14, color: C.bg, textAlign: 'center', flexShrink: 1 }}>{msg}</Text>
+            {action && <Pressable accessibilityRole="button" accessibilityLabel={action.label} onPress={() => { if (timer.current) clearTimeout(timer.current); action.onPress(); setMsg(null); setAction(undefined); a.setValue(0); }} style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 }}><Text style={{ fontFamily: F.bold, color: C.bg }}>{action.label}</Text></Pressable>}
           </View>
         )}
       </Animated.View>
@@ -306,7 +311,7 @@ export function Grid<T>({ items, cols, gap = 14, rowGap, render, keyOf }: {
   items: T[]; cols: number; gap?: number; rowGap?: number; render: (item: T, width: number) => ReactNode; keyOf: (item: T) => string;
 }) {
   const [w, setW] = useState(0);
-  const cw = w ? Math.floor((w - gap * (cols - 1)) / cols) : 0;
+  const { cardWidth: cw } = posterGrid(w, cols, gap);
   return (
     <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: gap, rowGap: rowGap ?? gap }}>
       {cw > 0 && items.map((it) => <View key={keyOf(it)} style={{ width: cw }}>{render(it, cw)}</View>)}

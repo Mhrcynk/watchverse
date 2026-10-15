@@ -140,7 +140,7 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
               </View>
               </View>
               <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 8 }}>
-                <Press accessibilityRole="checkbox" accessibilityState={{ checked: saved }} accessibilityLabel="Kütüphanem" scaleTo={0.99}
+                <Press accessibilityRole="checkbox" accessibilityState={{ checked: saved }} aria-checked={saved} accessibilityLabel="Kütüphanem" scaleTo={0.99}
                   onPress={() => (saved ? unsave() : pick(item))} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: R.md }}>
                   <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: alpha(C.accent, 0.16), alignItems: 'center', justifyContent: 'center' }}>
                     <Feather name="bookmark" size={17} color={C.accent} />
@@ -155,7 +155,7 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
                 {lists.map((l) => {
                   const on = inList(l);
                   return (
-                    <Press key={l.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={l.name} scaleTo={0.99} onPress={() => toggleIn(l)}
+                    <Press key={l.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={l.name} scaleTo={0.99} onPress={() => toggleIn(l)}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: R.md }}>
                       <ListCover l={l} size={34} />
                       <View style={{ flex: 1 }}>

@@ -201,7 +201,7 @@ export const StoryCard = memo(function StoryCard({ t, index, enter = 0, onMarkUn
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingBottom: open ? 8 : 14 }}>
         <Tag label={TIER_TR[t.tier]} color={col} solid={t.tier === 0} filled={t.tier === 1} />
         {(t.pl || []).slice(0, 2).map((p) => <Tag key={p} label={p} color={C.muted} />)}
-        <Press accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen((o) => !o)} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+        <Press accessibilityRole="button" accessibilityState={{ expanded: open }} aria-expanded={open} onPress={() => setOpen((o) => !o)} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
           <Text style={{ fontFamily: F.semibold, fontSize: 12.5, color: open ? C.text : C.dim }}>{open ? 'Gizle' : 'Neden?'}</Text>
         </Press>
       </View>

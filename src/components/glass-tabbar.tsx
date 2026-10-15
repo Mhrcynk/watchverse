@@ -91,7 +91,7 @@ function TabButton({ focused, label, icon, onPress, onLongPress }: { focused: bo
   }, [focused, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
   const to = (v: number) => Animated.timing(s, { toValue: v, duration: v < 1 ? M.press : M.fast, easing: EASE_OUT, useNativeDriver: ND }).start();
   return (
-    <Pressable accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: focused }} onPress={onPress} onLongPress={onLongPress}
+    <Pressable accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: focused }} aria-selected={focused} onPress={onPress} onLongPress={onLongPress}
       onPressIn={() => to(0.86)} onPressOut={() => to(1)} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <Animated.View style={{ transform: [{ scale: s }] }}>
         <Ionicons name={icon} size={24} color={focused ? C.text : C.dim} />

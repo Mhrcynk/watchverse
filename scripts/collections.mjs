@@ -126,7 +126,7 @@ try {
   const mini = await discover('tv', { with_type: 2, 'vote_count.gte': 300, sort_by: 'vote_average.desc' }, 3);
   const short = [];
   await pool(mini.map((x, i) => ({ x, i })), 4, async ({ x, i }) => { const d = await tmdb(`/tv/${x.id}`, { language: undefined }).catch(() => null); if (d && d.number_of_episodes && d.number_of_episodes <= 10) short[i] = { ...x, note: `${d.number_of_episodes} bölüm` }; });
-  collections.push({ id: 'mini', title: 'Bir haftasonunda biter', sub: 'Tek sezonluk, 10 bölüm ve altı mini diziler', kind: 'tmdb', source: 'TMDB', items: short.filter(Boolean) });
+  collections.push({ id: 'mini', title: 'Bir hafta sonunda biter', sub: 'Tek sezonluk, 10 bölüm ve altı mini diziler', kind: 'tmdb', source: 'TMDB', items: short.filter(Boolean) });
   for (const [id, title, sub, kw] of [['true', 'Gerçek hikâyeler', 'Gerçek olaylara dayanan yapımlar', 'based on true story'], ['novel', 'Kitaptan uyarlamalar', 'Roman ve kitaplardan uyarlananlar', 'based on novel or book']]) {
     const k = await keywordId(kw);
     if (!k) { report.push(`${id}: anahtar kelime yok`); continue; }
