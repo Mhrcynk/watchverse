@@ -50,3 +50,47 @@ test('catalog edits cannot silently shift legacy episode marks',()=>{
  assert(!seasonsCompatible([{n:1,count:2},{n:2,count:2}],[{n:1,count:3},{n:2,count:2}]));
  assert(seasonsCompatible([{n:1,count:2},{n:2,count:2}],[{n:1,count:2},{n:2,count:3}]));
 });
+
+const {createCheckpointStore,CHECKPOINT_KEY}=require('../src/lib/checkpoint-store.ts');
+function disk(seed={}) {
+ const data=new Map(Object.entries(seed));let fail=false;
+ return {data,set fail(v){fail=v;},async getItem(k){return data.get(k)??null;},async setItem(k,v){if(fail)throw Error('disk full');data.set(k,v);}};
+}
+test('checkpoint restart keeps state and merge baseline in the same snapshot',async()=>{
+ const d=disk(), c=createCheckpointStore(d);await c.load();
+ const old=state({list:['a']}), next=state({list:[]});
+ await c.commit(old,{uid:'u',rev:1,base:old});
+ await c.commit(next,{uid:'u',rev:2,base:next});
+ const recovered=await createCheckpointStore(d).load();
+ assert.deepEqual(recovered.state,next);assert.deepEqual(recovered.meta.base,next);
+});
+test('storage failure preserves old checkpoint and retries latest edits visibly',async()=>{
+ const d=disk(),c=createCheckpointStore(d);await c.load();
+ await c.commit(state({list:['a']}),{rev:1});const events=[];c.subscribe(x=>events.push(x));
+ d.fail=true;await assert.rejects(c.commit(state({list:['b']}),{rev:2}));
+ assert.equal((await createCheckpointStore(d).load()).meta.rev,1);
+ await assert.rejects(c.flush());d.fail=false;await c.flush();
+ assert.deepEqual((await createCheckpointStore(d).load()).state.list,['b']);
+ assert.deepEqual(events,[true,true,false]);
+});
+test('acknowledgement includes edits made while request was in flight',async()=>{
+ const d=disk(),c=createCheckpointStore(d);await c.load();
+ const sent=state({list:['a']});await c.commit(sent,{rev:1});
+ await c.commit(state({list:['a','b']}));await c.saveMeta({rev:2,base:sent});
+ const recovered=await createCheckpointStore(d).load();
+ assert.deepEqual(recovered.state.list,['a','b']);assert.deepEqual(recovered.meta.base.list,['a']);
+});
+test('queued writes serialize and snapshot mutable caller input',async()=>{
+ const d=disk();let release;let calls=0;const writes=[];
+ const c=createCheckpointStore({...d,async setItem(k,v){writes.push(JSON.parse(v));if(++calls===1)await new Promise(r=>release=r);await d.setItem(k,v);}});
+ await c.load();const first=state({list:['a']});const a=c.commit(first,{rev:1});first.list.push('mutated');
+ const b=c.commit(state({list:['b']}),{rev:2});await new Promise(r=>setImmediate(r));assert.equal(calls,1);
+ release();await Promise.all([a,b]);assert.deepEqual(writes[0].state.list,['a']);assert.equal(writes[1].meta.rev,2);
+});
+test('legacy migration retains originals; corrupt checkpoint never falls back or overwrites',async()=>{
+ const legacy=JSON.stringify(state({list:['a']})),d=disk({'watchverse:v2':legacy,'watchverse:sync':'{"rev":1}'});
+ const c=createCheckpointStore(d),loaded=await c.load();await c.commit(loaded.state,loaded.meta);
+ assert.equal(d.data.get('watchverse:v2'),legacy);
+ d.data.set(CHECKPOINT_KEY,'{"format":99}');const broken=createCheckpointStore(d);
+ await assert.rejects(broken.load());assert.throws(()=>broken.commit(state()));assert.equal(d.data.get(CHECKPOINT_KEY),'{"format":99}');
+});

@@ -1,3 +1,5 @@
+import { checkpoint } from './checkpoint';
+import type { SyncMeta as Meta } from './checkpoint-store';
 import * as WebBrowser from 'expo-web-browser';
 import { AUTH_REDIRECT, finishAuth } from './auth-callback';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,9 +14,7 @@ export { mergeStates } from './sync-merge';
 // Giriş dönüşündeki bilgiler adres çubuğundan kaybolmadan istemci hemen kurulur
 sb();
 
-const META = 'watchverse:sync';
 const GUEST = 'watchverse:guest';
-type Meta = { uid?: string; rev?: number; hash?: string; at?: number; base?: Partial<State> };
 export type SyncStatus = 'off' | 'syncing' | 'ok' | 'offline' | 'error';
 export type AccountUser = { id: string; email: string | null; google: boolean; name?: string | null };
 
@@ -55,10 +55,8 @@ function hashOf(v: unknown) {
 }
 const hasData = (s: State) => Object.keys(s.watched).length + Object.keys(s.episodes).length + Object.keys(s.lib).length + s.list.length + Object.keys(s.ratings).length > 0;
 
-async function loadMeta(): Promise<Meta> {
-  try { return JSON.parse((await AsyncStorage.getItem(META)) || '{}') || {}; } catch { return {}; }
-}
-const saveMeta = (m: Meta) => AsyncStorage.setItem(META, JSON.stringify(m)).catch(() => {});
+const loadMeta = async (): Promise<Meta> => (await checkpoint.load()).meta;
+const saveMeta = checkpoint.saveMeta;
 
 /* ---------- sağlayıcı ---------- */
 export function AccountProvider({ children }: { children: ReactNode }) {
@@ -86,41 +84,17 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setGuestRaw(v);
     (v ? AsyncStorage.setItem(GUEST, '1') : AsyncStorage.removeItem(GUEST)).catch(() => {});
   }, []);
-  const stateRef = useRef(store.state);
-  stateRef.current = store.state;
+  const { getState, applySync } = store;
   const meta = useRef<Meta>({});
   const busy = useRef<Promise<void> | null>(null);
   const uidRef = useRef<string | null>(null);
 
-  const apply = useCallback((s: State) => {
+  const apply = useCallback((s: State, m: Meta) => {
     // Sunucudan gelen kayıt: cihaza özel alanlar korunur
-    const cur = stateRef.current;
+    const cur = getState();
     const next = { ...s, device: cur.device, lastBackup: cur.lastBackup, onboarded: s.onboarded || cur.onboarded };
-    stateRef.current = next;
-    store.setState(() => next);
-  }, [store.setState]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /** Sunucuya yazar; başka cihaz araya girdiyse önce birleştirir */
-  const push = useCallback(async (uid: string, attempt = 0): Promise<void> => {
-    const c = sb()!;
-    if (uidRef.current !== uid || meta.current.uid !== uid) return;
-    if ((meta.current.rev || 0) > 0 && !meta.current.base) throw new Error('Eşitleme referansı eksik.');
-    const payload = cloudPayload(stateRef.current);
-    const h = hashOf(payload);
-    if (h === meta.current.hash && meta.current.uid === uid) return;
-    const { data, error } = await c.rpc('save_state_v3', { p_data: payload, p_base: meta.current.rev ?? 0 });
-    if (error) throw error;
-    if (uidRef.current !== uid) return;
-    const rev = Number(data);
-    if (rev > 0) {
-      meta.current = { uid, rev, hash: h, base: payload, at: Date.now() };
-      await saveMeta(meta.current);
-      return;
-    }
-    if (attempt > 1) throw new Error('çakışma');
-    await pull(uid, true);
-    return push(uid, attempt + 1);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return applySync(next, m);
+  }, [getState, applySync]);
 
   /** Sunucudaki sürüm daha yeniyse alır; bu cihazda kaydedilmemiş değişiklik varsa birleştirir */
   const pull = useCallback(async (uid: string, force = false): Promise<void> => {
@@ -134,10 +108,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       // Hesap yeni: bu cihazdaki kayıt hesaba taşınır.
       // Ama cihazda önceki başka bir hesabın kaydı varsa yeni hesaba aktarılmaz.
       if (m.uid && !sameUser) {
-        const cur = stateRef.current;
-        apply(sanitize({ onboarded: true, starter: true, name: '', view: cur.view, dv: 3 }));
+        const cur = getState();
+        await apply(sanitize({ onboarded: true, starter: true, name: '', view: cur.view, dv: 3 }), { uid, rev: 0 });
       }
       meta.current = { uid, rev: 0 };
+      await saveMeta(meta.current);
       return;
     }
     if (!force && sameUser && head.rev === m.rev && m.base) return;
@@ -146,7 +121,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (uidRef.current !== uid) return;
     if (!row) return;
     const remote = sanitize(row.data);
-    const local = stateRef.current;
+    const local = getState();
     const localDirty = hashOf(cloudPayload(local)) !== m.hash;
     // Old clients did not persist a baseline. Never guess which missing records were deleted.
     if (sameUser && !m.base && hashOf(cloudPayload(local)) !== hashOf(cloudPayload(remote))) {
@@ -156,10 +131,33 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (sameUser) next = localDirty ? mergeStates(local, remote, m.base || {}) : remote;
     else if (!m.uid && hasData(local)) next = mergeStates(local, remote); // bu cihaz ilk kez bağlanıyor
     else next = remote; // başka bir hesap bu cihazdan çıkmış
-    apply(next);
     meta.current = { uid, rev: row.rev, hash: hashOf(cloudPayload(remote)), base: cloudPayload(remote), at: Date.now() };
-    await saveMeta(meta.current);
-  }, [apply]);
+    await apply(next, meta.current);
+  }, [apply, getState]);
+
+  /** Sunucuya yazar; başka cihaz araya girdiyse önce birleştirir */
+  const push = useCallback(async function send(uid: string, attempt = 0): Promise<void> {
+    const c = sb()!;
+    if (uidRef.current !== uid || meta.current.uid !== uid) return;
+    if ((meta.current.rev || 0) > 0 && !meta.current.base) throw new Error('Eşitleme referansı eksik.');
+    await checkpoint.flush();
+    if (uidRef.current !== uid) return;
+    const payload = cloudPayload(getState());
+    const h = hashOf(payload);
+    if (h === meta.current.hash && meta.current.uid === uid) return;
+    const { data, error } = await c.rpc('save_state_v3', { p_data: payload, p_base: meta.current.rev ?? 0 });
+    if (error) throw error;
+    if (uidRef.current !== uid) return;
+    const rev = Number(data);
+    if (rev > 0) {
+      meta.current = { uid, rev, hash: h, base: payload, at: Date.now() };
+      await saveMeta(meta.current);
+      return;
+    }
+    if (attempt > 1) throw new Error('çakışma');
+    await pull(uid, true);
+    return send(uid, attempt + 1);
+  }, [getState, pull]);
 
   const run = useCallback((fn: (uid: string) => Promise<void>) => {
     const uid = uidRef.current;
@@ -204,7 +202,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       setUser(u);
       if (!u) { setStatus('off'); setFirstSync(false); return; }
       if (changed) setFirstSync(false);
-      if (changed) setTimeout(() => { loadMeta().then((m) => { if (alive && uidRef.current === u.id) { meta.current = m; syncNow(); } }); }, 0);
+      if (changed) setTimeout(() => { loadMeta().then((m) => { if (alive && uidRef.current === u.id) { meta.current = m; syncNow(); } }).catch(() => { if (alive) setStatus('error'); }); }, 0);
     });
     return () => { alive = false; clearTimeout(fallback); sub.subscription.unsubscribe(); };
   }, [syncNow]);

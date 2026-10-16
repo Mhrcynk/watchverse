@@ -14,6 +14,7 @@ import { FriendsSync } from '@/components/friends-sync';
 import { refreshLibrary } from '@/lib/library';
 import { syncCatalog } from '@/lib/remote';
 import { hasSyncApi, syncDevice } from '@/lib/sync';
+import { checkpoint } from '@/lib/checkpoint';
 import { StoreProvider, useStore } from '@/lib/store';
 import { AccountProvider } from '@/lib/account';
 import { installErrorTracking, reportError } from '@/lib/errors';
@@ -76,14 +77,22 @@ function LibrarySync() {
 }
 
 function Gate({ fontsReady }: { fontsReady: boolean }) {
-  const { ready } = useStore();
+  const { ready, storageError } = useStore();
   const [catVersion, setCatVersion] = useState(0);
   const bump = useCallback(() => setCatVersion((v) => v + 1), []);
   const go = ready && fontsReady;
-  useEffect(() => { if (go) SplashScreen.hide(); }, [go]);
+  useEffect(() => { if (go || storageError) SplashScreen.hide(); }, [go, storageError]);
+  if (storageError && !ready) return <View style={{ flex: 1, backgroundColor: C.bg, padding: 32, justifyContent: 'center' }}>
+    <Text style={{ color: C.text }}>Yerel kayıt okunamadı veya değişiklikler telefona kaydedilemedi. Uygulamayı silmeyin.</Text>
+    <Text style={{ color: C.text }}>Uygulamayı kapatıp yeniden açarak tekrar deneyin.</Text>
+  </View>;
   if (!go) return null;
   return (
     <ThemeProvider value={theme}>
+      {storageError && <View style={{ backgroundColor: C.bg, padding: 24 }}>
+        <Text style={{ color: C.text }}>Değişiklikler telefona kaydedilemedi. Uygulamayı silmeyin.</Text>
+        <Text accessibilityRole="button" onPress={() => { void checkpoint.flush().catch(() => {}); }} style={{ color: C.accent, paddingVertical: 12 }}>Kaydetmeyi yeniden dene</Text>
+      </View>}
       <AccountProvider><ToastProvider><ConfirmProvider><ListPickerProvider><TrailerProvider><PreviewProvider>
         <StatusBar style="light" />
         <CatalogSync onChange={bump} />

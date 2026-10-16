@@ -1,12 +1,12 @@
 import { seasonsCompatible } from './catalog-compat';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { checkpoint } from './checkpoint';
+import type { SyncMeta } from './checkpoint-store';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { MERGED, MOVED, TBY, UBY, branchesOf } from './catalog';
 import { loadCachedCatalog } from './remote';
 import type { LibItem, ListItem, ListView, Mode, Order, State, UList } from './types';
 
-const KEY = 'watchverse:v2';
 export const BACKUP_PREFIX = 'WATCHVERSE:';
 
 export const initialState = (): State => ({
@@ -187,54 +187,59 @@ type Actions = {
   reset: () => void;
 };
 
-type Ctx = { state: State; ready: boolean } & Actions;
+type Ctx = { state: State; ready: boolean; storageError: boolean; getState: () => State; applySync: (s: State, meta: SyncMeta) => Promise<void> } & Actions;
 const StoreContext = createContext<Ctx | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setRawInner] = useState<State>(initialState);
-  // Bırakılan bir dizide yeni bölüm işaretlenirse otomatik olarak yeniden başlamış sayılır
-  const setRaw = useCallback((fn: State | ((s: State) => State)) => setRawInner((prev) => {
-    const next = typeof fn === 'function' ? fn(prev) : fn;
-    if (next === prev || next.episodes === prev.episodes || !next.dropped) return next;
-    let dropped = next.dropped;
-    for (const [k, v] of Object.entries(next.dropped)) {
-      if (v > 0 && (next.episodes[k]?.length || 0) > (prev.episodes[k]?.length || 0)) { if (dropped === next.dropped) dropped = { ...dropped }; dropped[k] = -Date.now(); }
-    }
-    return dropped === next.dropped ? next : { ...next, dropped };
-  }), []);
-  const [ready, setReady] = useState(false);
   const ref = useRef(state);
-  ref.current = state;
-
-  // Açılışta kaydı oku
+  const [ready, setReady] = useState(false);
+  const [storageError, setStorageError] = useState(false);
+  const getState = useCallback(() => ref.current, []);
+  const setRaw = useCallback((fn: State | ((s: State) => State)) => {
+    const prev = ref.current;
+    let next = typeof fn === 'function' ? fn(prev) : fn;
+    if (next === prev) return;
+    if (next.episodes !== prev.episodes && next.dropped) {
+      let dropped = next.dropped;
+      for (const [k, v] of Object.entries(next.dropped)) {
+        if (v > 0 && (next.episodes[k]?.length || 0) > (prev.episodes[k]?.length || 0)) {
+          if (dropped === next.dropped) dropped = { ...dropped };
+          dropped[k] = -Date.now();
+        }
+      }
+      if (dropped !== next.dropped) next = { ...next, dropped };
+    }
+    ref.current = next;
+    void checkpoint.commit(next).catch(() => {}); // subscription exposes failures
+    setRawInner(next);
+  }, []);
+  const applySync = useCallback((next: State, meta: SyncMeta) => {
+    const saved = checkpoint.commit(next, meta);
+    ref.current = next;
+    setRawInner(next);
+    return saved;
+  }, []);
+  useEffect(() => checkpoint.subscribe(setStorageError), []);
   useEffect(() => {
     let alive = true;
-    // Önce indirilmiş katalog yüklenir; yoksa kayıt temizlenirken yeni yapımların işaretleri silinirdi
-    loadCachedCatalog()
-      .then(() => AsyncStorage.getItem(KEY))
-      .then((txt) => { if (alive && txt) setRaw(sanitize(JSON.parse(txt))); })
-      .catch(() => {})
-      .finally(() => alive && setReady(true));
+    loadCachedCatalog().then(() => checkpoint.load()).then(snapshot => {
+      if (!alive) return;
+      const next = sanitize(snapshot.state);
+      ref.current = next;
+      setRawInner(next);
+      setReady(true);
+    }).catch(() => { if (alive) setStorageError(true); });
     return () => { alive = false; };
   }, []);
-
-  // Değişiklikleri kısa bir gecikmeyle kaydet
   useEffect(() => {
-    if (!ready) return;
-    const h = setTimeout(() => { AsyncStorage.setItem(KEY, JSON.stringify(state)).catch(() => {}); }, 250);
-    return () => clearTimeout(h);
-  }, [state, ready]);
-
-  // Uygulama arka plana geçerken bekleyen kaydı hemen yaz
-  useEffect(() => {
-    if (!ready) return;
-    const sub = AppState.addEventListener('change', (st) => {
-      if (st !== 'active') AsyncStorage.setItem(KEY, JSON.stringify(ref.current)).catch(() => {});
+    const sub = AppState.addEventListener('change', st => {
+      if (st !== 'active') void checkpoint.flush().catch(() => {});
     });
     return () => sub.remove();
-  }, [ready]);
+  }, []);
 
-  const setState = useCallback((fn: (s: State) => State) => setRaw((s) => fn(s)), []);
+  const setState = useCallback((fn: (s: State) => State) => setRaw((s) => fn(s)), [setRaw]);
 
   const actions = useMemo<Actions>(() => ({
     setState,
@@ -433,9 +438,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     reset() {
       setRaw((s) => ({ ...initialState(), onboarded: true, follow: s.follow, name: s.name, mode: s.mode, order: s.order, view: s.view, branches: s.branches, spoiler: s.spoiler, lastBackup: s.lastBackup, lib: s.lib, lists: s.lists, device: s.device }));
     },
-  }), [setState]);
+  }), [setState, setRaw]);
 
-  const value = useMemo<Ctx>(() => ({ state, ready, ...actions }), [state, ready, actions]);
+  const value = useMemo<Ctx>(() => ({ state, ready, storageError, getState, applySync, ...actions }), [state, ready, storageError, getState, applySync, actions]);
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
 
