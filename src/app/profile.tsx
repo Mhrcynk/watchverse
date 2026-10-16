@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Platform, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Backdrop } from '@/components/home';
 import { usePreview } from '@/components/preview';
 import { Row, Tile, useTileW } from '@/components/rows';
@@ -12,9 +12,9 @@ import { pickBackupFile, saveBackupFile } from '@/lib/backup-file';
 import { TBY, VIEWS, VIEW_TR } from '@/lib/catalog';
 import { confirm } from '@/lib/confirm';
 import { useAccount } from '@/lib/account';
-import { LANG, isEn, setLang } from '@/lib/i18n';
+import { isEn } from '@/lib/i18n';
 import { history } from '@/lib/progress';
-import { copyText, enablePush, pushPermission } from '@/lib/push';
+import { enablePush } from '@/lib/push';
 import { fullStats } from '@/lib/stats';
 import { useStore } from '@/lib/store';
 import { hasSyncApi, syncDevice } from '@/lib/sync';
@@ -37,9 +37,8 @@ export default function Profile() {
     .sort((a, b) => b.r - a.r || (state.touched[b.t.id] || 0) - (state.touched[a.t.id] || 0)), [state]);
   const [importing, setImporting] = useState(false);
   const [code, setCode] = useState('');
-  const [pushCode, setPushCode] = useState<string | null>(null);
   const [pushOn, setPushOn] = useState(false);
-  const pushActive = hasSyncApi() && (pushOn || pushPermission() === 'granted');
+  const pushActive = hasSyncApi() && pushOn;
 
   const turnOnPush = async () => {
     const r = await enablePush(state.follow);
@@ -48,7 +47,7 @@ export default function Profile() {
       const ok = await syncDevice(state, store.ensureDevice(), true);
       if (ok) { setPushOn(true); toast('Bildirimler açıldı'); return; }
     }
-    setPushCode(r.code);
+    toast('Bildirim izni verildi ancak sunucu kaydı tamamlanamadı. Giriş yapıp tekrar dene.');
   };
   const refreshPush = async () => {
     const r = await enablePush(state.follow);
@@ -56,8 +55,9 @@ export default function Profile() {
     toast(ok ? 'Bildirim aboneliği yenilendi' : r.ok ? 'Sunucuya ulaşılamadı, sonra tekrar dene' : r.reason);
   };
   const restoreFile = async () => {
-    const txt = await pickBackupFile();
-    if (txt === null) { if (Platform.OS !== 'web') setImporting(true); return; }
+    let txt;
+    try { txt = await pickBackupFile(); } catch { toast('Yedek dosyası okunamadı veya çok büyük.'); return; }
+    if (txt === null) return;
     confirm('Yedek geri yüklensin mi?', 'Bu cihazdaki mevcut ilerlemenin yerine yedekteki ilerleme gelir.', 'Geri yükle', () => {
       toast(store.importBackup(txt) ? 'Yedek geri yüklendi' : 'Dosya okunamadı. WatchVerse yedeği olduğundan emin ol.');
     });
@@ -112,11 +112,6 @@ export default function Profile() {
       </Group>
 
       <Group title="Tercihler">
-        {Platform.OS === 'web' && (
-          <Item icon="globe" label="Dil · Language" right={
-            <Mini<'tr' | 'en'> value={LANG} onChange={(v) => v !== LANG && setLang(v)} options={[{ id: 'tr', label: 'TR' }, { id: 'en', label: 'EN' }]} />
-          } />
-        )}
         <Item icon="eye-off" label="Spoiler koruması" sub="İzlemediklerinin devamını gizler" right={
           <Switch value={state.spoiler} onValueChange={store.setSpoiler} trackColor={{ true: C.accent, false: C.line }} thumbColor="#fff" {...({ activeThumbColor: '#fff' } as object)} accessibilityLabel="Spoiler koruması" />
         } />
@@ -127,17 +122,11 @@ export default function Profile() {
         } />
         <Item icon="bell" label="Bildirimler" sub={pushActive ? 'Açık: yeni bölüm ve yeni yapımlar' : 'Yeni bölüm çıkınca haber ver'}
           right={pushActive ? <SmallBtn label="Yenile" a11y="Bildirim aboneliğini yenile" onPress={refreshPush} /> : <SmallBtn label="Aç" a11y="Bildirimleri aç" strong onPress={turnOnPush} />}
-          below={pushCode ? (
-            <View style={{ gap: 10 }}>
-              <Small style={{ color: C.green }}>İzin verildi. Bu kodu kopyala ve GitHub'da PUSH_SUBSCRIPTION ayarına yapıştır.</Small>
-              <Text selectable numberOfLines={3} style={{ padding: 12, borderRadius: R.md, backgroundColor: C.bg, color: C.muted, fontFamily: F.regular, fontSize: 12 }}>{pushCode}</Text>
-              <Btn icon="copy" label="Kodu kopyala" style={{ alignSelf: 'flex-start' }} onPress={async () => toast((await copyText(pushCode)) ? 'Kod kopyalandı' : 'Kopyalanamadı; metne uzun basıp kopyala')} />
-            </View>
-          ) : undefined} />
+        />
       </Group>
 
       <Group title="Kayıtların">
-        {Platform.OS === 'web' && <Item icon="log-in" label="Letterboxd / TV Time'dan aktar" onPress={() => router.push('/import')} />}
+        <Item icon="log-in" label="Letterboxd / TV Time'dan aktar" onPress={() => router.push('/import')} />
         <Item icon="download" label="Dosyaya yedekle" value={lastBackup} onPress={async () => { if (await saveBackupFile(store.exportBackup())) { store.markBackup(); toast('Yedek hazırlandı'); } }} />
         <Item icon="upload" label="Yedekten geri yükle" onPress={restoreFile} below={importing ? (
           <View>

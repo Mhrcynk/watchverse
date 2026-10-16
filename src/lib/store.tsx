@@ -1,3 +1,4 @@
+import { seasonsCompatible } from './catalog-compat';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
@@ -316,7 +317,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return todo.length;
     },
     markBackup: () => setRaw((s) => ({ ...s, lastBackup: Date.now() })),
-    libSave: (key, item) => setRaw((s) => ({ ...s, lib: { ...s.lib, [key]: { ...s.lib[key], ...item, added: s.lib[key]?.added || item.added || Date.now() } } })),
+    libSave: (key, item) => setRaw((s) => (s.lib[key]?.seasons && item.seasons && !seasonsCompatible(s.lib[key].seasons!, item.seasons) ? s : { ...s, lib: { ...s.lib, [key]: { ...s.lib[key], ...item, added: s.lib[key]?.added || item.added || Date.now() } } })),
     libRemove: (key) => setRaw((s) => {
       const lib = { ...s.lib }; delete lib[key];
       const watched = { ...s.watched }; delete watched[key];

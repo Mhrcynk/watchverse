@@ -1,7 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
 
 const URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY || '';
@@ -19,19 +17,16 @@ export function sb(): SupabaseClient | null {
         storageKey: 'watchverse:auth',
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: Platform.OS === 'web',
+        detectSessionInUrl: false,
+        flowType: 'pkce',
       },
     });
   }
   return client;
 }
 
-/** Sitenin kök adresi (giriş dönüşleri için) */
-export function siteUrl() {
-  if (typeof window === 'undefined') return '';
-  const base = String(Constants.expoConfig?.experiments?.baseUrl || '').replace(/\/$/, '');
-  return `${window.location.origin}${base}/`;
-}
+/** Mobil uygulama içi paylaşım bağlantılarının kökü. */
+export const siteUrl = () => 'watchverse://';
 
 /** Supabase hata mesajlarını sade Türkçeye çevirir */
 export function authError(e: unknown): string {

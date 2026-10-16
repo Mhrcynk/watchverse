@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, Platform } from 'react-native';
+import { AccessibilityInfo, Animated, Easing } from 'react-native';
 import { M } from './theme';
 
-export const ND = Platform.OS !== 'web';
+export const ND = true;
 export const EASE_OUT = Easing.bezier(0.22, 1, 0.36, 1);
 
 /** Cihazda "hareketi azalt" açıksa true */

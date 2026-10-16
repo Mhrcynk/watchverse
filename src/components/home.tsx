@@ -170,7 +170,7 @@ export function PageHeader({ bold, light, sub, right }: { bold: string; light?: 
 /** Sayfa zemini: üstte hafif aydınlık, alta doğru koyulaşan arduvaz */
 export function Backdrop() {
   return (
-    <LinearGradient pointerEvents="none" colors={[alpha('#3A4050', 0.55), alpha('#15171D', 0)]} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 420, ...(Platform.OS === 'web' ? {} : {}) }} />
+    <LinearGradient pointerEvents="none" colors={[alpha('#3A4050', 0.55), alpha('#15171D', 0)]} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 420 }} />
   );
 }
 

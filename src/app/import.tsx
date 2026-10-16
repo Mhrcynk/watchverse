@@ -1,7 +1,8 @@
+import { pickDataFile } from '@/lib/backup-file';
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Switch, Text, View } from 'react-native';
+import { Switch, Text, View } from 'react-native';
 import { BackLink, Bar, Btn, H1, H3, Muted, Panel, Screen, SectionHead, Small, useToast } from '@/components/ui';
 import { matchAll, readFiles, unpack, type Matched, type Raw, type Source } from '@/lib/importer';
 import { useStore } from '@/lib/store';
@@ -12,20 +13,7 @@ import { hasApi } from '@/lib/tmdb';
 type Step = { s: 'pick' } | { s: 'busy'; label: string; done: number; total: number } | { s: 'review'; source: Source; ok: Matched[]; miss: Raw[] } | { s: 'done'; n: number };
 const SOURCE_TR: Record<Source, string> = { letterboxd: 'Letterboxd', tvtime: 'TV Time', csv: 'CSV dosyası' };
 
-function pickFile(): Promise<{ name: string; data: Uint8Array } | null> {
-  if (Platform.OS !== 'web' || typeof document === 'undefined') return Promise.resolve(null);
-  return new Promise((res) => {
-    const inp = document.createElement('input');
-    inp.type = 'file';
-    inp.accept = '.zip,.csv,text/csv,application/zip';
-    inp.onchange = async () => {
-      const f = inp.files?.[0];
-      if (!f) return res(null);
-      res({ name: f.name, data: new Uint8Array(await f.arrayBuffer()) });
-    };
-    inp.click();
-  });
-}
+const pickFile = () => pickDataFile(['application/zip', 'text/csv', 'text/comma-separated-values']);
 
 const HOW: { title: string; steps: string }[] = [
   { title: 'Letterboxd', steps: 'Letterboxd\'da Settings → Data → Export your data. İnen zip dosyasını burada seç. İzlediğin filmler, puanların ve izleme listen aktarılır.' },
@@ -41,7 +29,8 @@ export default function Import() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
 
   async function start() {
-    const f = await pickFile();
+    let f;
+    try { f = await pickFile(); } catch { toast('Dosya okunamadı veya çok büyük.'); return; }
     if (!f) return;
     setStep({ s: 'busy', label: 'Dosya okunuyor…', done: 0, total: 0 });
     let parsed;

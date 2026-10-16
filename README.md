@@ -1,106 +1,28 @@
 # WatchVerse
 
-Sevdiğin film ve dizi evrenlerinde nerede kaldığını hatırlatan, sıradaki hikâyeni doğru sırayla öneren kişisel uygulama. Telefonda ve tablette, ana ekrana eklenen bir web uygulaması olarak çalışır.
+Film ve dizi takibi için Expo / React Native uygulaması. Hedef platformlar yalnızca **Android ve iOS**; telefon ve tablet desteklenir. Web/PWA yayını bu çalışma dalında kaldırılmıştır.
 
-- **25 evren, 726 yapım:** Marvel, DC, Star Wars, Wizarding World, Orta Dünya, Game of Thrones, The Boys, Invincible, Stranger Things, Alien, Predator, MonsterVerse, Planet of the Apes, Jurassic Park, The Matrix, Avatar, Terminator, Transformers, Star Trek, The Walking Dead, Mission: Impossible, James Bond, John Wick, Rocky & Creed, Pirates of the Caribbean
-- **Rotalar ve modlar:** her evrende ayrı süreklilikler (ör. MCU, X-Men, Sony); "Ana hikâye / Önerilen / Tümü" modları; "Önerilen / Yayın sırası / Kronolojik" sıralama
-- **Bölüm takibi:** sezon sezon, tek tek bölüm işaretleme; "sezonu tamamladım"
-- **Ön koşullar:** "Bundan önce" listesi ve hazırlık yüzdesi; "Büyük hikâyeye hazırlan"
-- **Spoiler koruması**, izleme listesi, izleme geçmişi, rozetler, yedek kodu
-- **Kendi kendine güncellenir:** haftada bir yeni bölüm, sezon ve yapımlar eklenir; uygulamada "Yeni eklenenler" bölümünde görünür.
-- Hesap yok, reklam yok. İlerleme yalnızca telefonda saklanır.
+## Geliştirme
 
-## Nasıl çalışıyor
+Node 22.13+ ve npm kullanılır.
 
-- Kod ve katalog GitHub'da durur. Uygulama GitHub Pages üzerinden ücretsiz yayınlanır: `https://<kullanıcı-adın>.github.io/watchverse/`
-- Her pazartesi sabahı GitHub'da kendiliğinden bir görev çalışır (`.github/workflows/update.yml`):
-  1. Katalogdaki her dizi için yayınlanmış yeni bölüm ve sezonlara bakar.
-  2. `scripts/sources.json` içindeki seriler, anahtar kelimeler ve yapım şirketlerinden son 6 ayda yayınlanmış, katalogda olmayan film ve dizileri bulur.
-  3. Afiş, Türkçe özet, Türkiye'deki platform, fragman ve yakında çıkacakları ekler; kataloğu kaydeder, siteyi yeniden yayınlar ve istersen bildirim gönderir.
-- Uygulama açıldığında güncel kataloğu çeker; değişiklik varsa "Katalog güncellendi" der.
-- İzleme ilerlemen telefonunda kalır; GitHub'a hiçbir kişisel bilgi gitmez. Telefon değiştirirken Profil → Yedek kodu'nu kullan.
-
-## İlk kurulum (bir kez)
-
-1. GitHub'da `watchverse` adında **herkese açık** bir depo aç ve kodu yükle.
-2. Depoda **Settings → Secrets and variables → Actions → New repository secret**: adı `TMDB_TOKEN`, değeri TMDB'deki "API Read Access Token".
-3. **Settings → Pages → Source: GitHub Actions**.
-4. **Actions → Katalogu güncelle → Run workflow** ile ilk yayını başlat. Birkaç dakika sonra site açılır.
-5. iPhone'da Safari ile siteyi aç → Paylaş → **Ana Ekrana Ekle**. Android'de Chrome → menü → **Ana ekrana ekle**.
-
-## Tüm film ve diziler (ara sunucu, bir kez)
-
-Uygulama her film ve diziyi TMDB'den arar. TMDB anahtarı uygulamaya girmez; ücretsiz bir Cloudflare Worker anahtarı saklar ve istekleri iletir (`worker/index.js`). Kurulumu GitHub görevi kendisi yapar:
-
-1. https://dash.cloudflare.com/sign-up adresinden ücretsiz hesap aç.
-2. Sağ üst profil → **My Profile → API Tokens → Create Token → "Edit Cloudflare Workers"** şablonu → Continue → Create. Çıkan anahtarı kopyala.
-3. Cloudflare ana sayfasında sağdaki **Account ID** değerini kopyala.
-4. GitHub'da iki secret ekle: `CLOUDFLARE_API_TOKEN` ve `CLOUDFLARE_ACCOUNT_ID`.
-5. **Actions → Katalogu güncelle → Run workflow.** Görev sunucuyu kurar ve uygulamayı ona bağlar.
-
-Bundan sonra bildirimler için kod kopyalamaya gerek kalmaz: Profil → Bildirimler → Bildirimleri aç yeterli. Her sabah takip ettiğin dizilerde yeni bölüm çıktıysa bildirim gelir (`.github/workflows/daily.yml`).
-
-## Üyelik ve veritabanı (isteğe bağlı, bir kez)
-
-Hesap açılınca kayıtlar her cihazda aynı görünür. Supabase kullanılır; kurulumu GitHub görevi kendisi yapar.
-
-1. supabase.com'da hesap aç, **New project** de. Bölge olarak **Frankfurt (eu-central-1)** seç.
-2. Account → **Access Tokens** → yeni anahtar oluştur. GitHub'da `SUPABASE_ACCESS_TOKEN` adıyla kaydet.
-3. Proje adresindeki 20 harflik kimliği `SUPABASE_PROJECT_REF` adıyla kaydet.
-4. Google ile giriş için (isteğe bağlı): Google Cloud'da bir "OAuth client ID" (Web) oluştur, yönlendirme adresine `https://<proje-kimliği>.supabase.co/auth/v1/callback` yaz. Kimliği `GOOGLE_CLIENT_ID`, gizli anahtarı `GOOGLE_CLIENT_SECRET` adıyla kaydet.
-5. Actions → "Katalogu güncelle" → Run workflow.
-
-Tablolar `supabase/schema.sql` dosyasındadır. Uygulama hataları `app_errors` tablosunda tutulur (kimlik bilgisi olmadan, 60 gün); son 7 günün özeti her görev çalışmasında not olarak görünür.
-
-## Bildirimler (isteğe bağlı, bir kez)
-
-1. GitHub'da **Settings → Secrets and variables → Actions → New repository secret**: adı `VAPID_PRIVATE_KEY`, değeri sana ayrıca verilen gizli anahtar.
-2. iPhone'da uygulamayı **ana ekrandaki simgeden** aç → Profil → Bildirimler → **Bildirimleri aç** → izin ver.
-3. Çıkan kodu kopyala; yeni secret: adı `PUSH_SUBSCRIPTION`, değeri bu kod. (Takip ettiğin evrenleri değiştirirsen kodu yeniden alıp güncelle.)
-
-Haftalık güncellemede takip ettiğin evrenlere yeni bölüm, sezon ya da yapım eklenirse bildirim gelir.
-
-## Uygulamada neler var
-
-- Evren listeleri: Ana hikâye · Çıkış sırası · Kronolojik · Tümü; etiket, platform ve "Neden?" açıklaması
-- Bir yapıma uzun basınca oraya kadar olanların hepsini izlendi işaretleme
-- Yakında: takip ettiğin evrenlerde çıkış tarihi belli yeni bölüm, sezon ve filmler
-- Netflix düzeninde ana sayfa: dönen vitrin, Diziler · Filmler · Kategoriler, İzlemeye devam et, Bu hafta en popüler 10, Senin için, Türk yapımları, platform ve tür sıraları; karta dokununca kısa önizleme
-- Keşfet: tüm film ve dizilerde arama, kategoriler, bu hafta en çok bakılanlar
-- Kütüphanem: izliyorum / izleyeceğim / bitirdim; dizilerde bölüm bölüm takip, yeni bölüm uyarısı
-- Fragman, 5 yıldızlı puan ve kısa not; Profil'de "En sevdiklerin"
-- Dosyaya yedek (iCloud Drive) ve haftalık yedek hatırlatması
-
-## Yanlış eklenen yapım olursa
-
-- Bir daha eklenmesin: `scripts/update-ignore.json` içine `"movie:123"` ya da `"tv:456"` yaz (numara yapımın TMDB adresindedir) ve kaydı `src/data/catalog.json`'dan sil.
-- Afiş yanlışsa: `scripts/tmdb-overrides.json` içine `"yapim-id": "movie:12345"` ya da `"none"`.
-
-## Bilgisayarda denemek
-
-Gerekenler: Node.js 20 veya üstü.
-
-```bash
-npm install
-npx expo start --web        # tarayıcıda
-npx expo start --tunnel     # telefonda Expo Go ile
+```sh
+npm ci
+npm run typecheck
+npm run test:sync
+node scripts/test-database.mjs
+node --test scripts/test-worker.mjs
+npm run test:audit
+npm run lint
+npx expo start --dev-client
 ```
 
-Güncelleyiciyi elle denemek (PowerShell):
+Native paketler nedeniyle Expo Go yerine geliştirme derlemesi gerekir. `eas.json` geliştirme, önizleme ve mağaza profillerini tanımlar. `EAS_PROJECT_ID` gerçek Expo projesinin kimliğidir; imzalama ve mağaza hesapları ayrıca bağlanır.
 
-```powershell
-$env:TMDB_TOKEN="<token>"; npm run update -- --dry
-```
+Uygulama yapılandırması: `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY`. Bunlar istemciye açık değerlerdir; TMDB ve Supabase service-role anahtarları uygulamaya konulmaz. Katalog `/catalog.json` yoluyla Worker'dan alınır. Auth dönüşü `watchverse://auth/callback` adresidir.
 
-`--dry` hiçbir şeyi kaydetmeden ne ekleneceğini gösterir.
+Native bildirim gönderimi, teslim makbuzları ve cihaz testi henüz tamamlanmadığından bildirim etkinleştirme varsayılan olarak kapalıdır. Test edilmeden `EXPO_PUBLIC_NATIVE_PUSH_ENABLED=true` kullanılmamalıdır.
 
-## Klasör yapısı
+## Yayın durumu
 
-```
-src/app/            ekranlar (her dosya bir sayfa)
-src/components/     ortak arayüz parçaları
-src/lib/            katalog, kayıt, hesaplamalar, tema, katalog güncelleme
-src/data/           catalog.json
-scripts/            update-catalog (haftalık güncelleme), resolve-tmdb (afiş), pwa (ana ekrana eklenebilir site)
-.github/workflows/  haftalık görev
-```
+Bu dal **mağaza yayınına hazır değildir**. Kanıtlar, eksikler ve sıralı yayın koşulları [docs/mobile-readiness.md](docs/mobile-readiness.md) dosyasındadır. Kaynaktan web yayın adımlarının kaldırılması GitHub Pages'teki mevcut yayını kendiliğinden silmez.

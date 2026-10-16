@@ -17,13 +17,11 @@ import { hasSyncApi, syncDevice } from '@/lib/sync';
 import { StoreProvider, useStore } from '@/lib/store';
 import { AccountProvider } from '@/lib/account';
 import { installErrorTracking, reportError } from '@/lib/errors';
-import { startTranslator } from '@/lib/i18n';
-import { Text, View } from 'react-native';
+import { AppState, Text, View } from 'react-native';
 import type { ErrorBoundaryProps } from 'expo-router';
 import { C } from '@/lib/theme';
 
 installErrorTracking();
-startTranslator();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 SplashScreen.setOptions({ duration: 300, fade: true });
 
@@ -44,9 +42,8 @@ function CatalogSync({ onChange }: { onChange: () => void }) {
       if (r) { onChange(); if (r.added) toast(`Katalog güncellendi · ${r.added} yeni yapım`); }
     };
     run();
-    const onVis = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') run(); };
-    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
-    return () => { if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis); };
+    const listener = AppState.addEventListener('change', (state) => { if (state === 'active') run(); });
+    return () => listener.remove();
   }, [onChange, toast]);
   return null;
 }
@@ -65,9 +62,8 @@ function LibrarySync() {
       refreshLibrary(stateRef.current, store.libSave).catch(() => {});
     };
     run();
-    const onVis = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') run(); };
-    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
-    return () => { if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis); };
+    const listener = AppState.addEventListener('change', (state) => { if (state === 'active') run(); });
+    return () => listener.remove();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Takip listesi değişince (birkaç saniye sonra) sunucuya bildir
   const sig = state.follow.join(',') + '|' + Object.keys(state.lib).join(',') + '|' + Object.keys(state.episodes).length;

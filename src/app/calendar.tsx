@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -16,7 +17,7 @@ import { hasApi, img, today } from '@/lib/tmdb';
 const GUN = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const AY = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 const pad2 = (n: number) => String(n).padStart(2, '0');
-const android = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent || '');
+const android = Platform.OS === 'android';
 const toEvent = (x: CalEp): CalEvent => ({ uid: `${x.key}-${x.s}-${x.e}`, title: `${x.title} · S${pad2(x.s)} B${pad2(x.e)}`, date: x.date, note: [x.name, 'Yeni bölüm · WatchVerse'].filter(Boolean).join('\n') });
 
 /** Yayın takvimi: takip ettiğin dizilerin bu haftaki (ve seçilen haftadaki) bölümleri */

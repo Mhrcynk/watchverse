@@ -81,7 +81,6 @@ export function Eyebrow({ children, lang = 'tr', style, ...p }: TxtProps & { lan
 
 /* ---------- etkileşim ---------- */
 export function tap(kind: 'light' | 'success' = 'light') {
-  if (Platform.OS === 'web') return;
   if (kind === 'success') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 }
@@ -286,8 +285,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     a.stopAnimation();
     setMsg(m); setAction(action);
     if (timer.current) clearTimeout(timer.current);
-    Animated.spring(a, { toValue: 1, useNativeDriver: Platform.OS !== 'web', friction: 8 }).start();
-    timer.current = setTimeout(() => Animated.timing(a, { toValue: 0, duration: 200, useNativeDriver: Platform.OS !== 'web' }).start(({ finished }) => { if (finished) { setMsg(null); setAction(undefined); } }), action ? 6000 : 2300);
+    Animated.spring(a, { toValue: 1, useNativeDriver: true, friction: 8 }).start();
+    timer.current = setTimeout(() => Animated.timing(a, { toValue: 0, duration: 200, useNativeDriver: true }).start(({ finished }) => { if (finished) { setMsg(null); setAction(undefined); } }), action ? 6000 : 2300);
   }, [a]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   return (
@@ -325,7 +324,6 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const a = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
     setConfirmHandler((title, message, ok, onOk) => { setQ({ title, message, ok, onOk }); });
     return () => setConfirmHandler(null);
   }, []);

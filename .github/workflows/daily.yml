@@ -1,5 +1,5 @@
-# Her sabah takip ettiğin dizilerde dün ya da bugün yayınlanan bölümleri bildirir.
-name: Günlük bölüm bildirimi
+# Native bildirim teslimatı doğrulanana kadar yalnızca platform listeleri güncellenir.
+name: Mobil platform listeleri
 
 on:
   schedule:
@@ -19,15 +19,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Yeni bölümleri bildir
-        env:
-          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-          PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
-          TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          SITE_URL: ${{ secrets.CUSTOM_DOMAIN != '' && format('https://{0}/', secrets.CUSTOM_DOMAIN) || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
-        run: node scripts/notify.mjs --daily || true
       - name: Platform listelerini güncelle
         env:
           TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}

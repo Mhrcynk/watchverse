@@ -84,7 +84,7 @@ export function TItemTile({ x, width, index, badge }: { x: TItem; width: number;
 export function Top10Tile({ x, n, width }: { x: TItem; n: number; width: number }) {
   const { open } = usePreview();
   const big = Math.round(width * 1.25);
-  const stroke = Platform.OS === 'web' ? ({ WebkitTextStroke: `2px ${C.line}`, color: C.bg } as any) : { color: C.line };
+  const stroke = { color: C.line };
   return (
     <FadeIn index={n}>
       <Press accessibilityRole="button" accessibilityLabel={`${n}. sıra: ${x.title}`} onPress={() => open(x)} scaleTo={0.95} style={{ flexDirection: 'row', alignItems: 'flex-end' }}>

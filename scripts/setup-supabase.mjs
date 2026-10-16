@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const { SUPABASE_ACCESS_TOKEN: TOKEN, SUPABASE_PROJECT_REF: REF_RAW, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SITE_URL, OLD_SITE_URL, RESEND_API_KEY, MAIL_FROM } = process.env;
+const { SUPABASE_ACCESS_TOKEN: TOKEN, SUPABASE_PROJECT_REF: REF_RAW, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, RESEND_API_KEY, MAIL_FROM } = process.env;
 const out = (k, v) => process.env.GITHUB_OUTPUT && fs.appendFileSync(process.env.GITHUB_OUTPUT, `${k}=${v}\n`);
 const empty = () => { out('supabase_url', ''); out('supabase_key', ''); };
 
@@ -52,10 +52,10 @@ if (!s.ok) {
 console.log('Veritabanı hazır.');
 
 // 2) Giriş ayarları
-const site = (SITE_URL || '').replace(/\/?$/, '/');
+const site = 'watchverse://auth/callback';
 const auth = {
   site_url: site,
-  uri_allow_list: [...new Set([site + '**', OLD_SITE_URL ? OLD_SITE_URL.replace(/\/?$/, '/') + '**' : '', 'http://localhost:8081/**'].filter(Boolean))].join(','),
+  uri_allow_list: site,
   external_email_enabled: true,
   mailer_autoconfirm: true, // onay maili beklemeden giriş (ücretsiz mail gönderimi çok sınırlı)
   password_min_length: 8,

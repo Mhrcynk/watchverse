@@ -1,0 +1,45 @@
+import { PGlite } from '@electric-sql/pglite';
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const db = new PGlite();
+await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
+create schema auth; create table auth.users(id uuid primary key);
+create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+create function auth.role() returns text language sql as $$select current_user::text$$;
+grant usage on schema auth to authenticated,anon; grant execute on function auth.uid() to authenticated,anon;
+`);
+const schema=fs.readFileSync(new URL('../supabase/schema.sql',import.meta.url),'utf8');
+await db.exec(schema);await db.exec(schema);
+const A='11111111-1111-1111-1111-111111111111', B='22222222-2222-2222-2222-222222222222';
+await db.query('insert into auth.users values($1),($2)',[A,B]);
+async function as(uid,fn){await db.exec('set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);try{return await fn();}finally{await db.exec('reset role');}}
+const save=(name,data,rev)=>db.query(`select public.${name}($1::jsonb,$2::bigint) as rev`,[JSON.stringify(data),rev]);
+await as(A,async()=>{
+ assert.equal((await save('save_state',{v:2},0)).rows[0].rev,1);
+ assert.equal((await save('save_state_v3',{v:2,list:['a']},1)).rows[0].rev,2);
+ assert.equal((await save('save_state_v3',{v:2,list:[]},1)).rows[0].rev,-2);
+ await assert.rejects(save('save_state',{v:2},2),/guncellemesi/);
+ await assert.rejects(save('save_state_v3',{v:2},null),/surum/);
+ await assert.rejects(db.exec("update public.user_state set data='{}'"),/permission/);
+ await db.query("select register_native_device($1,$2,'[]','[]')",['aaaaaaaa-aaaaaaaa','ExpoPushToken[testtoken]']);
+});
+await as(B,async()=>{
+ assert.equal((await db.exec('select * from user_state'))[0].rows.length,0);
+ await assert.rejects(db.query("select register_native_device($1,$2,'[]','[]')",['aaaaaaaa-aaaaaaaa','ExpoPushToken[attacker]']),/izin/);
+ assert.equal((await db.exec('delete from native_devices returning id'))[0].rows.length,0);
+ assert.equal((await db.exec('select * from native_devices'))[0].rows.length,0);
+});
+await db.exec('set role anon');
+await assert.rejects(save('save_state_v3',{},0),/permission/);
+await assert.rejects(db.exec("select register_native_device('aaaaaaaa-aaaaaaaa','ExpoPushToken[x]','[]','[]')"),/permission/);
+await db.exec('reset role');
+assert.equal((await db.exec('select token from native_devices'))[0].rows[0].token,'ExpoPushToken[testtoken]');
+const backup = await db.dumpDataDir();
+const restored = new PGlite({loadDataDir:backup});
+assert.equal((await restored.exec('select token from native_devices'))[0].rows[0].token,'ExpoPushToken[testtoken]');
+assert.deepEqual((await restored.exec('select data from user_state'))[0].rows[0].data,{v:2,list:['a']});
+await restored.close();
+await as(A,async()=>{await db.exec('select delete_my_account()');});
+assert.equal((await db.exec('select * from native_devices'))[0].rows.length,0);
+await db.close();
+console.log('PASS: repeatable schema, CAS, old writer guard, direct write denial, cross-account state/device isolation, anonymous RPC denial, deletion cascade, local snapshot restore. PGlite only; not a production/concurrency test.');

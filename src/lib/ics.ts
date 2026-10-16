@@ -1,4 +1,5 @@
-import { Linking, Platform } from 'react-native';
+import { shareTextFile } from './backup-file';
+import { Linking } from 'react-native';
 
 /** Takvime eklenecek tüm gün etkinliği (bölüm yayın günü) */
 export type CalEvent = { uid: string; title: string; date: string; note?: string };
@@ -25,16 +26,5 @@ export function icsText(evs: CalEvent[]) {
   return lines.join('\r\n');
 }
 
-/** Takvim dosyasını açar: iPhone'da doğrudan "Takvime ekle" ekranı, diğerlerinde dosya iner */
-export const canIcs = Platform.OS === 'web' && typeof document !== 'undefined';
-export function openIcs(evs: CalEvent[], name = 'watchverse') {
-  if (!canIcs) return;
-  const text = icsText(evs);
-  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (ios) { window.location.href = `data:text/calendar;charset=utf-8,${encodeURIComponent(text)}`; return; }
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/calendar;charset=utf-8' }));
-  const a = document.createElement('a');
-  a.href = url; a.download = `${name}.ics`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
-}
+export const canIcs = true;
+export const openIcs = (evs: CalEvent[], name = 'watchverse') => shareTextFile(icsText(evs), `${name}.ics`, 'text/calendar', 'public.calendar-event');

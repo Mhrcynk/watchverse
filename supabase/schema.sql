@@ -15,31 +15,47 @@ create policy "own row read" on public.user_state for select to authenticated us
 -- Yazma yalnızca save_state ile yapılır (sürüm kontrolü için)
 revoke insert, update, delete on public.user_state from anon, authenticated;
 
--- Kaydet: başka cihaz araya girdiyse kaydetmez, güncel sürümü eksi işaretle döndürür
-create or replace function public.save_state(p_data jsonb, p_base bigint)
-returns bigint
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  uid uuid := auth.uid();
-  cur bigint;
+-- Additive protocol migration: older clients may read, but cannot overwrite a v3 snapshot.
+alter table public.user_state add column if not exists min_writer integer not null default 2;
+grant select on public.user_state to authenticated;
+
+create or replace function public.save_state_internal(p_data jsonb, p_base bigint, p_writer integer)
+returns bigint language plpgsql security definer set search_path = '' as $$
+declare uid uuid := auth.uid(); cur bigint; required integer;
 begin
   if uid is null then raise exception 'giris gerekli'; end if;
-  if jsonb_typeof(p_data) <> 'object' or pg_column_size(p_data) > 2000000 then raise exception 'veri cok buyuk'; end if;
-  select rev into cur from public.user_state where user_id = uid for update;
+  if p_data is null or jsonb_typeof(p_data) <> 'object' or pg_column_size(p_data) > 2000000 then
+    raise exception 'gecersiz veri';
+  end if;
+  if p_base is null or p_base < 0 then raise exception 'surum gerekli'; end if;
+  -- Serialize even the first write; SELECT FOR UPDATE cannot lock a missing row.
+  perform pg_advisory_xact_lock(hashtextextended(uid::text, 0));
+  select rev, min_writer into cur, required from public.user_state where user_id = uid for update;
   if cur is null then
-    insert into public.user_state (user_id, data, rev) values (uid, p_data, 1);
+    if p_base <> 0 then raise exception 'kayit bulunamadi'; end if;
+    insert into public.user_state(user_id, data, rev, min_writer) values(uid, p_data, 1, p_writer);
     return 1;
   end if;
-  if p_base is not null and p_base <> cur then return -cur; end if;
-  update public.user_state set data = p_data, rev = cur + 1, updated_at = now() where user_id = uid;
-  return cur + 1;
+  if p_writer < required then raise exception 'uygulama guncellemesi gerekli'; end if;
+  if p_base <> cur then return -cur; end if;
+  update public.user_state set data=p_data, rev=cur+1, min_writer=greatest(required,p_writer), updated_at=now() where user_id=uid;
+  return cur+1;
 end;
 $$;
-revoke all on function public.save_state(jsonb, bigint) from public, anon;
-grant execute on function public.save_state(jsonb, bigint) to authenticated;
+revoke all on function public.save_state_internal(jsonb,bigint,integer) from public,anon,authenticated;
+
+create or replace function public.save_state(p_data jsonb,p_base bigint)
+returns bigint language sql security definer set search_path = '' as $$
+  select public.save_state_internal(p_data,p_base,2);
+$$;
+create or replace function public.save_state_v3(p_data jsonb,p_base bigint)
+returns bigint language sql security definer set search_path = '' as $$
+  select public.save_state_internal(p_data,p_base,3);
+$$;
+revoke all on function public.save_state(jsonb,bigint) from public,anon;
+revoke all on function public.save_state_v3(jsonb,bigint) from public,anon;
+grant execute on function public.save_state(jsonb,bigint) to authenticated;
+grant execute on function public.save_state_v3(jsonb,bigint) to authenticated;
 
 -- 2) Hesabı silme: kullanıcı kendi hesabını ve tüm verisini kalıcı olarak siler
 create or replace function public.delete_my_account()
@@ -294,27 +310,36 @@ create trigger limit_error_reports before insert on public.app_errors
 -- 60 günden eski hata kayıtlarını temizle
 delete from public.app_errors where at < now() - interval '60 days';
 
--- 6) Push abonelikleri: yalnızca sunucu/worker (service_role) erişebilir
-create table if not exists public.push_subscriptions (
-  id uuid default gen_random_uuid() primary key,
-  endpoint text not null unique check (endpoint ~ '^https://'),
-  subscription jsonb not null,
-  created_at timestamptz not null default now()
+-- 6) Native push devices. No anonymous writes and no caller-supplied owner.
+create table if not exists public.native_devices (
+  id text primary key check (id ~ '^[a-f0-9-]{16,64}$'),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  token text unique not null check (token ~ '^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]+\]$'),
+  follow jsonb not null default '[]', tv jsonb not null default '[]',
+  updated_at timestamptz not null default now()
 );
-alter table public.push_subscriptions enable row level security;
-revoke all on public.push_subscriptions from public, anon, authenticated;
-drop policy if exists "Service role full access on push_subscriptions" on public.push_subscriptions;
-create policy "Service role full access on push_subscriptions"
-  on public.push_subscriptions
-  as restrictive
-  using (auth.role() = 'service_role');
-create index if not exists idx_push_subscriptions_endpoint on public.push_subscriptions(endpoint);
-
--- Idempotent migration for subscriptions created before preferences were stored with them.
-alter table public.push_subscriptions add column if not exists device_id text;
-alter table public.push_subscriptions add column if not exists follow jsonb not null default '[]'::jsonb;
-alter table public.push_subscriptions add column if not exists tv jsonb not null default '[]'::jsonb;
-alter table public.push_subscriptions add column if not exists updated_at timestamptz not null default now();
-create index if not exists push_subscriptions_device on public.push_subscriptions(device_id);
-grant select, insert, update, delete on public.push_subscriptions to service_role;
-delete from public.push_subscriptions where updated_at < now() - interval '180 days';
+alter table public.native_devices enable row level security;
+revoke all on public.native_devices from public,anon,authenticated;
+grant select,delete on public.native_devices to authenticated;
+grant all on public.native_devices to service_role;
+drop policy if exists "own devices" on public.native_devices;
+create policy "own devices" on public.native_devices to authenticated using(user_id=auth.uid());
+create or replace function public.register_native_device(p_id text,p_token text,p_follow jsonb,p_tv jsonb)
+returns void language plpgsql security definer set search_path='' as $$
+declare uid uuid:=auth.uid(); owner uuid;
+begin
+  if uid is null then raise exception 'giris gerekli'; end if;
+  if p_follow is null or p_tv is null or jsonb_typeof(p_follow)<>'array' or jsonb_typeof(p_tv)<>'array' then raise exception 'gecersiz liste'; end if;
+  if jsonb_array_length(p_follow)>40 or jsonb_array_length(p_tv)>600 or pg_column_size(p_follow)+pg_column_size(p_tv)>60000 then raise exception 'liste cok buyuk'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(uid::text,0));
+  select user_id into owner from public.native_devices where id=p_id for update;
+  if owner is not null and owner<>uid then raise exception 'izin yok'; end if;
+  if owner is null and (select count(*) from public.native_devices where user_id=uid)>=10 then raise exception 'cihaz siniri'; end if;
+  insert into public.native_devices(id,user_id,token,follow,tv) values(p_id,uid,p_token,p_follow,p_tv)
+  on conflict(id) do update set token=excluded.token,follow=excluded.follow,tv=excluded.tv,updated_at=now()
+  where native_devices.user_id=uid;
+  if not found then raise exception 'izin yok'; end if;
+end;
+$$;
+revoke all on function public.register_native_device(text,text,jsonb,jsonb) from public,anon;
+grant execute on function public.register_native_device(text,text,jsonb,jsonb) to authenticated;

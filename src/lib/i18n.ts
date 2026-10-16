@@ -1,23 +1,7 @@
-import { Platform } from 'react-native';
 import { EN, EN_PATTERNS } from './en';
-
-/**
- * Dil seçimi. Uygulamanın kaynak dili Türkçedir; İngilizce seçilirse ekrandaki yazılar
- * sayfa çizildikten sonra sözlükten çevrilir (yalnızca web). Dil değişince sayfa yeniden yüklenir.
- */
 export type Lang = 'tr' | 'en';
-const KEY = 'watchverse:lang';
-
-function read(): Lang {
-  try { return typeof localStorage !== 'undefined' && localStorage.getItem(KEY) === 'en' ? 'en' : 'tr'; } catch { return 'tr'; }
-}
-export const LANG: Lang = Platform.OS === 'web' ? read() : 'tr';
-export const isEn = LANG === 'en';
-
-export function setLang(l: Lang) {
-  try { localStorage.setItem(KEY, l); } catch {}
-  if (typeof location !== 'undefined') location.reload();
-}
+export const LANG: Lang = 'tr';
+export const isEn = false;
 
 /* ---------- çeviri ---------- */
 const AY: Record<string, string> = { Oca: 'Jan', Şub: 'Feb', Mar: 'Mar', Nis: 'Apr', May: 'May', Haz: 'Jun', Tem: 'Jul', Ağu: 'Aug', Eyl: 'Sep', Eki: 'Oct', Kas: 'Nov', Ara: 'Dec' };
@@ -65,50 +49,4 @@ function translateCore(core: string, depth: number): string {
     if (r) return p.to.replace(/\{(\d)\}/g, (_, n) => tr2en(r.groups?.[`g${n}`] ?? '', depth + 1));
   }
   return core;
-}
-
-/* ---------- sayfadaki yazıları çevir (web) ---------- */
-const ATTRS = ['aria-label', 'placeholder', 'title', 'alt'];
-const done = new WeakMap<Node, string>();
-function textNode(n: Text) {
-  const v = n.nodeValue || '';
-  if (/^\s*yapım\s*$/.test(v) && n.previousSibling?.nodeType === 3 && n.previousSibling.nodeValue?.trim() === '1') { n.nodeValue = v.replace('yapım', 'title'); done.set(n, n.nodeValue); return; }
-  if (done.get(n) === v) return;
-  const t = tr2en(v);
-  done.set(n, t);
-  if (t !== v) n.nodeValue = t;
-}
-function element(el: Element) {
-  for (const a of ATTRS) {
-    const v = el.getAttribute(a);
-    if (!v) continue;
-    const t = tr2en(v);
-    if (t !== v) el.setAttribute(a, t);
-  }
-}
-function walk(root: Node) {
-  if (root.nodeType === 3) { textNode(root as Text); return; }
-  if (root.nodeType !== 1) return;
-  const el = root as Element;
-  if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') return;
-  element(el);
-  const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
-  for (let n = w.nextNode(); n; n = w.nextNode()) n.nodeType === 3 ? textNode(n as Text) : element(n as Element);
-}
-
-let started = false;
-export function startTranslator() {
-  if (!isEn || started || Platform.OS !== 'web' || typeof document === 'undefined') return;
-  started = true;
-  document.documentElement.lang = 'en';
-  walk(document.body);
-  new MutationObserver((list) => {
-    for (const m of list) {
-      if (m.type === 'characterData') textNode(m.target as Text);
-      else if (m.type === 'attributes') element(m.target as Element);
-      else m.addedNodes.forEach(walk);
-    }
-  }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
-  const tt = document.querySelector('title');
-  if (tt) new MutationObserver(() => { const v = document.title; const t = tr2en(v); if (t !== v) document.title = t; }).observe(tt, { childList: true, characterData: true, subtree: true });
 }

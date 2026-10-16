@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -73,9 +74,8 @@ export default function Home() {
     if (!api) return;
     platformLists(setLists).then((v) => v && setLists(v)).catch(() => {});
     // uygulama öne gelince de tazele
-    const onVis = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') platformLists(setLists).catch(() => {}); };
-    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
-    return () => { if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis); };
+    const listener = AppState.addEventListener('change', (state) => { if (state === 'active') platformLists(setLists).catch(() => {}); });
+    return () => listener.remove();
   }, [api]);
   useEffect(() => { AsyncStorage.getItem(PLAT_KEY).then((v) => { if (v && v !== 'all') setPlatRaw(Number(v)); }).catch(() => {}); }, []);
   useEffect(() => { let a = true; if (api) trendingKind(kind).then((r) => a && setTrend(r.filter((x) => x.p).slice(0, 8))).catch(() => {}); return () => { a = false; }; }, [kind, api]);

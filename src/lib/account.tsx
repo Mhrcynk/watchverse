@@ -1,16 +1,20 @@
+import * as WebBrowser from 'expo-web-browser';
+import { AUTH_REDIRECT, finishAuth } from './auth-callback';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { sanitize, useStore } from './store';
-import { authError, hasAuth, sb, siteUrl } from './supabase';
+import { authError, hasAuth, sb } from './supabase';
 import type { State } from './types';
+import { mergeStates } from './sync-merge';
+export { mergeStates } from './sync-merge';
 
 // Giriş dönüşündeki bilgiler adres çubuğundan kaybolmadan istemci hemen kurulur
 sb();
 
 const META = 'watchverse:sync';
 const GUEST = 'watchverse:guest';
-type Meta = { uid?: string; rev?: number; hash?: string; at?: number };
+type Meta = { uid?: string; rev?: number; hash?: string; at?: number; base?: Partial<State> };
 export type SyncStatus = 'off' | 'syncing' | 'ok' | 'offline' | 'error';
 export type AccountUser = { id: string; email: string | null; google: boolean; name?: string | null };
 
@@ -46,44 +50,10 @@ export function cloudPayload(s: State) {
   return rest;
 }
 function hashOf(v: unknown) {
-  const str = JSON.stringify(v);
-  let h = 5381;
-  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
-  return `${str.length}:${h >>> 0}`;
+  // Exact comparison: a short non-cryptographic hash can silently miss a changed record.
+  return JSON.stringify(v);
 }
 const hasData = (s: State) => Object.keys(s.watched).length + Object.keys(s.episodes).length + Object.keys(s.lib).length + s.list.length + Object.keys(s.ratings).length > 0;
-
-/** İki kaydı birleştirir: hiçbir izleme kaybolmaz; çakışan ayar ve notlarda bu cihaz kazanır */
-export function mergeStates(local: State, remote: State): State {
-  const out: State = { ...remote, ...local };
-  out.onboarded = local.onboarded || remote.onboarded;
-  // Başlarken kartı bir cihazda kapatıldıysa her yerde kapalı kalsın
-  out.starter = !!local.starter && (!remote.onboarded || !!remote.starter);
-  out.follow = [...new Set([...remote.follow, ...local.follow])];
-  out.list = [...new Set([...remote.list, ...local.list])];
-  out.watched = { ...remote.watched };
-  for (const [k, v] of Object.entries(local.watched)) out.watched[k] = Math.max(v, out.watched[k] || 0);
-  out.touched = { ...remote.touched };
-  for (const [k, v] of Object.entries(local.touched)) out.touched[k] = Math.max(v, out.touched[k] || 0);
-  out.episodes = { ...remote.episodes };
-  for (const [k, v] of Object.entries(local.episodes)) out.episodes[k] = [...new Set([...(out.episodes[k] || []), ...v])].sort((a, b) => a - b);
-  out.ratings = { ...remote.ratings, ...local.ratings };
-  out.notes = { ...remote.notes, ...local.notes };
-  out.lib = { ...remote.lib };
-  for (const [k, v] of Object.entries(local.lib)) { const r = out.lib[k]; out.lib[k] = !r || (v.at || 0) >= (r.at || 0) ? { ...v, added: Math.min(v.added, r?.added || v.added) } : r; }
-  out.branches = { ...remote.branches, ...local.branches };
-  out.lists = { ...remote.lists };
-  for (const [k, v] of Object.entries(local.lists)) { const r = out.lists[k]; out.lists[k] = !r || v.updated >= r.updated ? v : r; }
-  out.log = { ...remote.log };
-  for (const [k, v] of Object.entries(local.log)) { const r = out.log[k]; out.log[k] = r ? { f: Math.max(v.f, r.f), e: Math.max(v.e, r.e), m: Math.max(v.m, r.m) } : v; }
-  out.dropped = { ...(remote.dropped || {}) };
-  for (const [k, v] of Object.entries(local.dropped || {})) { const r = out.dropped[k]; if (!r || Math.abs(v) >= Math.abs(r)) out.dropped[k] = v; }
-  out.rewatch = { ...(remote.rewatch || {}) };
-  for (const [k, v] of Object.entries(local.rewatch || {})) out.rewatch[k] = Math.max(v, out.rewatch[k] || 0);
-  out.device = local.device;
-  out.lastBackup = local.lastBackup;
-  return out;
-}
 
 async function loadMeta(): Promise<Meta> {
   try { return JSON.parse((await AsyncStorage.getItem(META)) || '{}') || {}; } catch { return {}; }
@@ -133,15 +103,18 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   /** Sunucuya yazar; başka cihaz araya girdiyse önce birleştirir */
   const push = useCallback(async (uid: string, attempt = 0): Promise<void> => {
     const c = sb()!;
+    if (uidRef.current !== uid || meta.current.uid !== uid) return;
+    if ((meta.current.rev || 0) > 0 && !meta.current.base) throw new Error('Eşitleme referansı eksik.');
     const payload = cloudPayload(stateRef.current);
     const h = hashOf(payload);
     if (h === meta.current.hash && meta.current.uid === uid) return;
-    const { data, error } = await c.rpc('save_state', { p_data: payload, p_base: meta.current.rev ?? 0 });
+    const { data, error } = await c.rpc('save_state_v3', { p_data: payload, p_base: meta.current.rev ?? 0 });
     if (error) throw error;
+    if (uidRef.current !== uid) return;
     const rev = Number(data);
     if (rev > 0) {
-      meta.current = { uid, rev, hash: h, at: Date.now() };
-      saveMeta(meta.current);
+      meta.current = { uid, rev, hash: h, base: payload, at: Date.now() };
+      await saveMeta(meta.current);
       return;
     }
     if (attempt > 1) throw new Error('çakışma');
@@ -154,6 +127,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     const c = sb()!;
     const { data: head, error: e1 } = await c.from('user_state').select('rev').eq('user_id', uid).maybeSingle();
     if (e1) throw e1;
+    if (uidRef.current !== uid) return;
     const m = meta.current;
     const sameUser = m.uid === uid;
     if (!head) {
@@ -166,36 +140,45 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       meta.current = { uid, rev: 0 };
       return;
     }
-    if (!force && sameUser && head.rev === m.rev) return;
+    if (!force && sameUser && head.rev === m.rev && m.base) return;
     const { data: row, error: e2 } = await c.from('user_state').select('rev,data').eq('user_id', uid).maybeSingle();
     if (e2) throw e2;
+    if (uidRef.current !== uid) return;
     if (!row) return;
     const remote = sanitize(row.data);
     const local = stateRef.current;
     const localDirty = hashOf(cloudPayload(local)) !== m.hash;
+    // Old clients did not persist a baseline. Never guess which missing records were deleted.
+    if (sameUser && !m.base && hashOf(cloudPayload(local)) !== hashOf(cloudPayload(remote))) {
+      throw new Error('Eski eşitleme kaydı: yerel ve bulut yedekleri karşılaştırılmadan otomatik birleştirme yapılamaz.');
+    }
     let next: State;
-    if (sameUser) next = localDirty ? mergeStates(local, remote) : remote;
+    if (sameUser) next = localDirty ? mergeStates(local, remote, m.base || {}) : remote;
     else if (!m.uid && hasData(local)) next = mergeStates(local, remote); // bu cihaz ilk kez bağlanıyor
     else next = remote; // başka bir hesap bu cihazdan çıkmış
     apply(next);
-    meta.current = { uid, rev: row.rev, hash: hashOf(cloudPayload(remote)), at: Date.now() };
-    saveMeta(meta.current);
+    meta.current = { uid, rev: row.rev, hash: hashOf(cloudPayload(remote)), base: cloudPayload(remote), at: Date.now() };
+    await saveMeta(meta.current);
   }, [apply]);
 
   const run = useCallback((fn: (uid: string) => Promise<void>) => {
     const uid = uidRef.current;
     if (!uid) return Promise.resolve();
     const job = (busy.current || Promise.resolve()).then(async () => {
+      if (uidRef.current !== uid) return;
       setStatus('syncing');
       try {
         await fn(uid);
+        if (uidRef.current !== uid) return;
         setStatus('ok');
         setLastSync(Date.now());
       } catch (e) {
+        if (uidRef.current !== uid) return;
         const offline = /fetch|network|failed/i.test(String((e as Error)?.message || e));
         setStatus(offline ? 'offline' : 'error');
       }
-      setFirstSync(true);
+      // A failed initial pull must never be followed by an automatic blind push.
+      if (meta.current.uid === uid && (meta.current.base || meta.current.rev === 0)) setFirstSync(true);
     });
     busy.current = job;
     return job;
@@ -208,7 +191,6 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     const c = sb();
     if (!c) return;
     let alive = true;
-    loadMeta().then((m) => { meta.current = m; });
     const toUser = (u: { id: string; email?: string | null; app_metadata?: { provider?: string; providers?: string[] }; user_metadata?: { full_name?: string; name?: string; given_name?: string } } | null | undefined): AccountUser | null =>
       u ? { id: u.id, email: u.email || null, google: !!u.app_metadata?.providers?.includes('google') || u.app_metadata?.provider === 'google', name: (u.user_metadata?.given_name || u.user_metadata?.full_name || u.user_metadata?.name || '').trim().split(/\s+/)[0] || null } : null;
     const fallback = setTimeout(() => alive && setReady(true), 4000);
@@ -222,7 +204,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       setUser(u);
       if (!u) { setStatus('off'); setFirstSync(false); return; }
       if (changed) setFirstSync(false);
-      if (changed) setTimeout(() => { loadMeta().then((m) => { meta.current = m; syncNow(); }); }, 0);
+      if (changed) setTimeout(() => { loadMeta().then((m) => { if (alive && uidRef.current === u.id) { meta.current = m; syncNow(); } }); }, 0);
     });
     return () => { alive = false; clearTimeout(fallback); sub.subscription.unsubscribe(); };
   }, [syncNow]);
@@ -230,24 +212,19 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   // Değişiklikleri birkaç saniye sonra sunucuya yaz
   const payloadHash = useMemo(() => (user ? hashOf(cloudPayload(store.state)) : ''), [store.state, user]);
   useEffect(() => {
-    if (!user || !payloadHash || payloadHash === meta.current.hash) return;
+    if (!firstSync || !user || !payloadHash || payloadHash === meta.current.hash) return;
     const h = setTimeout(() => run(push), 2000);
     return () => clearTimeout(h);
-  }, [payloadHash, user, run, push]);
+  }, [payloadHash, firstSync, user, run, push]);
 
   // Öne gelince ve 5 dakikada bir sunucuyu kontrol et; arka plana geçerken bekleyeni yaz
   useEffect(() => {
     if (!user) return;
     let last = Date.now();
     const check = () => { if (Date.now() - last > 60 * 1000) { last = Date.now(); syncNow(); } };
-    const onVis = () => {
-      if (typeof document === 'undefined') return;
-      if (document.visibilityState === 'visible') check(); else run(push);
-    };
-    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
-    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') check(); });
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') check(); else run(push); });
     const iv = setInterval(() => { last = 0; check(); }, 5 * 60 * 1000);
-    return () => { if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis); sub.remove(); clearInterval(iv); };
+    return () => { sub.remove(); clearInterval(iv); };
   }, [user, syncNow, run, push]);
 
   const value = useMemo<Ctx>(() => ({
@@ -257,18 +234,25 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       return error ? authError(error) : null;
     },
     async signUp(email, pw) {
-      const { data, error } = await sb()!.auth.signUp({ email: email.trim(), password: pw, options: { emailRedirectTo: siteUrl() } });
+      const { data, error } = await sb()!.auth.signUp({ email: email.trim(), password: pw, options: { emailRedirectTo: AUTH_REDIRECT } });
       if (error) return authError(error);
       // Mail onayı açıksa oturum hemen gelmez
       if (!data.session) return 'Mailine bir onay bağlantısı gönderdik. Bağlantıya dokunup sonra giriş yap.';
       return null;
     },
     async google() {
-      const { error } = await sb()!.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: siteUrl() } });
-      return error ? authError(error) : null;
+      try {
+        const { data, error } = await sb()!.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: AUTH_REDIRECT, skipBrowserRedirect: true } });
+        if (error) return authError(error);
+        if (!data.url) return 'Giriş bağlantısı alınamadı.';
+        const result = await WebBrowser.openAuthSessionAsync(data.url, AUTH_REDIRECT);
+        if (result.type !== 'success') return 'Giriş iptal edildi.';
+        await finishAuth(result.url);
+        return null;
+      } catch (error) { return authError(error); }
     },
     async resetPassword(email) {
-      const { error } = await sb()!.auth.resetPasswordForEmail(email.trim(), { redirectTo: siteUrl() });
+      const { error } = await sb()!.auth.resetPasswordForEmail(email.trim(), { redirectTo: AUTH_REDIRECT });
       return error ? authError(error) : null;
     },
     async updatePassword(pw) {
