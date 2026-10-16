@@ -12,6 +12,7 @@
  * Elle çalıştırmak için:  TMDB_TOKEN=... node scripts/update-catalog.mjs [--dry] [--days=180]
  * Yanlış eklenen bir yapımı bir daha eklememesi için scripts/update-ignore.json'a "movie:123" ya da "tv:456" yaz.
  */
+import { attachEpisodeIds } from './catalog-episode-ids.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -315,9 +316,28 @@ async function findUpcoming() {
   }
 }
 
+async function enrichEpisodeIdentities() {
+  let count = 0;
+  const seasons = new Map();
+  for (const t of data.catalog) {
+    if (!t.tmdb?.id || !(t.tmdb.m === 'tv' || t.media === 'tv')) continue;
+    for (const n of new Set(t.ep.filter(e=>!e[3]).map(e=>e[0]))) {
+      const key = `${t.tmdb.id}:${n}`;
+      if (!seasons.has(key)) seasons.set(key, await api(`/tv/${t.tmdb.id}/season/${n}`, { language: 'en-US' }));
+      const rows = seasons.get(key)?.episodes;
+      if (!Array.isArray(rows)) continue;
+      const attached = attachEpisodeIds(t.ep, rows);
+      t.ep = attached.episodes; count += attached.added;
+    }
+  }
+  log(`Kalıcı bölüm kimliği eklendi: ${count}`);
+  return count;
+}
+
 await updateSeries();
 await findNew();
 await findUpcoming();
+const identityUpdates = await enrichEpisodeIdentities();
 upcoming.sort((a, b) => a.date.localeCompare(b.date));
 const upNew = upcoming.slice(0, 80);
 const upChanged = JSON.stringify(upNew) !== JSON.stringify(data.upcoming || []);
@@ -327,7 +347,7 @@ if (upChanged && !DRY) {
   if (!(change.added.length + change.seasons.length)) { data.rev = new Date().toISOString(); fs.writeFileSync(FILE, JSON.stringify(data)); }
 }
 
-const changed = change.added.length + change.seasons.length > 0;
+const changed = change.added.length + change.seasons.length + identityUpdates > 0;
 log(`\nSonuç: ${change.added.length} yeni yapım, ${change.seasons.length} sezon güncellemesi.`);
 if (changed && !DRY) {
   const prev = (data.changes || []).find((c) => c.date === TODAY);

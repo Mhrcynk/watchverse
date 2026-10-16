@@ -1,3 +1,5 @@
+import { accountRpc } from './account-rpc';
+import { checkpoint } from './checkpoint';
 import { trackedTv } from './library';
 import type { State } from './types';
 import { currentPushToken } from './push';
@@ -9,10 +11,11 @@ export async function syncDevice(s: State, device: string, _force = false): Prom
     if (!client) return false;
     const {data:{session}} = await client.auth.getSession();
     if (!session) return false;
+    if ((await checkpoint.load()).meta.uid !== session.user.id) return false;
     const token = await currentPushToken();
     if (!token) return false;
-    const {error} = await client.rpc('register_native_device', {p_id:device,p_token:token,p_follow:s.follow,p_tv:trackedTv(s)});
-    return !error;
+    await accountRpc('register_native_device_v2', {p_id:device,p_token:token,p_follow:s.follow,p_tv:trackedTv(s)},session.user.id);
+    return true;
   } catch { return false; }
 }
 export const hasSyncApi = hasAuth;

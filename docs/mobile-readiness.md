@@ -4,20 +4,23 @@ Bu belge tamamlanma iddiası değildir. Yedi koşulun hiçbiri henüz uçtan uca
 
 | Sıra | Koşul | Yapılan / mevcut kanıt | Kalan iş |
 |---|---|---|---|
-| 1 | İki cihaz çevrimdışı eşitleme | Son onaylı snapshot ile üçlü birleştirme; silme/ekleme, tekrar gönderim, özel liste ve 4.096 bölüm kombinasyonu test edildi. | Yerel veri ve eşitleme referansı tek sürümlü checkpoint içinde, sıralı yazılıyor. Yazma hatası/yeniden deneme, yeniden açılış ve gönderim sırasındaki değişiklikler dahil 14 test geçti. Kalıcı işlem günlüğü, gerçek uygulama sonlandırma, üç cihaz ve gerçek ağ testleri hâlâ gerekli. |
-| 2 | Katalogda bölüm kimliği | Bölüm sırasını değiştiren katalog veya sezon güncellemesi reddediliyor; ekleme/silme/sıra değişimi test edildi. | Geçici koruma yerine sağlayıcının kalıcı bölüm kimlikleri; mevcut kayıtları doğrulanmış eski katalogla taşıma; numarası değişen/birleşen bölümler. |
-| 3 | Eski istemci / yeni sunucu | v4 yazım sonrası eski v2/v3 RPC yazamıyor; CAS ve boş sürüm reddi PostgreSQL tabanlı yerel testten geçti. | İmzalı eski sürümle staging testi, anlaşılır zorunlu güncelleme ekranı, sürümlü migration ve rollback protokolü. Eski istemci güvenli biçimde reddedilir; tüm işlevleri çalışır denmiyor. |
-| 4 | Hesap ve cihaz yetkisi | Native cihazın sahibi auth.uid() ile belirleniyor. Başka hesabın okuma/silme/kayıt değiştirmesi, anonim RPC, hesap silmede cihaz temizliği test edildi. Eski anonim Worker /sync ve /devices yolları 410 dönüyor. | Gerçek Supabase JWT ile entegrasyon, oturum değişiminde cihaz devri/iptali, paylaşım RPC yarışları ve bütün API yüzeyinin denetimi. |
-| 5 | Yük ve maliyet | Henüz ölçülmedi. | Beklenen kullanıcı/istek yükü, güvenlik payı, gecikme/hata sınırı ve harcama tavanı belirlenmeli; staging'de ölçülmeli. Ücretsiz kota garantisi verilmez. |
-| 6 | Yedek/başarısız yayın | PGlite snapshot'ı yeni veritabanına geri yüklendi; kayıt ve cihaz tokenı karşılaştırıldı. | Gerçek Supabase yedeği/PITR, kurtarma süresi/veri kaybı sınırı; staging'de başarısız migration ve Worker rollback tatbikatı. Yerel test bunların yerine geçmez. |
-| 7 | Gerçek iOS/Android | Her iki platform için Metro/Hermes paketleri üretildi, TypeScript geçti. Yeni saf modüller lint'ten geçti. | Genel lint artık başarılı: 0 hata/0 uyarı. Expo proje bağlantısı, Apple/Google imzalama, mağaza derlemeleri, telefon/tablet akışları, push teslimatı ve Apple ile giriş değerlendirmesi. |
+| 1 | Çevrimdışı eşitleme | Cihaz başına kalıcı sayaç, nedensel işlem kayıtları, silme işaretleri ve tek checkpoint. Üç cihazın farklı teslim sıraları, yeniden gönderim ve yeniden açılış testleri mevcut. | Gerçek cihazda zorla kapatma, ağ kesintisi ve staging eşitleme testi. |
+| 2 | Bölüm kimliği | İzleme kayıtları kalıcı kimlik setine taşındı; sıra numaraları yalnızca ekran izdüşümü. TMDB kimliği doldurma hattı ve eski kimlik eşlemeleri eklendi. | Gerçek katalogda sağlayıcı kimliklerini doldurma ve kapsam raporu. Kimliği eksik kayıtlarda ihtiyatlı uyumluluk kontrolü devam ediyor. |
+| 3 | Eski istemci / yeni sunucu | v5 yazımından sonra eski v2/v3/v4 yazıcıları reddediliyor. CAS, beklenen hesap ve sürüm testleri mevcut. | İmzalı eski sürüm + yeni sunucu staging denemesi ve geri dönüş provası. Eski istemcinin yazması engellenir; tüm işlevleri çalışır denmiyor. |
+| 4 | Hesap ve cihaz yetkisi | Paylaşım/arkadaşlık/cihaz çağrılarında beklenen hesap doğrulanıyor. Paylaşım sahibini değiştirme yarışı kilitle korunuyor; cihaz iptal kaydı gecikmiş kayıt isteğini reddediyor. | Gerçek Supabase JWT, eşzamanlı bağlantılar, oturum değişimi ve tüm API yüzeyinin staging denetimi. |
+| 5 | Yük ve maliyet | Henüz ölçülmedi. | Hedef yük, güvenlik payı ve bütçe sınırıyla gecikme/hata/maliyet ölçümü. |
+| 6 | Yedek/başarısız yayın | PGlite snapshot geri yükleme testi mevcut. | Gerçek Supabase yedek dönüşü ve başarısız yayın tatbikatı. |
+| 7 | Gerçek iOS/Android | TypeScript/lint ve Metro/Hermes paketleme kontrolü uygulanıyor. | Expo/mağaza bağlantıları, imzalı derlemeler, gerçek telefon/tablet testleri ve push teslimatı. |
 
-## Eşitlemenin bilinen sınırları
+## Eşitlemenin tasarımı ve sınırları
 
-- Aynı alan aynı anda değiştirilirse deterministik tek değer seçilir; eşzamanlı silme/düzenleme durumunda silme kazanır. Metin düzenlemelerinin ikisi birden korunmaz.
-- Eski aylık istatistikler olay kimliği taşımadığından maksimum değer kullanılır: tekrar gönderim toplamı şişirmez, ancak bağımsız eşzamanlı izlemelerin tam toplamı garanti edilmez.
-- Eski cihazın referans snapshot'ı yoksa farklı yerel/bulut verisi otomatik birleştirilmez. Her iki yedek korunarak kullanıcı kontrollü taşıma ekranı yapılmalıdır.
-- Kalıcı episode ID geçişi bitene kadar katalog koruması bazı geçerli katalog güncellemelerini de durdurabilir. Bu bir geçiş önlemidir.
+- Her yerel işlem, checkpoint içinde saklanan cihaz kimliği ve artan sayaçla kaydedilir. Birleştirme duvar saatine dayanmaz; nedensel olarak eşzamanlı değerleri korur ve ekrana deterministik bir değer yansıtır. Eşzamanlı silme/düzenlemede silme kazanır; silmeyi gördükten sonra açıkça yeniden eklemek mümkündür.
+- Metin alanının eşzamanlı iki düzenlemesi tek metin olarak birleştirilmez. İşlem sınırı, kullanıcının uygulamadaki eylemidir; iki cihazda aynı izlemeyi ayrı ayrı işaretlemek iki sayaç olayı olabilir.
+- Yeni sayaç olayları kimlikleriyle bir kez toplanır. Eski kimliksiz istatistiklerin başlangıcı maksimum değerle uzlaştırılır; geçmişteki bağımsız eylemler yeniden oluşturulamaz.
+- Silme kayıtları ve sayaç olayları henüz budanmıyor; eski çevrimdışı cihazların veri diriltmesini önlemek için güvenli sıkıştırma ayrıca tasarlanmalı. Sunucunun 2 MB sınırı aşılırsa eşitleme hata verir; kullanıcı hatayı görür, sessiz veri kaybı olmaz. Uzun kullanımda boyut/maliyet testi gerekli.
+- Eski eşitleme referansı eksikse farklı yerel/bulut verisi tahminle birleştirilmez. Eski bölüm konumu çözülemiyorsa yedekte tutulur ve profilde uyarılır. Tarihsel katalog sürümü bilinmeyen her eski yedeğin doğru eşlendiği iddia edilmez.
+- Sağlayıcı kimliği olan bölümün yeri/numarası değişebilir; izleme işareti kimlikle korunur. Sağlayıcının kaldırdığı kimlik gizli olarak korunur. Sağlayıcı bölüm birleştirmesi/bölmesi için otomatik tahmin yapılmaz.
+- `scripts/update-catalog.mjs` TMDB bölüm kimliklerini eksik olan yerlere ekler, mevcut kimlikleri değiştirmez. Bu turda canlı TMDB zenginleştirmesi çalıştırılmadı. Geçici `legacy:` kimlikler ve güvenli katalog güncelleme kontrolü hâlâ gerekli.
 
 ## Web kaldırma durumu
 
@@ -29,12 +32,12 @@ Eski push_subscriptions tablosu, KV dev:* kayıtları, eski deployment/artifact'
 
 ## Devam sırası
 
-1. Snapshot yaklaşımını kalıcı/atomik işlem günlüğü ile tamamla; çökme ve iki gerçek cihaz testlerini geçir.
-2. Bölümleri kalıcı kimliklere taşı; eski katalog haritasını yedekle ve doğrula.
-3. Sürümlü migration, eski istemci ve bütün hesap/cihaz yetki testlerini staging'de çalıştır.
-4. Native push gönderim kuyruğu, teslim makbuzları, geçersiz token temizliği; auth/hesap değişimi ve Apple girişi.
-5. Kararlaştırılan yükte maliyet ve gecikme ölçümü; geri yükleme ve başarısız yayın tatbikatı.
-6. Gerçek imzalı cihaz akışları; tüm kapılar geçtiğinde mağazaya gönder.
+1. Ayrı staging Supabase ortamına yeni şemayı kur; gerçek JWT, eşzamanlı paylaşım ve cihaz iptali testlerini çalıştır.
+2. TMDB katalog kimliklerini doldur; eski yedek örnekleriyle kimlik kapsamını ve geçişi doğrula.
+3. İki/üç gerçek cihazda çevrimdışı düzenleme, süreç sonlandırma, hesap değişimi ve eski sürüm testlerini geçir.
+4. Native push gönderim kuyruğu, teslim makbuzları, geçersiz token temizliği ve Apple girişini tamamla.
+5. Yük/maliyet ölçümü, gerçek yedek dönüşü ve başarısız yayın tatbikatı.
+6. İmzalı telefon/tablet akışlarını tamamla; tüm kapılar geçtiğinde mağazaya gönder.
 
 Gereken dış bilgiler: Expo proje kimliği/erişimi; Apple Developer ve Google Play proje bağlantıları; ayrı staging Supabase/Worker erişimi; hedef kullanıcı hacmi ve harcama sınırı. Şifreler veya gizli anahtarlar sohbet metnine yazılmamalıdır.
 
@@ -58,6 +61,12 @@ Kullanılmayan bileşenler, yardımcılar ve importlar kaldırıldı; yinelenen 
 
 İstekler artık yalnızca kullanıcı kimliğiyle değil oturum nesliyle de doğrulanıyor. A → çıkış → A ve A → B → A geçişlerinde eski yanıtlar ve kuyruk işleri uygulanmıyor. Hesap silinirken eşitleme duraklatılıyor ve önceki işler tamamlanıyor. Cihazda tutulacak kayıtların sahip kimliği silinmiyor; sonraki hesapta misafir verisi olarak birleştirilmeleri önleniyor. Başarısız çıkış arayüzde başarı olarak gösterilmiyor.
 
-Yeni sunucu fonksiyonları `save_state_v4(p_data,p_base,p_owner)` ve `delete_my_account_v2(p_owner)` talep edilen kullanıcıyı `auth.uid()` ile karşılaştırır; istemcinin gönderdiği kimliğe güvenerek yetki vermez. Yanlış/boş hesap kimliği ve anonim istekler, CAS ve v4 sonrası eski yazıcı reddi PGlite testinden geçti. Eşitleme/oturum test sayısı 20 oldu; lint 0 hata/0 uyarı, TypeScript başarılı.
+Yeni istemci `save_state_v5(p_data,p_base,p_owner)` kullanır; sunucu `p_owner` değerini `auth.uid()` ile karşılaştırır. Paylaşım, profil, arkadaşlık ve cihaz kayıt işlemleri de beklenen hesap doğrulamasından geçer. İstemci yanıt sonrası oturumu yeniden kontrol eder. Çıkışta cihaz iptal kaydı, sonradan ulaşan eski kayıt isteğinin cihazı yeniden etkinleştirmesini engeller. Arkadaşlık kotası her iki hesap için uygulanır.
 
-**Yayın sırası:** Önce ayrı staging ortamında `supabase/schema.sql` ile yeni fonksiyonlar kurulup gerçek JWT testleri yapılmalı; ardından bu istemci sürümü denenmeli. Yeni istemci eksik RPC durumunda eski güvensiz çağrıya geri dönmez. Canlı şema değiştirilmedi. v4 kaydı yazıldıktan sonra v3'e istemci geri dönüşü yazmayı durdurur; sürüm geri alma planı bununla uyumlu hazırlanmalı. Bu değişiklik tüm API yüzeyindeki oturum yarışlarını çözdüğü iddiası değildir: native cihaz devri, paylaşım işlemleri, gerçek ağ/cihaz testleri hâlâ açık.
+**Yayın sırası:** Önce ayrı staging ortamında `supabase/schema.sql` ile yeni fonksiyonlar kurulup gerçek JWT testleri yapılmalı; ardından istemci denenmeli. Yeni istemci eksik RPC durumunda eski çağrıya dönmez. Canlı şema değiştirilmedi. v5 kaydı yazıldıktan sonra v4 ve daha eski istemciler yazamaz; geri alma aynı protokolü destekleyen sürümle yapılmalı veya doğrulanmış veri dönüşümü planlanmalıdır.
+
+Worker dağıtım betiği artık Supabase yönetici anahtarını istemiyor/dağıtmıyor. Canlıda daha önce tanımlanmış anahtar bu kod değişikliğiyle silinmiş sayılmaz; kullanılmadığı doğrulandıktan sonra ayrı olarak kaldırılmalıdır.
+
+## Bu değişiklik paketinin doğrulanması
+
+Başarılı kontroller: TypeScript, lint (0 hata/0 uyarı), 36 eşitleme/kimlik/oturum testi, PGlite veritabanı testleri, mevcut arayüz mantık denetimi ve 3 Worker testi. iOS ve Android için Metro/Hermes paketleri başarıyla üretildi (`expo export`); bunlar imzalı mağaza derlemeleri değildir. Testler PGlite, saf TypeScript ve paketleme düzeyindedir; gerçek Supabase erişimi, imzalı mağaza derlemesi veya fiziksel cihaz testi yerine geçmez.

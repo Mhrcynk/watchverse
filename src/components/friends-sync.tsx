@@ -13,12 +13,12 @@ export function FriendsSync() {
     if (!acc.user) return;
     takePending().then(async (code) => {
       if (!code) return;
-      try { const n = await acceptInvite(code, getState().name); toast(`${n} ile artık arkadaşsınız`); } catch { /* kendi davetin ya da geçersiz */ }
+      try { const n = await acceptInvite(code, getState().name, acc.user!.id); toast(`${n} ile artık arkadaşsınız`); } catch { /* kendi davetin ya da geçersiz */ }
     });
   }, [acc.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!acc.user || !state.name) return;
-    const h = setTimeout(() => { myProfile(state.name).catch(() => {}); }, 3000);
+    const h = setTimeout(() => { myProfile(state.name, acc.user!.id).catch(() => {}); }, 3000);
     return () => clearTimeout(h);
   }, [acc.user?.id, state.name]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;

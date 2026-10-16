@@ -46,22 +46,6 @@ if (!sub) {
   if (!sub) { console.error('::error::workers.dev adresi alınamadı. Cloudflare panelinde Workers & Pages sayfasını bir kez açıp tekrar dene.'); process.exit(1); }
 }
 
-// Resolve server credentials inside this process; never expose them as build outputs.
-let databaseUrl = process.env.SUPABASE_URL;
-let serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const projectRef = (process.env.SUPABASE_PROJECT_REF || '').match(/[a-z]{20}/)?.[0];
-if ((!databaseUrl || !serviceKey) && projectRef && process.env.SUPABASE_ACCESS_TOKEN) {
-  const r = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/api-keys?reveal=true`, {
-    headers: { Authorization: `Bearer ${process.env.SUPABASE_ACCESS_TOKEN}` },
-  });
-  if (!r.ok) throw new Error(`Supabase sunucu anahtarı alınamadı: HTTP ${r.status}`);
-  const keys = await r.json();
-  serviceKey ||= keys.find((k) => k.name === 'service_role')?.api_key;
-  databaseUrl ||= `https://${projectRef}.supabase.co`;
-}
-if (!databaseUrl || !serviceKey) throw new Error('Bildirim sunucusu için Supabase ayarları gerekli.');
-console.log(`::add-mask::${serviceKey}`);
-
 // 3) Ayar dosyası ve yayın
 fs.writeFileSync(path.join(dir, 'wrangler.toml'), `name = "watchverse"
 main = "index.js"
@@ -80,7 +64,7 @@ simple = { limit = 60, period = 60 }
 const env = { ...process.env, CLOUDFLARE_API_TOKEN: CF, CLOUDFLARE_ACCOUNT_ID: ACC };
 execFileSync('npx', ['--yes', WRANGLER, 'deploy', '--config', path.join(dir, 'wrangler.toml')], { stdio: 'inherit', env });
 execFileSync('npx', ['--yes', WRANGLER, 'secret', 'bulk', '--config', path.join(dir, 'wrangler.toml')], {
-  input: JSON.stringify({ TMDB_TOKEN, SUPABASE_URL: databaseUrl, SUPABASE_SERVICE_ROLE_KEY: serviceKey }),
+  input: JSON.stringify({ TMDB_TOKEN }),
   stdio: ['pipe', 'inherit', 'inherit'], env,
 });
 

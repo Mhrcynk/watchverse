@@ -67,6 +67,8 @@ export default function Profile() {
   return (
     <Screen>
       <Backdrop />
+      {acc.syncError && <Small style={{ color: C.amber, marginVertical: 12 }}>{acc.syncError}</Small>}
+      {Object.values(state.unresolvedEpisodes || {}).some(nums=>nums.length>0) && <Small style={{ color: C.amber, marginVertical: 12 }}>Eski bölüm işaretlerinin bir kısmı güvenle eşleştirilemedi. Kayıtlar yedeğinde korunuyor; yeniden işaretlemeden önce yedeğini dışa aktar.</Small>}
       <BackLink label="Ana sayfa" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
       <Header />
 

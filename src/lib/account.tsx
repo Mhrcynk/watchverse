@@ -1,3 +1,6 @@
+import { initialState } from './state-defaults';
+import { recordReplica, seedReplica } from './replica';
+import { accountRpc } from './account-rpc';
 import { createSessionGuard } from './session-guard';
 import { checkpoint } from './checkpoint';
 import type { SyncMeta as Meta } from './checkpoint-store';
@@ -31,6 +34,7 @@ type Ctx = {
   user: AccountUser | null;
   status: SyncStatus;
   lastSync: number | null;
+  syncError: string | null;
   /** maildeki bağlantıyla gelindi, yeni şifre bekleniyor */
   recovery: boolean;
   signIn: (email: string, pw: string) => Promise<string | null>;
@@ -65,6 +69,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const enabled = hasAuth();
   const [user, setUser] = useState<AccountUser | null>(null);
   const [status, setStatus] = useState<SyncStatus>('off');
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [recovery, setRecovery] = useState(false);
   const [ready, setReady] = useState(!enabled);
@@ -125,7 +130,12 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (e2) throw e2;
     if (!sessionGuard.active(ticket)) return;
     if (!row) return;
-    const remote = sanitize(row.data);
+    let remote = sanitize(row.data);
+    const serverHash = hashOf(cloudPayload(remote));
+    if (!remote.replica) {
+      const before = sameUser && m.base ? sanitize(m.base) : initialState();
+      remote = recordReplica({ ...before, replica: before.replica || seedReplica(before) }, remote, `legacy-server-${row.rev}`);
+    }
     const local = getState();
     const localDirty = hashOf(cloudPayload(local)) !== m.hash;
     // Old clients did not persist a baseline. Never guess which missing records were deleted.
@@ -136,7 +146,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (sameUser) next = localDirty ? mergeStates(local, remote, m.base || {}) : remote;
     else if (!m.uid && hasData(local)) next = mergeStates(local, remote); // bu cihaz ilk kez bağlanıyor
     else next = remote; // başka bir hesap bu cihazdan çıkmış
-    meta.current = { uid, rev: row.rev, hash: hashOf(cloudPayload(remote)), base: cloudPayload(remote), at: Date.now() };
+    meta.current = { uid, rev: row.rev, hash: serverHash, base: cloudPayload(remote), at: Date.now() };
     await apply(next, meta.current);
   }, [apply, getState, sessionGuard]);
 
@@ -151,7 +161,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     const payload = cloudPayload(getState());
     const h = hashOf(payload);
     if (h === meta.current.hash && meta.current.uid === uid) return;
-    const { data, error } = await c.rpc('save_state_v4', { p_data: payload, p_base: meta.current.rev ?? 0, p_owner: uid });
+    const { data, error } = await c.rpc('save_state_v5', { p_data: payload, p_base: meta.current.rev ?? 0, p_owner: uid });
     if (error) throw error;
     if (!sessionGuard.active(ticket)) return;
     const rev = Number(data);
@@ -177,12 +187,14 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         await fn(uid);
         if (!sessionGuard.active(ticket)) return;
         setStatus('ok');
+        setSyncError(null);
         setLastSync(Date.now());
         if (meta.current.uid === uid && (meta.current.base || meta.current.rev === 0)) setFirstSync(true);
       } catch (e) {
         if (!sessionGuard.active(ticket)) return;
         const offline = /fetch|network|failed/i.test(String((e as Error)?.message || e));
         setStatus(offline ? 'offline' : 'error');
+        setSyncError(authError(e));
       }
     });
     busy.current = job;
@@ -241,7 +253,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   }, [user, syncNow, run, push]);
 
   const value = useMemo<Ctx>(() => ({
-    enabled, ready: ready && guestLoaded, guest, setGuest, firstSync, user, status, lastSync, recovery, syncNow,
+    enabled, ready: ready && guestLoaded, guest, setGuest, firstSync, user, status, lastSync, syncError, recovery, syncNow,
     async signIn(email, pw) {
       if (sessionGuard.isPaused()) return 'Hesap işlemi sürüyor. Lütfen bekle.';
       const { error } = await sb()!.auth.signInWithPassword({ email: email.trim(), password: pw });
@@ -284,8 +296,13 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       await run(push);
       if (!sessionGuard.active(ticket)) return 'Oturum değişti. Lütfen tekrar dene.';
       try {
+        const device = getState().device;
+        const owner = (await checkpoint.load()).meta.uid;
+        if (device && owner === uid) await accountRpc('unregister_native_device', { p_id: device }, uid!);
+        if (!sessionGuard.active(ticket)) return 'Oturum değişti. Lütfen tekrar dene.';
         const { error } = await sb()!.auth.signOut({ scope: 'local' });
         if (error) return authError(error);
+        store.setState(s=>({...s,device:undefined}));
         setGuest(false);
         return null;
       } catch (error) { return authError(error); }
@@ -322,7 +339,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         return deleted ? 'Hesap silindi ancak cihaz oturumu kapatılamadı. Çıkış yapmayı yeniden dene.' : authError(error);
       } finally { sessionGuard.resume(ticket); }
     },
-  }), [enabled, ready, guestLoaded, guest, setGuest, firstSync, user, status, lastSync, recovery, syncNow, run, push, sessionGuard]);
+  }), [enabled, ready, guestLoaded, guest, setGuest, firstSync, user, status, lastSync, syncError, recovery, syncNow, run, push, sessionGuard, getState, store]);
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 }

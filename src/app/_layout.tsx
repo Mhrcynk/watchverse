@@ -34,18 +34,19 @@ const theme = {
 // Uygulama açılınca ve her öne gelişte güncel kataloğu kontrol eder
 function CatalogSync({ onChange }: { onChange: () => void }) {
   const toast = useToast();
+  const { setState } = useStore();
   useEffect(() => {
     let last = 0;
     const run = async () => {
       if (Date.now() - last < 30 * 60 * 1000) return;
       last = Date.now();
       const r = await syncCatalog();
-      if (r) { onChange(); if (r.added) toast(`Katalog güncellendi · ${r.added} yeni yapım`); }
+      if (r) { setState(s=>s); onChange(); if (r.added) toast(`Katalog güncellendi · ${r.added} yeni yapım`); }
     };
     run();
     const listener = AppState.addEventListener('change', (state) => { if (state === 'active') run(); });
     return () => listener.remove();
-  }, [onChange, toast]);
+  }, [onChange, toast, setState]);
   return null;
 }
 

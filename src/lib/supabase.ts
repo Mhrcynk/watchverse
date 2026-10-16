@@ -31,6 +31,7 @@ export const siteUrl = () => 'watchverse://';
 /** Supabase hata mesajlarını sade Türkçeye çevirir */
 export function authError(e: unknown): string {
   const m = String((e as { message?: string })?.message || e || '').toLowerCase();
+  if (m.includes('esitleme boyut siniri')) return 'Eşitleme kaydı sunucu boyut sınırını aştı. Yerel kayıtların korunuyor; yedeğini dışa aktar.';
   if (m.includes('oturum degisti')) return 'Oturum değişti. Lütfen tekrar dene.';
   if (m.includes('uygulama guncellemesi gerekli')) return 'Kayıtların daha yeni bir sürümle güncellenmiş. Devam etmek için uygulamayı güncelle.';
   if (m.includes('invalid login')) return 'Mail ya da şifre yanlış.';

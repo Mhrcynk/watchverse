@@ -70,7 +70,7 @@ export function useFriendsLiked() {
   useEffect(() => {
     if (!uid) return;
     let alive = true;
-    friendFeed().then((fs) => {
+    friendFeed(uid).then((fs) => {
       const seen = new Set<string>();
       const out: Liked[] = [];
       for (const f of fs) for (const x of f.items) {

@@ -131,3 +131,109 @@ test('retained account records keep ownership after restart and storage failure'
  d.fail=true;await assert.rejects(c.saveMeta(localMeta));
  assert.equal((await createCheckpointStore(d).load()).meta.uid,'deleted-account');
 });
+
+const {seedReplica,recordReplica,mergeReplicas,applyReplica,validateReplica}=require('../src/lib/replica.ts');
+const {titleLayout,libraryLayout,normalizeEpisodes,recordEpisodeChanges,compatibleLayout}=require('../src/lib/episode-identity.ts');
+const replicated=(patch={})=>{const s=state(patch);return {...s,replica:seedReplica(s)};};
+const edit=(s,patch,actor)=>recordReplica(s,{...s,...patch},actor);
+const combine=(a,b)=>applyReplica(a,mergeReplicas(a.replica,b.replica));
+test('three offline devices converge in every delivery order and deletion stays deleted',()=>{
+ const base=replicated({notes:{x:'old'},list:['x']});
+ const a=edit(base,{notes:{},list:[]},'A'),b=edit(base,{notes:{x:'edited'}},'B'),c=edit(base,{notes:{x:'old',y:'new'},list:['x','y']},'C');
+ for(const [x,y,z]of [[a,b,c],[a,c,b],[b,a,c],[b,c,a],[c,a,b],[c,b,a]]){
+  const r=combine(combine(x,y),z);assert.deepEqual(r.notes,{y:'new'});assert.deepEqual(r.list,['y']);
+  assert.deepEqual(combine(r,base).notes,{y:'new'});
+ }
+ assert.deepEqual(combine(combine(a,b),c).replica,combine(a,combine(b,c)).replica);
+});
+test('causally later re-add survives while an unobserved stale edit cannot resurrect',()=>{
+ const base=replicated({list:['x']}),deleted=edit(base,{list:[]},'A');
+ const observed=combine(base,deleted),again=edit(observed,{list:['x']},'B');
+ assert.deepEqual(combine(again,deleted).list,['x']);assert.deepEqual(combine(deleted,base).list,[]);
+});
+test('independent watch counters add once, duplicate replies and stale snapshots do not inflate them',()=>{
+ const base=replicated({log:{m:{f:1,e:0,m:20}}});
+ const a=edit(base,{log:{m:{f:2,e:0,m:50}}},'A'),b=edit(base,{log:{m:{f:2,e:0,m:60}}},'B');
+ const r=combine(a,b);assert.deepEqual(r.log.m,{f:3,e:0,m:90});assert.deepEqual(combine(combine(r,a),b).log,r.log);
+});
+test('list deletion wins against concurrent item addition, independent items survive',()=>{
+ const l={id:'abcdef',name:'list',created:1,updated:1,items:[]};const base=replicated({lists:{abcdef:l}});
+ const a=edit(base,{lists:{}},'A'),b=edit(base,{lists:{abcdef:{...l,items:[{k:'x',at:2,t:'X'}]}}},'B');
+ assert.deepEqual(combine(a,b).lists,{});
+ const c=edit(base,{lists:{abcdef:{...l,items:[{k:'y',at:3,t:'Y'}]}}},'C');
+ assert.deepEqual(combine(b,c).lists.abcdef.items.map(x=>x.k),['y','x']);
+});
+test('checkpoint crash/restart retains causal tombstones and local actor identity',async()=>{
+ const d=disk(),c=createCheckpointStore(d);await c.load();await c.saveMeta({actor:'device-A'});
+ const base=replicated({list:['x']}),deleted=edit(base,{list:[]},'device-A');await c.commit(deleted,{uid:'u',rev:1});
+ const loaded=await createCheckpointStore(d).load();assert.equal(loaded.meta.actor,'device-A');assert.deepEqual(combine(loaded.state,base).list,[]);
+});
+test('episode IDs preserve marks on reorder, insertion and season renumbering',()=>{
+ const old=titleLayout({id:'show',ep:[[1,1,30,101],[1,2,30,102]]});
+ const next=titleLayout({id:'show',ep:[[2,1,30,102],[1,0,30,103],[3,1,30,101]]});
+ assert.equal(compatibleLayout(old,next),true);
+ const s=normalizeEpisodes(state({episodes:{show:[2]}}),{show:old});
+ const r=normalizeEpisodes(s,{show:next});assert.deepEqual(r.episodes.show,[1]);assert.deepEqual(r.episodeMarks.show,['tmdb:102']);
+});
+test('removed episodes remain recoverable; unmarking another episode does not erase hidden marks',()=>{
+ const old=titleLayout({id:'show',ep:[[1,1,30,101],[1,2,30,102]]}), next=titleLayout({id:'show',ep:[[1,1,30,101]]});
+ const s=normalizeEpisodes(state({episodes:{show:[1,2]}}),{show:old});const r=normalizeEpisodes(s,{show:next});
+ const changed=recordEpisodeChanges(r,{...r,episodes:{}},{show:next});assert.deepEqual(changed.episodeMarks.show,['tmdb:102']);
+ assert.deepEqual(normalizeEpisodes(changed,{show:old}).episodes.show,[2]);
+});
+test('ambiguous legacy remapping is blocked and unknown legacy positions are retained',()=>{
+ const old=titleLayout({id:'show',ep:[[1,1,30],[1,2,30]]}),bad=titleLayout({id:'show',ep:[[2,1,30],[2,2,30]]});
+ assert.equal(compatibleLayout(old,bad),false);
+ const s=normalizeEpisodes(state({episodes:{show:[2,99]}}),{show:old});assert.deepEqual(s.unresolvedEpisodes.show,[99]);
+ assert.deepEqual(normalizeEpisodes(s,{show:bad}).episodeLayouts.show,old);
+});
+test('library metadata upgrades provisional identities only at matching coordinates',()=>{
+ const item={m:'tv',seasons:[{n:1,count:2}]};const old=libraryLayout('tv:1',item),next=libraryLayout('tv:1',{...item,episodeIds:{s1e1:101,s1e2:102}});
+ const s=normalizeEpisodes(state({episodes:{'tv:1':[2]}}),{'tv:1':old});assert.deepEqual(normalizeEpisodes(s,{'tv:1':next}).episodeMarks['tv:1'],['tmdb:102']);
+});
+test('unsupported replication versions and prototype-bearing paths fail closed',()=>{
+ assert.throws(()=>validateReplica({version:99}));const r=seedReplica(state());r.entries['["notes","__proto__"]']=[];assert.throws(()=>validateReplica(r));
+});
+test('provider-ID migration is not a new watch event and cannot undo an offline unmark',()=>{
+ const old=titleLayout({id:'show',ep:[[1,1,30]]}),next=titleLayout({id:'show',ep:[[1,1,30,101]]});
+ const base=normalizeEpisodes(state({episodes:{show:[1]}}),{show:old});base.replica=seedReplica(base);
+ const upgraded=normalizeEpisodes(base,{show:next});const a=recordReplica(base,upgraded,'A');
+ const removed=recordEpisodeChanges(base,{...base,episodes:{}},{show:old});const b=recordReplica(base,removed,'B');
+ const merged=mergeStates(a,b,base);assert.deepEqual(merged.episodeMarks,{});
+});
+test('catalog enrichment fills missing IDs without changing existing identities or duplicating IDs',async()=>{
+ const {attachEpisodeIds}=await import('./catalog-episode-ids.mjs');
+ const r=attachEpisodeIds([[1,1,30,101],[1,2,30],[1,3,30]],[{season_number:1,episode_number:1,id:999},{season_number:1,episode_number:2,id:102},{season_number:1,episode_number:3,id:101}]);
+ assert.deepEqual(r.episodes,[[1,1,30,101],[1,2,30,102],[1,3,30]]);assert.equal(r.added,1);
+});
+test('first login to an empty cloud account preserves guest records',()=>{
+ const guest=replicated({notes:{guest:'keep'},list:['guest']});
+ const cloud=state();const merged=mergeStates(guest,cloud);
+ assert.deepEqual(merged.notes,{guest:'keep'});assert.deepEqual(merged.list,['guest']);
+});
+
+const {sanitize}=require('../src/lib/state-validation.ts');
+const {initialState}=require('../src/lib/state-defaults.ts');
+const {localTransition}=require('../src/lib/state-transition.ts');
+test('real store transition, backup serialization and reload preserve episode unmarks',()=>{
+ const key='tv:123';let s=sanitize({...initialState(),lib:{[key]:{m:'tv',id:123,title:'Series',seasons:[{n:1,count:2}],episodeIds:{s1e1:101,s1e2:102}}},episodes:{[key]:[1,2]}});
+ s={...s,replica:seedReplica(s)};
+ const changed=localTransition(s,x=>({...x,episodes:{[key]:[2]}}),'device-A');
+ const restored=sanitize(JSON.parse(JSON.stringify(changed)));
+ assert.deepEqual(restored.episodes[key],[2]);assert.deepEqual(restored.episodeMarks[key],['tmdb:102']);
+ const stale=sanitize(s);assert.deepEqual(sanitize(mergeStates(restored,stale,s)).episodes[key],[2]);
+});
+test('import and reset treat stable marks as authoritative, including hidden episodes',()=>{
+ const key='tv:123';const original=sanitize({...initialState(),lib:{[key]:{m:'tv',id:123,title:'Series',seasons:[{n:1,count:1}],episodeIds:{s1e1:101}}},episodes:{[key]:[1]}});
+ const s={...original,replica:seedReplica(original)};
+ const reset=localTransition(s,{...initialState(),lib:s.lib,episodeMarks:{}},'device-A');
+ assert.deepEqual(sanitize(JSON.parse(JSON.stringify(reset))).episodes,{});
+ const imported=localTransition(reset,original,'device-A');assert.deepEqual(sanitize(imported).episodes[key],[1]);
+});
+
+test('unresolved legacy positions from both devices survive merge and backup reload',()=>{
+ const base=initialState();const a={...base,replica:seedReplica(base),unresolvedEpisodes:{'tv:123':[8]}};
+ const b={...base,replica:seedReplica(base),unresolvedEpisodes:{'tv:123':[9]}};
+ for(const [x,y] of [[a,b],[b,a]])assert.deepEqual(sanitize(mergeStates(x,y)).unresolvedEpisodes['tv:123'],[8,9]);
+ assert.throws(()=>sanitize({...base,unresolvedEpisodes:{'tv:123':[-1]}}),/Geçersiz/);
+});

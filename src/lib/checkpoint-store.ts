@@ -1,5 +1,5 @@
 import type { State } from './types';
-export type SyncMeta = { uid?: string; rev?: number; hash?: string; at?: number; base?: Partial<State> };
+export type SyncMeta = { actor?: string; uid?: string; rev?: number; hash?: string; at?: number; base?: Partial<State> };
 type Snapshot = { format: 1; state: State | null; meta: SyncMeta };
 type Storage = { getItem(key: string): Promise<string | null>; setItem(key: string, value: string): Promise<unknown> };
 export const CHECKPOINT_KEY = 'watchverse:checkpoint:1';
@@ -45,11 +45,11 @@ export function createCheckpointStore(storage: Storage) {
     load,
     commit(state: State, meta?: SyncMeta) {
       if (!current) throw new Error('Yerel kayıt henüz okunmadı.');
-      return write({ format: 1, state, meta: meta ?? current.meta });
+      return write({ format: 1, state, meta: meta ? { ...meta, actor: current.meta.actor } : current.meta });
     },
     saveMeta(meta: SyncMeta) {
       if (!current) throw new Error('Yerel kayıt henüz okunmadı.');
-      return write({ ...current, meta });
+      return write({ ...current, meta: { ...meta, actor: meta.actor ?? current.meta.actor } });
     },
     async flush() {
       try { await pending; } catch { /* Retry the latest coherent snapshot below. */ }

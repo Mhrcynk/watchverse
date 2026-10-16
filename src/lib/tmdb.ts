@@ -20,7 +20,7 @@ export type TDetail = TItem & {
 };
 export type Person = { id: number; name: string; role: string; p: string | null };
 export type PersonDetail = { id: number; name: string; p: string | null; bio: string; born: string | null; died: string | null; place: string | null; dept: string; acting: (TItem & { role: string })[]; directing: TItem[] };
-export type TEpisode = { s: number; e: number; name: string; date: string | null; runtime: number | null; overview: string; still: string | null };
+export type TEpisode = { id?: number; s: number; e: number; name: string; date: string | null; runtime: number | null; overview: string; still: string | null };
 
 export const keyOf = (m: Media, id: number) => `${m}:${id}`;
 export const parseKey = (k: string): { m: Media; id: number } | null => {
@@ -167,7 +167,7 @@ export async function detail(m: Media, id: number, fresh = false): Promise<TDeta
 
 export async function season(id: number, n: number): Promise<TEpisode[]> {
   const j = await get<any>(`/tv/${id}/season/${n}`, {}, 360, true);
-  return (j.episodes || []).map((e: any) => ({ s: n, e: e.episode_number, name: e.name || `${e.episode_number}. bölüm`, date: e.air_date || null, runtime: e.runtime || null, overview: e.overview || '', still: e.still_path || null }));
+  return (j.episodes || []).map((e: any) => ({ id: e.id, s: n, e: e.episode_number, name: e.name || `${e.episode_number}. bölüm`, date: e.air_date || null, runtime: e.runtime || null, overview: e.overview || '', still: e.still_path || null }));
 }
 
 /** Sezon/bölüm → sıra numarası (1'den başlar); sezonlar sırayla dizilir */

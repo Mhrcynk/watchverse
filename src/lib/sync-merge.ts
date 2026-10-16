@@ -1,3 +1,5 @@
+import { initialState } from './state-defaults';
+import { applyReplica, canonicalizeEpisodes, mergeAliases, mergeReplicas, recordReplica, seedReplica } from './replica';
 import type { State } from './types';
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
@@ -44,6 +46,18 @@ export function mergeValue(base: unknown, local: unknown, remote: unknown): unkn
 }
 
 export function mergeStates(local: State, remote: State, base: Partial<State> = {}): State {
+  if (local.replica || remote.replica) {
+    const aliases = mergeAliases(local.episodeAliases,remote.episodeAliases);
+    local = canonicalizeEpisodes(local,aliases);
+    remote = canonicalizeEpisodes(remote,aliases);
+    const baseline = { ...initialState(), ...base } as State;
+    const seed = seedReplica(baseline);
+    const migrate = (s: State, actor: string) => s.replica || recordReplica({ ...baseline, replica: seed }, s, actor).replica!;
+    return applyReplica({ ...remote, device: local.device, lastBackup: local.lastBackup,
+      episodeLayouts: { ...remote.episodeLayouts, ...local.episodeLayouts },
+      unresolvedEpisodes: Object.fromEntries([...new Set([...Object.keys(remote.unresolvedEpisodes || {}), ...Object.keys(local.unresolvedEpisodes || {})])].map(key => [key, [...new Set([...(remote.unresolvedEpisodes?.[key] || []), ...(local.unresolvedEpisodes?.[key] || [])])].sort((a,b)=>a-b)])) },
+      mergeReplicas(migrate(local,'migration-local'),migrate(remote,'migration-remote')));
+  }
   // Clone before applying device-local fields; merging must never mutate the baseline.
   const merged = JSON.parse(JSON.stringify(mergeValue(base, local, remote))) as State;
   // An absent series is an empty set of marks, not deletion of the series record.

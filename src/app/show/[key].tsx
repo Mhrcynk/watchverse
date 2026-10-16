@@ -64,7 +64,12 @@ function ShowContent({ routeId: key }: { routeId: string }) {
   useEffect(() => {
     if (!d || d.m !== 'tv' || sn == null) return;
     let alive = true;
-    loadSeason(d.id, sn).then((x) => alive && setSeasonResult({ sn, eps: x })).catch(() => alive && setSeasonResult({ sn, eps: [] }));
+    loadSeason(d.id, sn).then((x) => {
+      if (!alive) return;
+      const item = store.getState().lib[key];
+      if (item) store.libSave(key, { ...item, episodeIds: { ...item.episodeIds, ...Object.fromEntries(x.filter(e=>e.id).map(e=>[`s${e.s}e${e.e}`,e.id!])) } });
+      setSeasonResult({ sn, eps: x });
+    }).catch(() => alive && setSeasonResult({ sn, eps: [] }));
     return () => { alive = false; };
   }, [d?.id, sn]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -78,7 +83,7 @@ function ShowContent({ routeId: key }: { routeId: string }) {
   const pr = libProgress(state, key, li || libFromDetail(d));
   const done = pr.finished;
   const t0 = today();
-  const save = () => store.libSave(key, libFromDetail(d));
+  const save = () => store.libSave(key, { ...libFromDetail(d), episodeIds: Object.fromEntries((eps || []).filter(e=>e.id).map(e=>[`s${e.s}e${e.e}`,e.id!])) });
   const back = () => (router.canGoBack() ? router.back() : router.replace('/explore'));
   const seen = new Set(state.episodes[key] || []);
   const idx = (e: TEpisode) => epIndex(d.seasons, e.s, e.e);

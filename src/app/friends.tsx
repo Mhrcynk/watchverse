@@ -65,10 +65,10 @@ export default function Friends() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
 
   const load = useCallback(() => {
-    return Promise.all([myProfile(store.state.name), friendFeed()]).then(([p, f]) => {
+    return Promise.all([myProfile(store.state.name, acc.user!.id), friendFeed(acc.user!.id)]).then(([p, f]) => {
       setMe(p); setList(f); setErr(false);
     }).catch(() => { setErr(true); });
-  }, [store.state.name]);
+  }, [store.state.name, acc.user]);
   useEffect(() => { if (acc.user && store.state.name) load(); }, [acc.user, store.state.name, load]);
 
   if (!acc.enabled || !acc.user) {
@@ -109,11 +109,11 @@ export default function Friends() {
             <Small>Kapatırsan arkadaşların yalnızca adını görür.</Small>
           </View>
           <Switch value={me?.share ?? true} disabled={!me} trackColor={{ true: C.accent, false: C.line }} thumbColor="#fff" {...({ activeThumbColor: "#fff" } as object)} accessibilityLabel="İzlediklerimi arkadaşlarım görebilsin"
-            onValueChange={async (v) => { setMe((m) => (m ? { ...m, share: v } : m)); try { await setSharing(v); } catch { toast('Kaydedilemedi'); } }} />
+            onValueChange={async (v) => { setMe((m) => (m ? { ...m, share: v } : m)); try { await setSharing(v, acc.user!.id); } catch { toast('Kaydedilemedi'); } }} />
         </View>
         <Btn kind="quiet" label="Bağlantıyı yenile" style={{ alignSelf: 'flex-start', marginTop: 8 }} disabled={!me}
           onPress={() => confirm('Davet bağlantısı yenilensin mi?', 'Eski bağlantı artık çalışmaz. Var olan arkadaşların silinmez.', 'Yenile', async () => {
-            try { const code = await resetInvite(); setMe((m) => (m ? { ...m, code } : m)); toast('Yeni bağlantı hazır'); } catch { toast('Yenilenemedi'); }
+            try { const code = await resetInvite(acc.user!.id); setMe((m) => (m ? { ...m, code } : m)); toast('Yeni bağlantı hazır'); } catch { toast('Yenilenemedi'); }
           })} />
       </Panel>
 
@@ -122,7 +122,7 @@ export default function Friends() {
         : list === null ? <SkeletonRows n={3} />
         : list.length ? <View style={{ gap: 12 }}>{list.map((f) => (
           <FriendCard key={f.id} f={f} onRemove={() => confirm(`${f.name} arkadaşlıktan çıkarılsın mı?`, 'Birbirinizin izlediklerini artık görmezsiniz.', 'Çıkar', async () => {
-            try { await removeFriend(f.id); setList((l) => (l || []).filter((x) => x.id !== f.id)); toast('Arkadaşlıktan çıkarıldı'); } catch { toast('Çıkarılamadı'); }
+            try { await removeFriend(f.id, acc.user!.id); setList((l) => (l || []).filter((x) => x.id !== f.id)); toast('Arkadaşlıktan çıkarıldı'); } catch { toast('Çıkarılamadı'); }
           })} />
         ))}</View>
         : <Empty icon="users" title="Henüz arkadaşın yok." text="Davet bağlantını gönder; açan kişi seni ekler." />}
