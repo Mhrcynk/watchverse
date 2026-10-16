@@ -2,7 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Animated, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useReducedMotion } from '@/lib/motion';
 import { isEn } from '@/lib/i18n';
 import { C, F, R, alpha } from '@/lib/theme';

@@ -2,16 +2,14 @@ import Feather from '@expo/vector-icons/Feather';
 import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/tabs';
 import { useEffect, useState } from 'react';
-import { Animated, View } from 'react-native';
+import { Animated, View, ActivityIndicator } from 'react-native';
 import { ND, useReducedMotion } from '@/lib/motion';
-import { alpha } from '@/lib/theme';
+import { alpha, C, F } from '@/lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLayout } from '@/components/ui';
 import { GlassTabBar } from '@/components/glass-tabbar';
 import { useStore } from '@/lib/store';
 import { useAccount } from '@/lib/account';
-import { ActivityIndicator } from 'react-native';
-import { C, F } from '@/lib/theme';
 
 const TABS = [
   { name: 'index', title: 'Ana Sayfa', icon: 'home' },

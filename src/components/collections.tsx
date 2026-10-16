@@ -81,6 +81,6 @@ export function useFriendsLiked() {
       if (alive) setResult({ uid, liked: out.filter((x) => x.title).slice(0, 20) });
     }).catch(() => {});
     return () => { alive = false; };
-  }, [uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [uid]);
   return result && result.uid === uid ? result.liked : [];
 }

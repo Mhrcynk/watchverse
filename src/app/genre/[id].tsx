@@ -1,9 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 import { TItemTile } from '@/components/rows';
-import { BackLink, Btn, Empty, Grid, H1, Pills, Screen, Small, useLayout, SkeletonGrid } from '@/components/ui';
-import { C } from '@/lib/theme';
+import { BackLink, Btn, Empty, Grid, Pills, Screen, Small, useLayout, SkeletonGrid } from '@/components/ui';
 import { Backdrop, PageHeader } from '@/components/home';
 import { GENRES, byGenre, hasApi, type Kind, type TItem } from '@/lib/tmdb';
 

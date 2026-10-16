@@ -11,7 +11,7 @@ import { useStore } from '@/lib/store';
 import { C, F, M, R, alpha } from '@/lib/theme';
 import { detail, img, type TDetail, type TItem } from '@/lib/tmdb';
 import type { Title } from '@/lib/types';
-import { Btn, Small, tap, useToast } from './ui';
+import { Btn, Small, tap } from './ui';
 import { isSaved, itemFromTitle, itemFromTItem, useListPicker } from './lists';
 import { useTrailer } from './trailer';
 import { useSwipeDown } from './swipe';
@@ -43,7 +43,6 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   const [a] = useState(() => new Animated.Value(0));
   const insets = useSafeAreaInsets();
   const store = useStore();
-  const toast = useToast();
   const { pick } = useListPicker();
   const { play } = useTrailer();
 

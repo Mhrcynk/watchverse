@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { Linking, View } from 'react-native';
-import { BackLink, Body, Divider, H1, H3, Muted, Panel, Press, Screen, SectionHead, Small } from '@/components/ui';
+import { BackLink, Body, Divider, H3, Muted, Panel, Press, Screen, SectionHead, Small } from '@/components/ui';
 import { CATALOG, META, UNIVERSES } from '@/lib/catalog';
 import { Backdrop, PageHeader } from '@/components/home';
 import { C, F } from '@/lib/theme';

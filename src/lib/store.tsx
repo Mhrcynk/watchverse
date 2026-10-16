@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AppState } from 'react-native';
 import { MERGED, MOVED, TBY, UBY, branchesOf } from './catalog';
 import { loadCachedCatalog } from './remote';
-import type { LibItem, ListItem, ListView, Mode, Order, State, UList } from './types';
+import type { LibItem, ListItem, ListView, Mode, Order, State } from './types';
 
 export const BACKUP_PREFIX = 'WATCHVERSE:';
 
@@ -119,7 +119,6 @@ export function sanitize(input: unknown): State {
   for (const [u, b] of Object.entries(s.branches || {})) if (UBY[u] && typeof b === 'string' && (b === 'all' || branchesOf(u).some((x) => x.id === b))) out.branches[u] = b;
   return out;
 }
-
 
 /* ---------- aylık izleme özeti ---------- */
 const monthKey = (t = Date.now()) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
@@ -272,7 +271,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!t || n < 1 || n > t.episodes) return;
       setRaw((s) => {
         const set = new Set(s.episodes[id] || []);
-        set.has(n) ? set.delete(n) : set.add(n);
+        if (set.has(n)) set.delete(n); else set.add(n);
         const episodes = { ...s.episodes };
         if (set.size) episodes[id] = [...set].sort((a, b) => a - b); else delete episodes[id];
         return { ...s, episodes, touched: { ...s.touched, [id]: Date.now() }, log: bumpEps(s, id, s.episodes[id] || [], episodes[id] || []) };

@@ -8,7 +8,7 @@ import { EASE_OUT, ND, useReducedMotion } from '@/lib/motion';
 import { C, M } from '@/lib/theme';
 import { useAccount } from '@/lib/account';
 import { useStore } from '@/lib/store';
-import { tap, useLayout } from './ui';
+import { tap } from './ui';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 export const TAB_ICONS: Record<string, [IconName, IconName]> = {
@@ -61,7 +61,6 @@ export function GlassTabBar({ state, descriptors, navigation, insets }: any) {
 export function StackTabBar() {
   const path = usePathname();
   const insets = useSafeAreaInsets();
-  const { tablet } = useLayout();
   const { state } = useStore();
   const acc = useAccount();
   const tabRoot = ['/', '/explore', '/library', '/collections', '/universes'].includes(path);

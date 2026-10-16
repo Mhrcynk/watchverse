@@ -3,7 +3,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Switch, Text, View } from 'react-native';
-import { BackLink, Bar, Btn, H1, H3, Muted, Panel, Screen, SectionHead, Small, useToast } from '@/components/ui';
+import { BackLink, Bar, Btn, H3, Muted, Panel, Screen, SectionHead, Small, useToast } from '@/components/ui';
 import { matchAll, readFiles, unpack, type Matched, type Raw, type Source } from '@/lib/importer';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';

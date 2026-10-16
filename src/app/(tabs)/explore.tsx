@@ -3,7 +3,6 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { memo, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { scoreText, usePreview } from '@/components/preview';
 import { PersonChip } from '@/components/people';
@@ -16,12 +15,9 @@ import { CATALOG, CATEGORIES, CATEGORY_TR, search as searchCatalog } from '@/lib
 import { routeOf } from '@/lib/library';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
-import { GENRES, discover, hasApi, img, niceProvider, providers, searchAll, today, trending, type Person, type TItem } from '@/lib/tmdb';
+import { GENRES, hasApi, img, searchAll, trending, type Person, type TItem } from '@/lib/tmdb';
 
 const PAGE = 48;
-const PLATFORMS = ['Netflix', 'Disney+', 'Prime Video', 'HBO Max', 'TOD', 'Exxen', 'tabii', 'Gain', 'BluTV', 'Apple TV+'];
-// Türkçe ek: "Netflix'te", "Disney+'ta"...
-const AT: Record<string, string> = { Netflix: "Netflix'te", 'Disney+': "Disney+'ta", 'Prime Video': "Prime Video'da", 'HBO Max': "HBO Max'te", TOD: "TOD'da", Exxen: "Exxen'de", tabii: "tabii'de", Gain: "Gain'de", BluTV: "BluTV'de", 'Apple TV+': "Apple TV+'ta" };
 
 export default function Explore() {
   return hasApi() ? <Online /> : <CatalogOnly />;
@@ -52,23 +48,11 @@ function Online() {
   const { openTitle } = usePreview();
   const [type, setType] = useState<'all' | 'movie' | 'tv'>('all');
   const [result, setResult] = useState<{ query: string; items: TItem[]; people: (Person & { known: string })[]; error: boolean } | null>(null);
-  const [plats, setPlats] = useState<{ id: number; name: string }[]>([]);
   const query = q.trim();
   const current = result?.query === query ? result : null;
   const res = current?.items ?? null;
   const people = current?.people ?? [];
   const err = current?.error ?? false;
-
-  useEffect(() => {
-    providers().then((list) => {
-      const pick: { id: number; name: string }[] = [];
-      for (const name of PLATFORMS) {
-        const p = list.find((x) => niceProvider(x.name) === name && !/kids|channel|with ads|standard|basic/i.test(x.name));
-        if (p && !pick.some((x) => x.id === p.id)) pick.push({ id: p.id, name });
-      }
-      setPlats(pick);
-    }).catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (query.length < 2) return;
@@ -208,24 +192,6 @@ function Rail({ items }: { items: RailItem[] }) {
   );
 }
 
-function Section({ title, load }: { title: string; load: () => Promise<TItem[]> }) {
-  const { state } = useStore();
-  const [items, setItems] = useState<TItem[] | null>(null);
-  useEffect(() => { let a = true; load().then((r) => a && setItems(r.filter((x) => x.p).slice(0, 20))).catch(() => a && setItems([])); return () => { a = false; }; }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  if (items && !items.length) return null;
-  return (
-    <>
-      <SectionHead title={title} />
-      {items === null ? <SkeletonGrid rows={1} /> : (
-        <Rail items={items.map((x) => {
-          const r = routeOf(x.key);
-          return { key: x.key, uri: img(x.p, 'w342'), title: x.title, sub: [x.year, x.m === 'movie' ? 'Film' : 'Dizi'].filter(Boolean).join(' · '), go: () => router.push(r), badge: r.startsWith('/title/') ? 'Evrende' : state.lib[x.key] ? 'Ekli' : undefined };
-        })} />
-      )}
-    </>
-  );
-}
-
 /* ---------- ara sunucu kurulmadıysa: yalnızca evren kataloğu ---------- */
 function CatalogOnly() {
   const { posterCols } = useLayout();
@@ -257,4 +223,3 @@ function CatalogOnly() {
     </Screen>
   );
 }
-

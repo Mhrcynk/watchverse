@@ -4,10 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useScrollToTop } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import {
-  Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
-  type PressableProps, type StyleProp, type TextProps, type TextStyle, type ViewStyle,
-} from 'react-native';
+import { Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type PressableProps, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { setConfirmHandler } from '@/lib/confirm';
@@ -71,10 +68,8 @@ export const H3 = mk({ fontFamily: F.semibold, fontSize: 16, lineHeight: 22, col
 export const Body = mk({ fontFamily: F.regular, fontSize: 15, lineHeight: 23, color: C.text });
 export const Muted = mk({ fontFamily: F.regular, fontSize: 14, lineHeight: 21, color: C.muted });
 export const Small = mk({ fontFamily: F.regular, fontSize: 12.5, lineHeight: 18, color: C.muted });
-/** Büyük harfli küçük başlık. Türkçe arayüz metni için lang="tr", yapım/evren adları için lang="en" (I/İ dönüşümü). */
+/** Küçük bölüm başlığı; metnin özgün harf biçimi korunur. */
 const eyebrowBase: TextStyle = { fontFamily: F.medium, fontSize: 13.5, letterSpacing: 0, color: C.muted };
-const upper = (c: ReactNode, lang: string): ReactNode =>
-  typeof c === 'string' ? c.toLocaleUpperCase(lang) : Array.isArray(c) ? c.map((x) => upper(x, lang)) : c;
 export function Eyebrow({ children, lang = 'tr', style, ...p }: TxtProps & { lang?: 'tr' | 'en' }) {
   return <Text {...p} style={[eyebrowBase, style]}>{children}</Text>;
 }

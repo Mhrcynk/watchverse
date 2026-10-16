@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { enablePush } from '@/lib/push';
 import { useStore } from '@/lib/store';
 import { hasSyncApi, syncDevice } from '@/lib/sync';

@@ -1,9 +1,8 @@
-import { Platform } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Backdrop, PageHeader } from '@/components/home';
 import { usePreview } from '@/components/preview';
 import { BackLink, Btn, Empty, Press, Screen, Small, SkeletonRows, tap, useToast } from '@/components/ui';

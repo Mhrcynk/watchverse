@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { BackLink, Btn, FadeIn, H1, Muted, Panel, Press, Screen, Small, useToast } from '@/components/ui';
+import { BackLink, Btn, FadeIn, Muted, Panel, Press, Screen, Small, useToast } from '@/components/ui';
 import { useAccount } from '@/lib/account';
 import { confirm } from '@/lib/confirm';
 import { Backdrop, PageHeader } from '@/components/home';

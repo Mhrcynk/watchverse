@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
-import { BackLink, H1, H3, Muted, Panel, Press, Screen, SectionHead, Small, useLayout } from '@/components/ui';
+import { BackLink, H3, Muted, Panel, Press, Screen, SectionHead, Small, useLayout } from '@/components/ui';
 import { routeOf } from '@/lib/library';
 import { fullStats, hoursText } from '@/lib/stats';
 import { useStore } from '@/lib/store';

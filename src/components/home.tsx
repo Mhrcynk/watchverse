@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { isEn } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { C, F, R, alpha } from '@/lib/theme';

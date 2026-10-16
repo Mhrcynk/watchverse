@@ -10,7 +10,7 @@ Bu belge tamamlanma iddiası değildir. Yedi koşulun hiçbiri henüz uçtan uca
 | 4 | Hesap ve cihaz yetkisi | Native cihazın sahibi auth.uid() ile belirleniyor. Başka hesabın okuma/silme/kayıt değiştirmesi, anonim RPC, hesap silmede cihaz temizliği test edildi. Eski anonim Worker /sync ve /devices yolları 410 dönüyor. | Gerçek Supabase JWT ile entegrasyon, oturum değişiminde cihaz devri/iptali, paylaşım RPC yarışları ve bütün API yüzeyinin denetimi. |
 | 5 | Yük ve maliyet | Henüz ölçülmedi. | Beklenen kullanıcı/istek yükü, güvenlik payı, gecikme/hata sınırı ve harcama tavanı belirlenmeli; staging'de ölçülmeli. Ücretsiz kota garantisi verilmez. |
 | 6 | Yedek/başarısız yayın | PGlite snapshot'ı yeni veritabanına geri yüklendi; kayıt ve cihaz tokenı karşılaştırıldı. | Gerçek Supabase yedeği/PITR, kurtarma süresi/veri kaybı sınırı; staging'de başarısız migration ve Worker rollback tatbikatı. Yerel test bunların yerine geçmez. |
-| 7 | Gerçek iOS/Android | Her iki platform için Metro/Hermes paketleri üretildi, TypeScript geçti. Yeni saf modüller lint'ten geçti. | Genel lint artık başarılı: 0 hata/48 uyarı. Expo proje bağlantısı, Apple/Google imzalama, mağaza derlemeleri, telefon/tablet akışları, push teslimatı ve Apple ile giriş değerlendirmesi. |
+| 7 | Gerçek iOS/Android | Her iki platform için Metro/Hermes paketleri üretildi, TypeScript geçti. Yeni saf modüller lint'ten geçti. | Genel lint artık başarılı: 0 hata/0 uyarı. Expo proje bağlantısı, Apple/Google imzalama, mağaza derlemeleri, telefon/tablet akışları, push teslimatı ve Apple ile giriş değerlendirmesi. |
 
 ## Eşitlemenin bilinen sınırları
 
@@ -42,10 +42,14 @@ Gereken dış bilgiler: Expo proje kimliği/erişimi; Apple Developer ve Google 
 
 `watchverse:checkpoint:1` hem yerel durumu hem bulut birleştirme referansını içerir. Yazımlar sıraya alınır ve anında kopyalanır; 250 ms gecikmeli bağımsız yazımlar kaldırıldı. Buluta gönderimden önce bekleyen kayıt tamamlanır. Sunucu yanıtı beklenirken yapılan yeni değişiklikler referans kaydedildiğinde korunur. Eski iki anahtar kurtarma kopyası olarak tutulur; yeni biçim okunamıyorsa eskiye sessiz dönüş veya boş kayıtla üzerine yazma yapılmaz. Okuma hatasında başlangıç engellenir; yazma hatası kullanıcıya gösterilir ve tekrar denenebilir.
 
-Bu, iki ayrı anahtarın farklı anlara ait kalmasını önler; işletim sistemi zorla kapatma, fiziksel disk arızası veya AsyncStorage'ın disk dayanıklılığı için kanıt değildir. Eski sürüme geri dönmek eski anahtarları okuyacağından son değişiklikleri göstermeyebilir; downgrade öncesinde yedek/taşıma gerekir. Checkpoint ve hesap eşitleme dosyalarının hedefli lint kontrolü geçti; sonraki mobil arayüz düzeltmeleriyle genel lint de 0 hataya indi (48 uyarı kaldı).
+Bu, iki ayrı anahtarın farklı anlara ait kalmasını önler; işletim sistemi zorla kapatma, fiziksel disk arızası veya AsyncStorage'ın disk dayanıklılığı için kanıt değildir. Eski sürüme geri dönmek eski anahtarları okuyacağından son değişiklikleri göstermeyebilir; downgrade öncesinde yedek/taşıma gerekir. Checkpoint ve hesap eşitleme dosyalarının hedefli lint kontrolü geçti; sonraki mobil arayüz düzeltmeleriyle genel lint de 0 hataya indi (uyarılar da giderildi).
 
 ## Mobil arayüz ve React kontrolleri
 
 92 lint hatası kurallar kapatılmadan giderildi. Animasyon değerleri bileşen ömrü boyunca sabit tutuluyor; render sırasında ref/global yazımları kaldırıldı. Liste seçim göstergesi her render'da yeniden oluşturulan bir bileşen olmaktan çıkarıldı. Arama, öneri satırları, takvim, sezonlar, logolar ve arkadaş önerileri sonuç kimliğiyle eşleştiriliyor. Yapım/kişi/kategori ekranları kimlik değişiminde kendi durumlarını sıfırlıyor; geç gelen yanıtlar kapanmış ekranı güncellemiyor. Paylaşılan listelerde eski bağlantının sonucu yeni bağlantıda gösterilmiyor.
 
 TypeScript, lint, 14 eşitleme testi ve mevcut mantık denetimi geçti. Telefon/tablet gerçek dokunma, sürükleme, ekran okuyucu ve hızlı ağ geçişi testleri henüz yapılmadı. Lint'in geçmesi bu akışların cihazda doğrulandığı anlamına gelmez.
+
+## Uyarı temizliği
+
+Kullanılmayan bileşenler, yardımcılar ve importlar kaldırıldı; yinelenen importlar birleştirildi. Keşfet'te sonucu arayüzde kullanılmayan platform isteği kaldırıldı. İzleme işaretleme ve geçmiş gruplama işlemlerindeki yan etkili koşullu ifadeler açık if/else biçimine taşındı. Lint artık hem hata hem uyarı olmadan geçiyor. Önceki mobil düzeltme commit'i GitHub Actions üzerinde de başarılı: run 38874085118.

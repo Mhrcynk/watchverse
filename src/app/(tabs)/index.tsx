@@ -1,10 +1,9 @@
-import { AppState } from 'react-native';
+import { AppState, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UniverseCard } from '@/components/media';
 import { Billboard, RemoteRow, Row, Tile, TItemTile, useTileW, type BillboardItem } from '@/components/rows';
@@ -25,7 +24,6 @@ import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
 import { GENRES, detail, discover, hasApi, img, keyOf, today, trendingKind, type Kind, type TItem } from '@/lib/tmdb';
 import type { State } from '@/lib/types';
-
 
 type Plat = 'all' | number;
 const PLAT_KEY = 'watchverse:plat';
