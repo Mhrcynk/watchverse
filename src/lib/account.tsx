@@ -1,3 +1,4 @@
+import { createSessionGuard } from './session-guard';
 import { checkpoint } from './checkpoint';
 import type { SyncMeta as Meta } from './checkpoint-store';
 import * as WebBrowser from 'expo-web-browser';
@@ -37,7 +38,7 @@ type Ctx = {
   google: () => Promise<string | null>;
   resetPassword: (email: string) => Promise<string | null>;
   updatePassword: (pw: string) => Promise<string | null>;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<string | null>;
   deleteAccount: () => Promise<string | null>;
   syncNow: () => Promise<void>;
 };
@@ -88,6 +89,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const meta = useRef<Meta>({});
   const busy = useRef<Promise<void> | null>(null);
   const uidRef = useRef<string | null>(null);
+  const [sessionGuard] = useState(createSessionGuard);
 
   const apply = useCallback((s: State, m: Meta) => {
     // Sunucudan gelen kayıt: cihaza özel alanlar korunur
@@ -98,10 +100,12 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
   /** Sunucudaki sürüm daha yeniyse alır; bu cihazda kaydedilmemiş değişiklik varsa birleştirir */
   const pull = useCallback(async (uid: string, force = false): Promise<void> => {
+    const ticket = sessionGuard.capture(uid);
+    if (!ticket) return;
     const c = sb()!;
     const { data: head, error: e1 } = await c.from('user_state').select('rev').eq('user_id', uid).maybeSingle();
     if (e1) throw e1;
-    if (uidRef.current !== uid) return;
+    if (!sessionGuard.active(ticket)) return;
     const m = meta.current;
     const sameUser = m.uid === uid;
     if (!head) {
@@ -111,6 +115,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         const cur = getState();
         await apply(sanitize({ onboarded: true, starter: true, name: '', view: cur.view, dv: 3 }), { uid, rev: 0 });
       }
+      if (!sessionGuard.active(ticket)) return;
       meta.current = { uid, rev: 0 };
       await saveMeta(meta.current);
       return;
@@ -118,7 +123,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (!force && sameUser && head.rev === m.rev && m.base) return;
     const { data: row, error: e2 } = await c.from('user_state').select('rev,data').eq('user_id', uid).maybeSingle();
     if (e2) throw e2;
-    if (uidRef.current !== uid) return;
+    if (!sessionGuard.active(ticket)) return;
     if (!row) return;
     const remote = sanitize(row.data);
     const local = getState();
@@ -133,21 +138,22 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     else next = remote; // başka bir hesap bu cihazdan çıkmış
     meta.current = { uid, rev: row.rev, hash: hashOf(cloudPayload(remote)), base: cloudPayload(remote), at: Date.now() };
     await apply(next, meta.current);
-  }, [apply, getState]);
+  }, [apply, getState, sessionGuard]);
 
   /** Sunucuya yazar; başka cihaz araya girdiyse önce birleştirir */
   const push = useCallback(async function send(uid: string, attempt = 0): Promise<void> {
+    const ticket = sessionGuard.capture(uid);
     const c = sb()!;
-    if (uidRef.current !== uid || meta.current.uid !== uid) return;
+    if (!ticket || meta.current.uid !== uid) return;
     if ((meta.current.rev || 0) > 0 && !meta.current.base) throw new Error('Eşitleme referansı eksik.');
     await checkpoint.flush();
-    if (uidRef.current !== uid) return;
+    if (!sessionGuard.active(ticket)) return;
     const payload = cloudPayload(getState());
     const h = hashOf(payload);
     if (h === meta.current.hash && meta.current.uid === uid) return;
-    const { data, error } = await c.rpc('save_state_v3', { p_data: payload, p_base: meta.current.rev ?? 0 });
+    const { data, error } = await c.rpc('save_state_v4', { p_data: payload, p_base: meta.current.rev ?? 0, p_owner: uid });
     if (error) throw error;
-    if (uidRef.current !== uid) return;
+    if (!sessionGuard.active(ticket)) return;
     const rev = Number(data);
     if (rev > 0) {
       meta.current = { uid, rev, hash: h, base: payload, at: Date.now() };
@@ -156,33 +162,38 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     }
     if (attempt > 1) throw new Error('çakışma');
     await pull(uid, true);
+    if (!sessionGuard.active(ticket)) return;
     return send(uid, attempt + 1);
-  }, [getState, pull]);
+  }, [getState, pull, sessionGuard]);
 
   const run = useCallback((fn: (uid: string) => Promise<void>) => {
     const uid = uidRef.current;
-    if (!uid) return Promise.resolve();
+    const ticket = uid ? sessionGuard.capture(uid) : null;
+    if (!uid || !ticket) return Promise.resolve();
     const job = (busy.current || Promise.resolve()).then(async () => {
-      if (uidRef.current !== uid) return;
+      if (!sessionGuard.active(ticket)) return;
       setStatus('syncing');
       try {
         await fn(uid);
-        if (uidRef.current !== uid) return;
+        if (!sessionGuard.active(ticket)) return;
         setStatus('ok');
         setLastSync(Date.now());
+        if (meta.current.uid === uid && (meta.current.base || meta.current.rev === 0)) setFirstSync(true);
       } catch (e) {
-        if (uidRef.current !== uid) return;
+        if (!sessionGuard.active(ticket)) return;
         const offline = /fetch|network|failed/i.test(String((e as Error)?.message || e));
         setStatus(offline ? 'offline' : 'error');
       }
-      // A failed initial pull must never be followed by an automatic blind push.
-      if (meta.current.uid === uid && (meta.current.base || meta.current.rev === 0)) setFirstSync(true);
     });
     busy.current = job;
     return job;
-  }, []);
+  }, [sessionGuard]);
 
-  const syncNow = useCallback(() => run(async (uid) => { await pull(uid); await push(uid); }), [run, pull, push]);
+  const syncNow = useCallback(() => run(async (uid) => {
+    const ticket = sessionGuard.capture(uid);
+    await pull(uid);
+    if (sessionGuard.active(ticket)) await push(uid);
+  }), [run, pull, push, sessionGuard]);
 
   // Oturumu izle
   useEffect(() => {
@@ -199,13 +210,17 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       const u = toUser(session?.user);
       const changed = (u?.id || null) !== uidRef.current;
       uidRef.current = u?.id || null;
+      sessionGuard.switchUser(uidRef.current);
       setUser(u);
       if (!u) { setStatus('off'); setFirstSync(false); return; }
-      if (changed) setFirstSync(false);
-      if (changed) setTimeout(() => { loadMeta().then((m) => { if (alive && uidRef.current === u.id) { meta.current = m; syncNow(); } }).catch(() => { if (alive) setStatus('error'); }); }, 0);
+      if (changed || event === 'INITIAL_SESSION') setFirstSync(false);
+      if (changed || event === 'INITIAL_SESSION') {
+        const ticket = sessionGuard.capture(u.id);
+        setTimeout(() => { loadMeta().then(m => { if (alive && sessionGuard.active(ticket)) { meta.current = m; syncNow(); } }).catch(() => { if (alive && sessionGuard.active(ticket)) setStatus('error'); }); }, 0);
+      }
     });
-    return () => { alive = false; clearTimeout(fallback); sub.subscription.unsubscribe(); };
-  }, [syncNow]);
+    return () => { alive = false; sessionGuard.invalidate(); clearTimeout(fallback); sub.subscription.unsubscribe(); };
+  }, [syncNow, sessionGuard]);
 
   // Değişiklikleri birkaç saniye sonra sunucuya yaz
   const payloadHash = useMemo(() => (user ? hashOf(cloudPayload(store.state)) : ''), [store.state, user]);
@@ -228,10 +243,12 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Ctx>(() => ({
     enabled, ready: ready && guestLoaded, guest, setGuest, firstSync, user, status, lastSync, recovery, syncNow,
     async signIn(email, pw) {
+      if (sessionGuard.isPaused()) return 'Hesap işlemi sürüyor. Lütfen bekle.';
       const { error } = await sb()!.auth.signInWithPassword({ email: email.trim(), password: pw });
       return error ? authError(error) : null;
     },
     async signUp(email, pw) {
+      if (sessionGuard.isPaused()) return 'Hesap işlemi sürüyor. Lütfen bekle.';
       const { data, error } = await sb()!.auth.signUp({ email: email.trim(), password: pw, options: { emailRedirectTo: AUTH_REDIRECT } });
       if (error) return authError(error);
       // Mail onayı açıksa oturum hemen gelmez
@@ -239,6 +256,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       return null;
     },
     async google() {
+      if (sessionGuard.isPaused()) return 'Hesap işlemi sürüyor. Lütfen bekle.';
       try {
         const { data, error } = await sb()!.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: AUTH_REDIRECT, skipBrowserRedirect: true } });
         if (error) return authError(error);
@@ -260,20 +278,51 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       return null;
     },
     async signOut() {
-      await run(push).catch(() => {});
-      await sb()!.auth.signOut({ scope: 'local' }).catch(() => {});
-      setGuest(false);
+      if (sessionGuard.isPaused()) return 'Hesap işlemi sürüyor. Lütfen bekle.';
+      const uid = uidRef.current;
+      const ticket = uid ? sessionGuard.capture(uid) : null;
+      await run(push);
+      if (!sessionGuard.active(ticket)) return 'Oturum değişti. Lütfen tekrar dene.';
+      try {
+        const { error } = await sb()!.auth.signOut({ scope: 'local' });
+        if (error) return authError(error);
+        setGuest(false);
+        return null;
+      } catch (error) { return authError(error); }
     },
     async deleteAccount() {
-      const { error } = await sb()!.rpc('delete_my_account');
-      if (error) return authError(error);
-      meta.current = {};
-      await saveMeta({});
-      await sb()!.auth.signOut({ scope: 'local' }).catch(() => {});
-      setGuest(false);
-      return null;
+      const uid = uidRef.current;
+      if (!uid) return 'Hesabı silmek için giriş yap.';
+      const ticket = sessionGuard.pause(uid);
+      if (!ticket) return 'Hesap işlemi sürüyor. Lütfen bekle.';
+      let deleted = false;
+      try {
+        // Drain earlier sync jobs before deleting the server account.
+        await busy.current;
+        if (!sessionGuard.matches(ticket)) return 'Oturum değişti. Lütfen tekrar dene.';
+        await checkpoint.flush();
+        if (!sessionGuard.matches(ticket)) return 'Oturum değişti. Lütfen tekrar dene.';
+        // Keep the local owner's identity. Retained data must never become guest data.
+        // If another owner's data is still present, retain that owner instead.
+        const localMeta = (await checkpoint.load()).meta;
+        if (!sessionGuard.matches(ticket)) return 'Oturum değişti. Lütfen tekrar dene.';
+        const ownedMeta = localMeta.uid ? localMeta : { ...localMeta, uid };
+        await saveMeta(ownedMeta);
+        if (!sessionGuard.matches(ticket)) return 'Oturum değişti. Lütfen tekrar dene.';
+        meta.current = ownedMeta;
+        const { error } = await sb()!.rpc('delete_my_account_v2', { p_owner: uid });
+        if (error) return authError(error);
+        deleted = true;
+        if (!sessionGuard.matches(ticket)) return 'Hesap silindi; oturum değiştiği için yeni oturuma dokunulmadı.';
+        const { error: signOutError } = await sb()!.auth.signOut({ scope: 'local' });
+        if (signOutError) return 'Hesap silindi ancak cihaz oturumu kapatılamadı. Çıkış yapmayı yeniden dene.';
+        setGuest(false);
+        return null;
+      } catch (error) {
+        return deleted ? 'Hesap silindi ancak cihaz oturumu kapatılamadı. Çıkış yapmayı yeniden dene.' : authError(error);
+      } finally { sessionGuard.resume(ticket); }
     },
-  }), [enabled, ready, guestLoaded, guest, setGuest, firstSync, user, status, lastSync, recovery, syncNow, run, push]);
+  }), [enabled, ready, guestLoaded, guest, setGuest, firstSync, user, status, lastSync, recovery, syncNow, run, push, sessionGuard]);
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 }

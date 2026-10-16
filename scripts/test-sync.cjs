@@ -94,3 +94,40 @@ test('legacy migration retains originals; corrupt checkpoint never falls back or
  d.data.set(CHECKPOINT_KEY,'{"format":99}');const broken=createCheckpointStore(d);
  await assert.rejects(broken.load());assert.throws(()=>broken.commit(state()));assert.equal(d.data.get(CHECKPOINT_KEY),'{"format":99}');
 });
+
+const {createSessionGuard}=require('../src/lib/session-guard.ts');
+test('late response from a previous login cannot apply after same user logs in again',async()=>{
+ const guard=createSessionGuard();guard.switchUser('A');const ticket=guard.capture('A');
+ let resolve;const response=new Promise(r=>resolve=r);let applied=false;
+ const job=response.then(()=>{if(guard.active(ticket))applied=true;});
+ guard.switchUser(null);guard.switchUser('A');resolve();await job;
+ assert.equal(applied,false);assert.equal(guard.active(guard.capture('A')),true);
+});
+test('queued account A work cannot apply to B or a later A session',()=>{
+ const guard=createSessionGuard();guard.switchUser('A');const a=guard.capture('A');
+ guard.switchUser('B');assert.equal(guard.active(a),false);assert.equal(guard.capture('A'),null);
+ guard.switchUser('A');assert.equal(guard.active(a),false);
+});
+test('deletion pauses sync; failed deletion resumes only fresh work',()=>{
+ const guard=createSessionGuard();guard.switchUser('A');const old=guard.capture('A');
+ const deletion=guard.pause('A');assert.ok(deletion);assert.equal(guard.active(old),false);
+ assert.equal(guard.capture('A'),null);assert.equal(guard.pause('A'),null);assert.equal(guard.matches(deletion),true);
+ guard.resume(deletion);assert.equal(guard.active(old),false);assert.equal(guard.active(guard.capture('A')),true);
+});
+test('old deletion completion cannot resume or authorize work in another account',()=>{
+ const guard=createSessionGuard();guard.switchUser('A');const a=guard.pause('A');
+ guard.switchUser('B');const b=guard.pause('B');guard.resume(a);
+ assert.equal(guard.matches(a),false);assert.equal(guard.isPaused(),true);assert.equal(guard.matches(b),true);
+});
+test('token refresh keeps active work; unmount invalidation rejects outstanding work',()=>{
+ const guard=createSessionGuard();guard.switchUser('A');const ticket=guard.capture('A');
+ guard.switchUser('A');assert.equal(guard.active(ticket),true);guard.invalidate();assert.equal(guard.active(ticket),false);
+});
+test('retained account records keep ownership after restart and storage failure',async()=>{
+ const d=disk(),c=createCheckpointStore(d);await c.load();await c.commit(state({list:['private']}),{uid:'deleted-account',rev:4});
+ // Account deletion must not clear metadata while retaining the local data.
+ const localMeta=(await c.load()).meta;await c.saveMeta(localMeta);
+ const recovered=await createCheckpointStore(d).load();assert.equal(recovered.meta.uid,'deleted-account');assert.deepEqual(recovered.state.list,['private']);
+ d.fail=true;await assert.rejects(c.saveMeta(localMeta));
+ assert.equal((await createCheckpointStore(d).load()).meta.uid,'deleted-account');
+});

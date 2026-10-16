@@ -29,8 +29,23 @@ await as(B,async()=>{
  assert.equal((await db.exec('delete from native_devices returning id'))[0].rows.length,0);
  assert.equal((await db.exec('select * from native_devices'))[0].rows.length,0);
 });
+const saveV4=(owner,data,rev)=>db.query('select public.save_state_v4($1::jsonb,$2::bigint,$3::uuid) as rev',[JSON.stringify(data),rev,owner]);
+await as(B,async()=>{
+ await assert.rejects(saveV4(A,{v:2,list:['stolen']},0),/oturum degisti/);
+ await assert.rejects(db.query('select delete_my_account_v2($1)',[A]),/oturum degisti/);
+ assert.equal((await db.exec('select * from user_state'))[0].rows.length,0);
+});
+await as(A,async()=>{
+ await assert.rejects(saveV4(null,{v:2},2),/oturum degisti/);
+ await assert.rejects(db.query('select delete_my_account_v2(null)'),/oturum degisti/);
+ assert.equal((await saveV4(A,{v:2,list:['a']},2)).rows[0].rev,3);
+ assert.equal((await saveV4(A,{v:2,list:[]},2)).rows[0].rev,-3);
+ await assert.rejects(save('save_state_v3',{v:2},3),/guncellemesi/);
+});
 await db.exec('set role anon');
 await assert.rejects(save('save_state_v3',{},0),/permission/);
+await assert.rejects(saveV4(A,{},0),/permission/);
+await assert.rejects(db.query('select delete_my_account_v2($1)',[A]),/permission/);
 await assert.rejects(db.exec("select register_native_device('aaaaaaaa-aaaaaaaa','ExpoPushToken[x]','[]','[]')"),/permission/);
 await db.exec('reset role');
 assert.equal((await db.exec('select token from native_devices'))[0].rows[0].token,'ExpoPushToken[testtoken]');
@@ -39,7 +54,7 @@ const restored = new PGlite({loadDataDir:backup});
 assert.equal((await restored.exec('select token from native_devices'))[0].rows[0].token,'ExpoPushToken[testtoken]');
 assert.deepEqual((await restored.exec('select data from user_state'))[0].rows[0].data,{v:2,list:['a']});
 await restored.close();
-await as(A,async()=>{await db.exec('select delete_my_account()');});
+await as(A,async()=>{await db.query('select delete_my_account_v2($1)',[A]);});
 assert.equal((await db.exec('select * from native_devices'))[0].rows.length,0);
 await db.close();
-console.log('PASS: repeatable schema, CAS, old writer guard, direct write denial, cross-account state/device isolation, anonymous RPC denial, deletion cascade, local snapshot restore. PGlite only; not a production/concurrency test.');
+console.log('PASS: repeatable schema, CAS, initiating-account checks, old writer guard, direct write denial, cross-account state/device isolation, anonymous RPC denial, deletion cascade, local snapshot restore. PGlite only; not a production/concurrency test.');

@@ -57,6 +57,19 @@ revoke all on function public.save_state_v3(jsonb,bigint) from public,anon;
 grant execute on function public.save_state(jsonb,bigint) to authenticated;
 grant execute on function public.save_state_v3(jsonb,bigint) to authenticated;
 
+-- Bind writes to the account that initiated them, even if client credentials change in flight.
+create or replace function public.save_state_v4(p_data jsonb,p_base bigint,p_owner uuid)
+returns bigint language plpgsql security definer set search_path = '' as $$
+begin
+  if p_owner is null or auth.uid() is null or p_owner <> auth.uid() then
+    raise exception 'oturum degisti';
+  end if;
+  return public.save_state_internal(p_data,p_base,4);
+end;
+$$;
+revoke all on function public.save_state_v4(jsonb,bigint,uuid) from public,anon;
+grant execute on function public.save_state_v4(jsonb,bigint,uuid) to authenticated;
+
 -- 2) Hesabı silme: kullanıcı kendi hesabını ve tüm verisini kalıcı olarak siler
 create or replace function public.delete_my_account()
 returns void
@@ -76,6 +89,18 @@ end;
 $$;
 revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
+
+create or replace function public.delete_my_account_v2(p_owner uuid)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if p_owner is null or auth.uid() is null or p_owner <> auth.uid() then
+    raise exception 'oturum degisti';
+  end if;
+  perform public.delete_my_account();
+end;
+$$;
+revoke all on function public.delete_my_account_v2(uuid) from public,anon;
+grant execute on function public.delete_my_account_v2(uuid) to authenticated;
 
 -- 3) Paylaşılan listeler: bağlantıyı bilen herkes görebilir, yalnızca sahibi değiştirebilir (kullanıcı başı maks. 50 liste)
 create table if not exists public.shared_lists (

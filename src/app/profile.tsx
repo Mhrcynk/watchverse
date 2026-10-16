@@ -146,7 +146,7 @@ export default function Profile() {
 
       {acc.user && (
         <Group title="Hesap">
-          <Item icon="log-out" label="Çıkış yap" onPress={() => confirm('Çıkış yapılsın mı?', 'Kayıtların hesabında kalır. Bu cihazdaki kayıtlar da silinmez.', 'Çıkış yap', async () => { await acc.signOut(); toast('Çıkış yapıldı'); router.replace('/welcome'); })} />
+          <Item icon="log-out" label="Çıkış yap" onPress={() => confirm('Çıkış yapılsın mı?', 'Kayıtların hesabında kalır. Bu cihazdaki kayıtlar da silinmez.', 'Çıkış yap', async () => { const error = await acc.signOut(); if (error) { toast(error); return; } toast('Çıkış yapıldı'); router.replace('/welcome'); })} />
           <Item icon="trash-2" label="Hesabı sil" danger onPress={() => confirm('Hesabın kalıcı olarak silinsin mi?', 'Hesabın ve sunucudaki tüm kayıtların hemen silinir; geri alınamaz. Bu cihazdaki kayıtlar kalır.', 'Hesabı sil', async () => {
             const r = await acc.deleteAccount();
             toast(r ? r : 'Hesabın silindi');
