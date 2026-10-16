@@ -56,7 +56,7 @@ export default function Collections() {
         <>
           {section('Ödüllüler', awards)}
           {section('Seçkiler', picks, awards.length)}
-          <Small style={{ marginTop: 24 }}>Ödül listeleri Wikidata'daki resmî kayıtlardan, seçkiler TMDB verisinden hazırlanır.</Small>
+          <Small style={{ marginTop: 24 }}>Ödül listeleri Wikidata&apos;daki resmî kayıtlardan, seçkiler TMDB verisinden hazırlanır.</Small>
         </>
       )}
     </Screen>

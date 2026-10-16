@@ -21,6 +21,10 @@ import { detail, epIndex, hasApi, img, parseKey, season as loadSeason, today, ty
 
 export default function Show() {
   const { key = '' } = useLocalSearchParams<{ key: string }>();
+  return <ShowContent key={key} routeId={key} />;
+}
+
+function ShowContent({ routeId: key }: { routeId: string }) {
   const pk = parseKey(key);
   const store = useStore();
   const { state } = store;
@@ -33,7 +37,8 @@ export default function Show() {
   const [d, setD] = useState<TDetail | null>(null);
   const [err, setErr] = useState(false);
   const [sn, setSn] = useState<number | null>(null);
-  const [eps, setEps] = useState<TEpisode[] | null>(null);
+  const [seasonResult, setSeasonResult] = useState<{ sn: number; eps: TEpisode[] } | null>(null);
+  const eps = seasonResult?.sn === sn ? seasonResult.eps : null;
 
   // Evren kataloğunda olan yapımlar kendi sayfasında açılır
   const cat = catalogOf(key);
@@ -42,7 +47,6 @@ export default function Show() {
   useEffect(() => {
     if (!pk || !hasApi()) return;
     let alive = true;
-    setD(null); setErr(false);
     detail(pk.m, pk.id).then((x) => {
       if (!alive) return;
       setD(x);
@@ -60,8 +64,7 @@ export default function Show() {
   useEffect(() => {
     if (!d || d.m !== 'tv' || sn == null) return;
     let alive = true;
-    setEps(null);
-    loadSeason(d.id, sn).then((x) => alive && setEps(x)).catch(() => alive && setEps([]));
+    loadSeason(d.id, sn).then((x) => alive && setSeasonResult({ sn, eps: x })).catch(() => alive && setSeasonResult({ sn, eps: [] }));
     return () => { alive = false; };
   }, [d?.id, sn]); // eslint-disable-line react-hooks/exhaustive-deps
 

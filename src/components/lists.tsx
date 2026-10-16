@@ -1,6 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EASE_OUT, ND } from '@/lib/motion';
@@ -59,7 +59,7 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
   const [item, setItem] = useState<ListItem | null>(null);
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
-  const a = useRef(new Animated.Value(0)).current;
+  const [a] = useState(() => new Animated.Value(0));
   const s = store.state;
 
   /** Kütüphaneye ekler; yoksa ekleyip pencereyi açar, varsa yalnızca açar */
@@ -73,10 +73,10 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
     setItem(it); setName(''); setCreating(false);
   }, [store]);
   const shown = !!item;
-  useEffect(() => { if (shown) { a.setValue(0); swipe.reset(); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [shown]); // eslint-disable-line react-hooks/exhaustive-deps
   const release = useBackClose(shown, () => close());
-  const close = () => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setItem(null); release(); });
+  function close() { return Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setItem(null); release(); }); }
   const swipe = useSwipeDown(() => close());
+  useEffect(() => { if (shown) { a.setValue(0); swipe.reset(); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [shown]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lists = Object.values(s.lists).sort((x, y) => y.updated - x.updated);
   const saved = !!item && isSaved(s, item.k);
@@ -109,12 +109,6 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
     toast(`"${name.trim()}" listesi oluşturuldu`);
     setCreating(false); setName('');
   };
-
-  const Check = ({ on }: { on: boolean }) => (
-    <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: on ? C.accent : C.dim, backgroundColor: on ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-      {on && <Feather name="check" size={14} color={C.onAccent} />}
-    </View>
-  );
 
   return (
     <PickerCtx.Provider value={{ pick }}>
@@ -166,7 +160,7 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
                     </Press>
                   );
                 })}
-                {!lists.length && <Small style={{ marginLeft: 10, marginBottom: 6 }}>Henüz listen yok. "Hafta sonu" gibi bir liste açıp kütüphaneni gruplayabilirsin.</Small>}
+                {!lists.length && <Small style={{ marginLeft: 10, marginBottom: 6 }}>Henüz listen yok. &quot;Hafta sonu&quot; gibi bir liste açıp kütüphaneni gruplayabilirsin.</Small>}
               </ScrollView>
               <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
                 {creating ? (
@@ -188,5 +182,13 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
         </Animated.View>
       </Modal>
     </PickerCtx.Provider>
+  );
+}
+
+function Check({ on }: { on: boolean }) {
+  return (
+    <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: on ? C.accent : C.dim, backgroundColor: on ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+      {on && <Feather name="check" size={14} color={C.onAccent} />}
+    </View>
   );
 }

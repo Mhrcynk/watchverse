@@ -47,7 +47,7 @@ export default function Account() {
   const toast = useToast();
   const params = useLocalSearchParams<{ mode?: string; from?: string }>();
   const fromWelcome = params.from === 'welcome';
-  const [mode, setMode] = useState<Mode>(acc.recovery ? 'newpass' : params.mode === 'signup' ? 'signup' : 'signin');
+  const [selectedMode, setMode] = useState<Mode>(acc.recovery ? 'newpass' : params.mode === 'signup' ? 'signup' : 'signin');
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [show, setShow] = useState(false);
@@ -61,7 +61,7 @@ export default function Account() {
   const wasIn = useRef(!!acc.user);
 
   useEffect(() => { AsyncStorage.getItem(CONSENT).then((v) => { if (v) { setConsent(true); setConsentSaved(true); } }).catch(() => {}); }, []);
-  useEffect(() => { if (acc.recovery) setMode('newpass'); }, [acc.recovery]);
+  const mode = acc.recovery ? 'newpass' : selectedMode;
   // Giriş tamamlanınca profile dön
   useEffect(() => {
     if (acc.user && !acc.recovery && mode !== 'newpass') {

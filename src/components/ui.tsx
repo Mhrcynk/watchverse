@@ -64,7 +64,7 @@ export const Row = ({ children, style, gap = 10 }: { children: ReactNode; style?
 
 /* ---------- yazı ---------- */
 type TxtProps = TextProps & { style?: StyleProp<TextStyle> };
-const mk = (base: TextStyle) => ({ style, ...p }: TxtProps) => <Text {...p} style={[base, style]} />;
+const mk = (base: TextStyle) => function StyledText({ style, ...p }: TxtProps) { return <Text {...p} style={[base, style]} />; };
 export const H1 = mk({ fontFamily: F.bold, fontSize: 30, lineHeight: 36, color: C.text, letterSpacing: -0.8 });
 export const H2 = mk({ fontFamily: F.bold, fontSize: 21, lineHeight: 27, color: C.text, letterSpacing: -0.4 });
 export const H3 = mk({ fontFamily: F.semibold, fontSize: 16, lineHeight: 22, color: C.text });
@@ -88,7 +88,7 @@ export function tap(kind: 'light' | 'success' = 'light') {
 const APress = Animated.createAnimatedComponent(Pressable);
 /** Dokununca hafifçe küçülen ve sönükleşen basılabilir alan; yerleşimi kaydırmaz */
 export function Press({ style, children, scaleTo = 0.97, onPressIn, onPressOut, ...p }: PressableProps & { style?: StyleProp<ViewStyle>; children: ReactNode; scaleTo?: number }) {
-  const a = useRef(new Animated.Value(0)).current;
+  const [a] = useState(() => new Animated.Value(0));
   const to = (v: number) => Animated.timing(a, { toValue: v, duration: v ? M.press : M.fast, easing: EASE_OUT, useNativeDriver: ND }).start();
   return (
     <APress {...p}
@@ -108,7 +108,7 @@ export function FadeIn({ index = 0, children, style, from = 14 }: { index?: numb
 
 /** İzledim düğmesi: işaretlenince küçük bir "pop" */
 export function CheckButton({ done, color, onPress, label, size = 38 }: { done: boolean; color: string; onPress: () => void; label: string; size?: number }) {
-  const pop = useRef(new Animated.Value(1)).current;
+  const [pop] = useState(() => new Animated.Value(1));
   const reduced = useReducedMotion();
   const first = useRef(true);
   useEffect(() => {
@@ -162,7 +162,7 @@ export function Segmented<T extends string>({ value, options, onChange, label, c
   // Seçili sekmenin arkasında kayan gösterge
   const [w, setW] = useState(0);
   const idx = Math.max(0, options.findIndex((o) => o.id === value));
-  const x = useRef(new Animated.Value(idx)).current;
+  const [x] = useState(() => new Animated.Value(idx));
   const reduced = useReducedMotion();
   useEffect(() => {
     if (reduced) x.setValue(idx);
@@ -209,7 +209,7 @@ const ACircle = Animated.createAnimatedComponent(Circle);
 export function Ring({ pct, size = 86, color = C.accent, label }: { pct: number; size?: number; color?: string; label?: string }) {
   const sw = Math.max(6, size * 0.085), r = (size - sw) / 2, c = 2 * Math.PI * r;
   const reduced = useReducedMotion();
-  const v = useRef(new Animated.Value(0)).current;
+  const [v] = useState(() => new Animated.Value(0));
   useEffect(() => {
     if (reduced) v.setValue(pct);
     else Animated.timing(v, { toValue: pct, duration: 700, easing: EASE_OUT, useNativeDriver: false }).start();
@@ -277,7 +277,7 @@ export const useToast = () => useContext(ToastCtx);
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [msg, setMsg] = useState<string | null>(null);
   const [action, setAction] = useState<ToastAction | undefined>();
-  const a = useRef(new Animated.Value(0)).current;
+  const [a] = useState(() => new Animated.Value(0));
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();
   const { tablet, width } = useLayout();
@@ -321,16 +321,16 @@ export function Grid<T>({ items, cols, gap = 14, rowGap, render, keyOf }: {
 /* ---------- onay penceresi ---------- */
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [q, setQ] = useState<{ title: string; message: string; ok: string; onOk: () => void } | null>(null);
-  const a = useRef(new Animated.Value(0)).current;
+  const [a] = useState(() => new Animated.Value(0));
   const insets = useSafeAreaInsets();
   useEffect(() => {
     setConfirmHandler((title, message, ok, onOk) => { setQ({ title, message, ok, onOk }); });
     return () => setConfirmHandler(null);
   }, []);
-  useEffect(() => { if (q) { a.setValue(0); swipe.reset(); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
   const swipe = useSwipeDown(() => close());
   const release = useBackClose(!!q, () => close());
-  const close = (then?: () => void) => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setQ(null); release(then); });
+  function close(then?: () => void) { return Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setQ(null); release(then); }); }
+  useEffect(() => { if (q) { a.setValue(0); swipe.reset(); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
       {children}

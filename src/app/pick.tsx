@@ -237,7 +237,7 @@ function Result({ x, d, busy, saved, chosen, ownList, onSave, onTrailer, onMore,
         <Feather name="sliders" size={16} color={C.accentSoft} />
         <Text style={{ fontFamily: F.semibold, fontSize: 14.5, color: C.accentSoft }}>Seçimleri değiştir</Text>
       </Press>
-      {!ownList && chosen.length === 0 && <Small style={{ marginTop: 4 }}>Öneriler Türkiye'deki abonelik platformlarında izlenebilen yapımlardan seçilir.</Small>}
+      {!ownList && chosen.length === 0 && <Small style={{ marginTop: 4 }}>Öneriler Türkiye&apos;deki abonelik platformlarında izlenebilen yapımlardan seçilir.</Small>}
     </FadeIn>
   );
 }

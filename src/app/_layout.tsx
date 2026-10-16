@@ -2,7 +2,7 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, In
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ConfirmProvider, ToastProvider, useToast } from '@/components/ui';
 import { PreviewProvider } from '@/components/preview';
@@ -53,14 +53,13 @@ function CatalogSync({ onChange }: { onChange: () => void }) {
 function LibrarySync() {
   const store = useStore();
   const { state } = store;
-  const stateRef = useRef(state);
-  stateRef.current = state;
+  const getState = store.getState;
   useEffect(() => {
     let last = 0;
     const run = () => {
       if (Date.now() - last < 15 * 60 * 1000) return;
       last = Date.now();
-      refreshLibrary(stateRef.current, store.libSave).catch(() => {});
+      refreshLibrary(getState(), store.libSave).catch(() => {});
     };
     run();
     const listener = AppState.addEventListener('change', (state) => { if (state === 'active') run(); });
@@ -70,7 +69,7 @@ function LibrarySync() {
   const sig = state.follow.join(',') + '|' + Object.keys(state.lib).join(',') + '|' + Object.keys(state.episodes).length;
   useEffect(() => {
     if (!hasSyncApi()) return;
-    const h = setTimeout(() => syncDevice(stateRef.current, store.ensureDevice()).catch(() => {}), 3000);
+    const h = setTimeout(() => syncDevice(getState(), store.ensureDevice()).catch(() => {}), 3000);
     return () => clearTimeout(h);
   }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;

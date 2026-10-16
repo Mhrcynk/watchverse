@@ -178,7 +178,6 @@ function Header() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(store.state.name);
   const [, tick] = useState(0);
-  useEffect(() => setName(store.state.name), [store.state.name]);
   useEffect(() => { const h = setInterval(() => tick((n) => n + 1), 30000); return () => clearInterval(h); }, []);
   const initial = (store.state.name.trim()[0] || 'W').toLocaleUpperCase('tr');
   const save = () => { store.setName(name.trim()); setEditing(false); };
@@ -202,7 +201,7 @@ function Header() {
           </Press>
         </View>
       ) : (
-        <Press accessibilityRole="button" accessibilityLabel="Adını düzenle" onPress={() => setEditing(true)} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 }}>
+        <Press accessibilityRole="button" accessibilityLabel="Adını düzenle" onPress={() => { setName(store.state.name); setEditing(true); }} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 }}>
           <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.bold, fontSize: 26, color: C.text, letterSpacing: -0.6 }}>{store.state.name || 'Adını ekle'}</Text>
           <Feather name="edit-2" size={15} color={C.dim} />
         </Press>

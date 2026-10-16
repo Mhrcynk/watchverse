@@ -64,11 +64,10 @@ export default function Friends() {
   const [name, setName] = useState(store.state.name);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
 
-  const load = useCallback(async () => {
-    try {
-      const [p, f] = await Promise.all([myProfile(store.state.name), friendFeed()]);
+  const load = useCallback(() => {
+    return Promise.all([myProfile(store.state.name), friendFeed()]).then(([p, f]) => {
       setMe(p); setList(f); setErr(false);
-    } catch { setErr(true); }
+    }).catch(() => { setErr(true); });
   }, [store.state.name]);
   useEffect(() => { if (acc.user && store.state.name) load(); }, [acc.user, store.state.name, load]);
 

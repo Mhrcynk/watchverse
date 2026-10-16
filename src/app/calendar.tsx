@@ -25,8 +25,7 @@ export default function Calendar() {
   const { state } = useStore();
   const { openKey } = usePreview();
   const [off, setOff] = useState(0);
-  const [eps, setEps] = useState<CalEp[] | null>(null);
-  const [err, setErr] = useState(false);
+  const [result, setResult] = useState<{ key: string; eps: CalEp[]; error: boolean } | null>(null);
   const [openRow, setOpenRow] = useState<string | null>(null);
   const toast = useToast();
   const start = useMemo(() => weekStart(off), [off]);
@@ -34,10 +33,13 @@ export default function Calendar() {
   const from = ymd(days[0]), to = ymd(days[6]);
   // izleme işaretleri değiştikçe yeniden çekmeye gerek yok; yalnızca hafta ve takip edilenler
   const trackKey = Object.keys(state.lib).join() + Object.keys(state.episodes).join() + state.list.join() + JSON.stringify(state.dropped);
+  const requestKey = JSON.stringify([from, to, trackKey]);
+  const eps = !hasApi() ? [] : result?.key === requestKey ? result.eps : null;
+  const err = result?.key === requestKey && result.error;
   useEffect(() => {
-    let alive = true; setEps(null); setErr(false);
-    if (!hasApi()) { setEps([]); return; }
-    episodesBetween(state, from, to).then((x) => alive && setEps(x), () => alive && setErr(true));
+    let alive = true;
+    if (!hasApi()) return;
+    episodesBetween(state, from, to).then((x) => alive && setResult({ key: requestKey, eps: x, error: false }), () => alive && setResult({ key: requestKey, eps: [], error: true }));
     return () => { alive = false; };
   }, [from, to, trackKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const t0 = today();

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Animated, Pressable, View } from 'react-native';
 import { EASE_OUT, ND, useReducedMotion } from '@/lib/motion';
@@ -33,7 +33,8 @@ const TAB_LIST: { name: string; title: string; href: '/' | '/explore' | '/librar
 
 export function GlassTabBar({ state, descriptors, navigation, insets }: any) {
   const routes = state.routes as { key: string; name: string }[];
-  lastTab = routes[state.index]?.name || lastTab;
+  const activeTab = routes[state.index]?.name;
+  useEffect(() => { if (activeTab) lastTab = activeTab; }, [activeTab]);
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
       <LinearGradient pointerEvents="none" colors={['rgba(21,23,29,0)', 'rgba(21,23,29,0.96)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 120 }} />
@@ -82,8 +83,8 @@ export function StackTabBar() {
 }
 
 function TabButton({ focused, label, icon, onPress, onLongPress }: { focused: boolean; label: string; icon: IconName; onPress: () => void; onLongPress: () => void }) {
-  const s = useRef(new Animated.Value(1)).current;
-  const dot = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  const [s] = useState(() => new Animated.Value(1));
+  const [dot] = useState(() => new Animated.Value(focused ? 1 : 0));
   const reduced = useReducedMotion();
   useEffect(() => {
     if (reduced) dot.setValue(focused ? 1 : 0);

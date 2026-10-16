@@ -51,11 +51,13 @@ function Online() {
   const [q, setQ] = useState('');
   const { openTitle } = usePreview();
   const [type, setType] = useState<'all' | 'movie' | 'tv'>('all');
-  const [res, setRes] = useState<TItem[] | null>(null);
-  const [people, setPeople] = useState<(Person & { known: string })[]>([]);
-  const [err, setErr] = useState(false);
+  const [result, setResult] = useState<{ query: string; items: TItem[]; people: (Person & { known: string })[]; error: boolean } | null>(null);
   const [plats, setPlats] = useState<{ id: number; name: string }[]>([]);
   const query = q.trim();
+  const current = result?.query === query ? result : null;
+  const res = current?.items ?? null;
+  const people = current?.people ?? [];
+  const err = current?.error ?? false;
 
   useEffect(() => {
     providers().then((list) => {
@@ -69,19 +71,18 @@ function Online() {
   }, []);
 
   useEffect(() => {
-    if (query.length < 2) { setRes(null); setErr(false); return; }
+    if (query.length < 2) return;
     let alive = true;
-    setRes(null); setPeople([]); setErr(false);
     const h = setTimeout(() => {
-      setRes(null); setErr(false);
-      searchAll(query).then((r) => { if (alive) { setRes(r.items); setPeople(r.people); } }).catch(() => alive && setErr(true));
+      searchAll(query).then((r) => {
+        if (alive) setResult({ query, items: r.items, people: r.people, error: false });
+      }).catch(() => { if (alive) setResult({ query, items: [], people: [], error: true }); });
     }, 350);
     return () => { alive = false; clearTimeout(h); };
   }, [query]);
 
   const local = useMemo(() => (query.length >= 2 ? searchCatalog(query, null).filter((t) => type === 'all' || (t.tmdb?.m || t.media) === type).slice(0, 12) : []), [query, type]);
   const shown = remoteSearchResults(res || [], local, type);
-  const t0 = today();
 
   return (
     <Screen>

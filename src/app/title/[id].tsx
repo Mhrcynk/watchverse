@@ -23,6 +23,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TitleDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  return <TitleDetailContent key={id} routeId={id} />;
+}
+
+function TitleDetailContent({ routeId: id }: { routeId: string }) {
   const store = useStore();
   const { state } = store;
   const toast = useToast();
@@ -44,10 +48,11 @@ export default function TitleDetail() {
   const [enSummary, setEnSummary] = useState<string | null>(null);
   const [credits, setCredits] = useState<{ cast: Person[]; makers: Person[] } | null>(null);
   useEffect(() => {
-    setCredits(null);
     if (!t?.tmdb?.id || t.tmdb.id < 0 || !hasApi()) return;
+    let alive = true;
     // Oyuncular ve (İngilizcede) konu özeti TMDB'den
-    detail((t.tmdb.m || t.media) as 'movie' | 'tv', t.tmdb.id).then((d) => { if (isEn) setEnSummary(d.overview || null); setCredits({ cast: d.cast || [], makers: d.makers || [] }); }, () => {});
+    detail((t.tmdb.m || t.media) as 'movie' | 'tv', t.tmdb.id).then((d) => { if (!alive) return; if (isEn) setEnSummary(d.overview || null); setCredits({ cast: d.cast || [], makers: d.makers || [] }); }, () => {});
+    return () => { alive = false; };
   }, [t?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const summary = isEn ? enSummary : t?.summary;
 

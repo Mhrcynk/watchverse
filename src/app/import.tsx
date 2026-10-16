@@ -110,7 +110,7 @@ export default function Import() {
               <>
                 <SectionHead title="Eşleşmeyenler" note={`${step.miss.length} kayıt`} />
                 <Panel>
-                  <Small style={{ color: C.muted }}>Bunları bulamadım; istersen Keşfet'te arayıp elle ekleyebilirsin.</Small>
+                  <Small style={{ color: C.muted }}>Bunları bulamadım; istersen Keşfet&apos;te arayıp elle ekleyebilirsin.</Small>
                   <Text style={{ marginTop: 10, fontFamily: F.regular, fontSize: 13.5, lineHeight: 20, color: C.text }}>{step.miss.slice(0, 40).map((r) => r.name + (r.year ? ` (${r.year})` : '')).join(', ')}{step.miss.length > 40 ? ` ve ${step.miss.length - 40} kayıt daha` : ''}</Text>
                 </Panel>
               </>

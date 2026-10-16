@@ -231,7 +231,7 @@ function continueRow(s: State): ContItem[] {
 
 /* ---------- senin için ---------- */
 function useForYou(s: State, kind: Kind) {
-  const [items, setItems] = useState<TItem[]>([]);
+  const [result, setResult] = useState<{ key: string; items: TItem[] } | null>(null);
   const seeds = useMemo(() => {
     const keys: { key: string; r: number }[] = [];
     for (const [id, r] of Object.entries(s.ratings)) {
@@ -241,18 +241,20 @@ function useForYou(s: State, kind: Kind) {
     }
     return keys.sort((a, b) => b.r - a.r).slice(0, 4).map((k) => k.key);
   }, [s.ratings]);
+  const seedKey = seeds.join(',');
+  const items = result?.key === seedKey ? result.items : [];
   useEffect(() => {
-    if (!hasApi() || !seeds.length) { setItems([]); return; }
+    if (!hasApi() || !seeds.length) return;
     let a = true;
     Promise.all(seeds.map((k) => { const [m, id] = k.split(':'); return detail(m as 'movie' | 'tv', Number(id)).then((d) => d.recs).catch(() => []); })).then((lists) => {
       if (!a) return;
       const seen = new Set<string>(seeds);
       const out: TItem[] = [];
       for (let i = 0; i < 16; i++) for (const l of lists) { const x = l[i]; if (x && !seen.has(x.key) && x.p) { seen.add(x.key); out.push(x); } }
-      setItems(out);
+      setResult({ key: seedKey, items: out });
     });
     return () => { a = false; };
-  }, [seeds.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [seedKey]); // eslint-disable-line react-hooks/exhaustive-deps
   return items.filter((x) => (kind === 'all' || x.m === kind) && !s.lib[x.key] && !s.watched[x.key]).slice(0, 20);
 }
 

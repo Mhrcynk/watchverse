@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/tabs';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, View } from 'react-native';
 import { ND, useReducedMotion } from '@/lib/motion';
 import { alpha } from '@/lib/theme';
@@ -73,7 +73,7 @@ export default function TabsLayout() {
 
 /** Seçili sekmede ikonun arkasında beliren yumuşak kapsül */
 function TabIcon({ name, color, focused, pill }: { name: React.ComponentProps<typeof Feather>['name']; color: any; focused: boolean; pill: boolean }) {
-  const a = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  const [a] = useState(() => new Animated.Value(focused ? 1 : 0));
   const reduced = useReducedMotion();
   useEffect(() => {
     if (reduced) a.setValue(focused ? 1 : 0);

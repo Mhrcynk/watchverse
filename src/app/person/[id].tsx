@@ -21,6 +21,10 @@ const age = (born: string, until?: string | null) => {
 /** Oyuncu / yönetmen sayfası */
 export default function PersonPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  return <PersonPageContent key={id} routeId={id} />;
+}
+
+function PersonPageContent({ routeId: id }: { routeId: string }) {
   const { open } = usePreview();
   const { posterCols } = useLayout();
   const tw = useTileW();
@@ -28,7 +32,7 @@ export default function PersonPage() {
   const [err, setErr] = useState(false);
   const [more, setMore] = useState(false);
   const [all, setAll] = useState(false);
-  useEffect(() => { setD(null); setErr(false); person(Number(id)).then(setD, () => setErr(true)); }, [id]);
+  useEffect(() => { let alive = true; person(Number(id)).then(d => { if (alive) setD(d); }, () => { if (alive) setErr(true); }); return () => { alive = false; }; }, [id]);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/explore'));
 
   if (err) return <Screen><BackLink label="Geri" onPress={back} /><Empty icon="wifi-off" title="Kişi bilgisi alınamadı." text="İnternet bağlantını kontrol edip tekrar dene." /></Screen>;

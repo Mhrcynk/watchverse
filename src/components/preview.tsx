@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TBY, TIER_TR, UBY } from '@/lib/catalog';
@@ -40,7 +40,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   const [x, setX] = useState<TItem | null>(null);
   const [cat, setCat] = useState<Title | null>(null);
   const [d, setD] = useState<TDetail | null>(null);
-  const a = useRef(new Animated.Value(0)).current;
+  const [a] = useState(() => new Animated.Value(0));
   const insets = useSafeAreaInsets();
   const store = useStore();
   const toast = useToast();
@@ -63,10 +63,10 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
     open({ key: k, m: m as TItem['m'], id: Number(n), title: f.title, orig: f.title, year: f.year, date: null, p: f.p, b: null, overview: '', vote: 0, votes: 0, lang: '' });
   }, [open, openTitle]);
   const open_ = !!x;
-  useEffect(() => { if (open_) { a.setValue(0); swipe.reset(); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [open_]); // eslint-disable-line react-hooks/exhaustive-deps
   const release = useBackClose(open_, () => close());
-  const close = (then?: () => void) => Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setX(null); setCat(null); release(then); });
+  function close(then?: () => void) { return Animated.timing(a, { toValue: 0, duration: M.fast, useNativeDriver: ND }).start(() => { setX(null); setCat(null); release(then); }); }
   const swipe = useSwipeDown(() => close());
+  useEffect(() => { if (open_) { a.setValue(0); swipe.reset(); Animated.timing(a, { toValue: 1, duration: M.base, easing: EASE_OUT, useNativeDriver: ND }).start(); } }, [open_]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const s = store.state;
   const key = x?.key || '';
