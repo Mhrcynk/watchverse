@@ -1,3 +1,5 @@
+import { VirtualPosterScreen } from '@/components/virtual-poster-screen';
+import { SaveStatus } from '@/components/save-status';
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -6,7 +8,7 @@ import { Backdrop, PageHeader } from '@/components/home';
 import { MediaCard } from '@/components/media';
 import { usePreview } from '@/components/preview';
 import { ShareListButton } from '@/components/share';
-import { Chip, Empty, Grid, Press, Screen, Small, useLayout } from '@/components/ui';
+import { Chip, Empty, Press, Small, useLayout } from '@/components/ui';
 import { TBY } from '@/lib/catalog';
 import { catalogOf, libraryEntries } from '@/lib/library';
 import { useStore } from '@/lib/store';
@@ -28,7 +30,7 @@ const EMPTY: Record<Part, [string, string]> = {
 /** Kütüphanem: kaydedilen her şey; listeler aynı filtre satırında klasör gibi durur */
 export default function Library() {
   const { state } = useStore();
-  const { posterCols, pad } = useLayout();
+  const { pad } = useLayout();
   const { openTitle, openKey } = usePreview();
   const e = useMemo(() => libraryEntries(state), [state]);
   const lists = useMemo(() => Object.values(state.lists).sort((a, b) => b.updated - a.updated), [state.lists]);
@@ -52,10 +54,11 @@ export default function Library() {
     if (li) openKey(k, { title: li.title, year: li.year, p: li.p });
   };
 
-  return (
-    <Screen>
+  const header = (
+    <>
       <Backdrop />
       <PageHeader bold="Kütüphanem" sub="Kaydettiğin her şey ve listelerin bir arada." />
+      <SaveStatus />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -pad, marginTop: 18 }} contentContainerStyle={{ gap: 8, paddingHorizontal: pad }}>
         {PARTS.filter(([p]) => p !== 'dropped' || e.dropped.length || cur === 'dropped').map(([p, label]) => <Chip key={p} label={`${label} · ${e[p].length}`} active={cur === p} onPress={() => setSel(p)} />)}
@@ -93,22 +96,14 @@ export default function Library() {
               <Feather name="edit-2" size={17} color={C.text} />
             </Press>
           </View>
-          <View style={{ marginTop: 16 }}>
-            {list.items.length ? (
-              <Grid items={listItems} cols={posterCols} gap={14} rowGap={22} keyOf={(x) => x.k}
-                render={(x, cw) => <MediaCard uri={img(x.p, 'w342')} title={x.t} sub={x.y ? String(x.y) : undefined} width={cw} onPress={() => openKey(x.k, { title: x.t, year: x.y, p: x.p })} />} />
-            ) : <Empty icon="folder" title="Bu liste boş." text={'Bir yapımda "Kaydet"e dokunup bu listeyi seç.'} action="Keşfet'e git" onAction={() => router.push('/explore')} />}
-          </View>
         </>
-      ) : (
-        <View style={{ marginTop: 20 }}>
-          {e[cur as Part].length ? (
-            <Grid items={partItems} cols={posterCols} gap={14} rowGap={22} keyOf={(x) => x.key}
-              render={(x, cw) => <MediaCard uri={x.poster} title={x.title} sub={x.sub} badge={x.tag} pct={cur === 'watching' ? x.pct : undefined} width={cw} onPress={() => openEntry(x.key)} />} />
-          ) : <Empty icon="bookmark" title={EMPTY[cur as Part][0]} text={EMPTY[cur as Part][1]} action="Keşfet'e git" onAction={() => router.push('/explore')} />}
-          {e[cur as Part].length > 0 && <Small style={{ marginTop: 20 }}>En son dokunduğun en üstte.</Small>}
-        </View>
-      )}
-    </Screen>
+      ) : null}
+    </>
   );
+  const cards = list ? listItems.map(x=>({key:x.k,title:x.t,poster:img(x.p,'w342'),sub:x.y?String(x.y):undefined,badge:undefined as string | undefined,pct:undefined as number | undefined,go:()=>openKey(x.k,{title:x.t,year:x.y,p:x.p})}))
+    : partItems.map(x=>({key:x.key,title:x.title,poster:x.poster,sub:x.sub,badge:x.tag,pct:cur==='watching'?x.pct:undefined,go:()=>openEntry(x.key)}));
+  return <VirtualPosterScreen items={cards} keyOf={x=>x.key} resetKey={cur} header={header}
+    empty={noHit ? null : list ? <Empty icon="folder" title="Bu liste boş." text="Bir yapımda Kaydet'e dokunup bu listeyi seç." action="Keşfet'e git" onAction={()=>router.push('/explore')} /> : <Empty icon="bookmark" title={EMPTY[cur as Part][0]} text={EMPTY[cur as Part][1]} action="Keşfet'e git" onAction={()=>router.push('/explore')} />}
+    render={(x,cw)=><MediaCard uri={x.poster} title={x.title} sub={x.sub} badge={x.badge} pct={x.pct} width={cw} onPress={x.go} />}
+    footer={sort==='recent' && cards.length>0 ? <Small>En son dokunduğun en üstte.</Small> : null} />;
 }

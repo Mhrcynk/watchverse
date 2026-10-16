@@ -8,13 +8,15 @@ import { Backdrop } from '@/components/home';
 import { usePreview } from '@/components/preview';
 import { Row, Tile, useTileW } from '@/components/rows';
 import { BackLink, Btn, Chip, FadeIn, Press, Screen, Small, useToast } from '@/components/ui';
+import { backupSummary } from '@/lib/backup-code';
+import { SaveStatus } from '@/components/save-status';
 import { pickBackupFile, saveBackupFile } from '@/lib/backup-file';
 import { TBY, VIEWS, VIEW_TR } from '@/lib/catalog';
 import { confirm } from '@/lib/confirm';
 import { useAccount } from '@/lib/account';
 import { isEn } from '@/lib/i18n';
 import { history } from '@/lib/progress';
-import { enablePush } from '@/lib/push';
+import { enablePush, nativePushEnabled } from '@/lib/push';
 import { fullStats } from '@/lib/stats';
 import { useStore } from '@/lib/store';
 import { hasSyncApi, syncDevice } from '@/lib/sync';
@@ -54,13 +56,20 @@ export default function Profile() {
     const ok = r.ok && (await syncDevice(state, store.ensureDevice(), true));
     toast(ok ? 'Bildirim aboneliği yenilendi' : r.ok ? 'Sunucuya ulaşılamadı, sonra tekrar dene' : r.reason);
   };
+  const previewBackup = (txt: string) => {
+    try {
+      const summary = backupSummary(txt);
+      const date = summary.createdAt ? new Date(summary.createdAt).toLocaleString('tr-TR') : 'Eski yedek: oluşturma tarihi bilinmiyor';
+      confirm('Yedek önizlemesi', `${summary.titles} yapım · ${summary.episodes} bölüm · ${summary.lists} liste\n${date}${summary.unresolved ? `\n${summary.unresolved} eski bölüm işareti eşleştirme bekliyor.` : ''}\n\nMevcut ilerlemenin yerine bu yedek gelecek. Hesabına giriş yaptıysan değişiklikler eşitlenerek diğer cihazlarına da yansır. Devam etmeden önce mevcut kayıtlarını dosyaya yedekleyebilirsin.`, 'Yedeği uygula', () => {
+        const ok = store.importBackup(txt);
+        toast(ok ? 'Yedek uygulandı; kayıt durumu aşağıda gösteriliyor.' : 'Yedek uygulanamadı.');
+        if (ok) { setCode(''); setImporting(false); }
+      });
+    } catch { toast('Geçerli bir WatchVerse yedeği okunamadı. Kayıtların değiştirilmedi.'); }
+  };
   const restoreFile = async () => {
-    let txt;
-    try { txt = await pickBackupFile(); } catch { toast('Yedek dosyası okunamadı veya çok büyük.'); return; }
-    if (txt === null) return;
-    confirm('Yedek geri yüklensin mi?', 'Bu cihazdaki mevcut ilerlemenin yerine yedekteki ilerleme gelir.', 'Geri yükle', () => {
-      toast(store.importBackup(txt) ? 'Yedek geri yüklendi' : 'Dosya okunamadı. WatchVerse yedeği olduğundan emin ol.');
-    });
+    try { const txt = await pickBackupFile(); if (txt !== null) previewBackup(txt); }
+    catch { toast('Yedek dosyası okunamadı veya çok büyük.'); }
   };
   const lastBackup = state.lastBackup ? new Date(state.lastBackup).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : undefined;
 
@@ -71,6 +80,7 @@ export default function Profile() {
       {Object.values(state.unresolvedEpisodes || {}).some(nums=>nums.length>0) && <Small style={{ color: C.amber, marginVertical: 12 }}>Eski bölüm işaretlerinin bir kısmı güvenle eşleştirilemedi. Kayıtlar yedeğinde korunuyor; yeniden işaretlemeden önce yedeğini dışa aktar.</Small>}
       <BackLink label="Ana sayfa" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
       <Header />
+      <SaveStatus />
 
       <StatStrip items={[[state.follow.length, 'Evren'], [fs.films, 'Film'], [fs.eps, 'Bölüm'], [Math.round(fs.minutes / 60), 'Saat']]} />
 
@@ -122,24 +132,21 @@ export default function Profile() {
             {VIEWS.map((v) => <Chip key={v} label={VIEW_TR[v]} active={state.view === v} onPress={() => store.setView(v as ListView)} />)}
           </View>
         } />
-        <Item icon="bell" label="Bildirimler" sub={pushActive ? 'Açık: yeni bölüm ve yeni yapımlar' : 'Yeni bölüm çıkınca haber ver'}
+        {nativePushEnabled && <Item icon="bell" label="Bildirimler" sub={pushActive ? 'Açık: yeni bölüm ve yeni yapımlar' : 'Yeni bölüm çıkınca haber ver'}
           right={pushActive ? <SmallBtn label="Yenile" a11y="Bildirim aboneliğini yenile" onPress={refreshPush} /> : <SmallBtn label="Aç" a11y="Bildirimleri aç" strong onPress={turnOnPush} />}
-        />
+        />}
       </Group>
 
       <Group title="Kayıtların">
         <Item icon="log-in" label="Letterboxd / TV Time'dan aktar" onPress={() => router.push('/import')} />
         <Item icon="download" label="Dosyaya yedekle" value={lastBackup} onPress={async () => { if (await saveBackupFile(store.exportBackup())) { store.markBackup(); toast('Yedek hazırlandı'); } }} />
+        <Item icon="clipboard" label="Yedek kodu yapıştır" onPress={() => setImporting(v=>!v)} />
         <Item icon="upload" label="Yedekten geri yükle" onPress={restoreFile} below={importing ? (
           <View>
             <TextInput value={code} onChangeText={setCode} placeholder="WATCHVERSE: ile başlayan kodu yapıştır" placeholderTextColor={C.dim} multiline accessibilityLabel="Yedek kodu"
               style={{ minHeight: 90, borderRadius: R.md, backgroundColor: C.raised, color: C.text, padding: 12, fontFamily: F.regular, fontSize: 16, textAlignVertical: 'top' }} />
             <Btn label="Yedeği geri yükle" style={{ marginTop: 10, alignSelf: 'flex-start' }} disabled={!code.trim()}
-              onPress={() => confirm('Yedek geri yüklensin mi?', 'Bu cihazdaki mevcut ilerlemenin yerine yedekteki ilerleme gelir.', 'Geri yükle', () => {
-                const ok = store.importBackup(code);
-                toast(ok ? 'Yedek geri yüklendi' : 'Kod okunamadı. Tamamını kopyaladığından emin ol.');
-                if (ok) { setCode(''); setImporting(false); }
-              })} />
+              onPress={() => previewBackup(code)} />
           </View>
         ) : undefined} />
         <Item icon="rotate-ccw" label="Tüm ilerlemeyi sıfırla" danger

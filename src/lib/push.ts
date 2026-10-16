@@ -10,9 +10,10 @@ export async function currentPushToken(): Promise<string | null> {
   if (!p.granted) return null;
   return (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 }
+export const nativePushEnabled = process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED === 'true';
 export async function enablePush(_follow: string[]): Promise<{ok:true} | {ok:false;reason:string}> {
   try {
-    if (process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED !== 'true') return {ok:false,reason:'Bildirimler bu deneme sürümünde henüz kullanılamıyor.'};
+    if (!nativePushEnabled) return {ok:false,reason:'Bildirimler bu deneme sürümünde henüz kullanılamıyor.'};
     if (!Device.isDevice) return {ok:false,reason:'Bildirim için gerçek cihaz gerekir.'};
     if (!(Constants.easConfig?.projectId || Constants.expoConfig?.extra?.eas?.projectId)) return {ok:false,reason:'Bildirim yapılandırması bu derlemede tamamlanmamış.'};
     if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync('default', {name:'Yeni bölümler',importance:Notifications.AndroidImportance.DEFAULT});

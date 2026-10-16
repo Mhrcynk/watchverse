@@ -9,6 +9,10 @@ export function createCheckpointStore(storage: Storage) {
   let loading: Promise<Snapshot> | undefined;
   let pending: Promise<void> = Promise.resolve();
   let failure: unknown;
+  let queued = 0;
+  const statusListeners = new Set<() => void>();
+  const notifyStatus = () => statusListeners.forEach(fn=>fn());
+  const getStatus = (): 'saving' | 'saved' | 'error' => failure ? 'error' : queued ? 'saving' : 'saved';
   const listeners = new Set<(failed: boolean) => void>();
   const report = (error: unknown) => { failure = error; listeners.forEach(fn => fn(!!error)); };
   const load = (): Promise<Snapshot> => {
@@ -35,14 +39,18 @@ export function createCheckpointStore(storage: Storage) {
     // Capture immediately: later edits cannot change an already queued write.
     const raw = JSON.stringify(snapshot);
     current = JSON.parse(raw);
+    queued++; notifyStatus();
     pending = pending.catch(() => {}).then(async () => {
       try { await storage.setItem(CHECKPOINT_KEY, raw); report(null); }
       catch (error) { report(error); throw error; }
+      finally { queued--; notifyStatus(); }
     });
     return pending;
   };
   return {
     load,
+    getStatus,
+    subscribeStatus(fn: () => void) { statusListeners.add(fn); return () => { statusListeners.delete(fn); }; },
     commit(state: State, meta?: SyncMeta) {
       if (!current) throw new Error('Yerel kayıt henüz okunmadı.');
       return write({ format: 1, state, meta: meta ? { ...meta, actor: current.meta.actor } : current.meta });

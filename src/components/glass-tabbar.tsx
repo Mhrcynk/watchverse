@@ -16,7 +16,6 @@ export const TAB_ICONS: Record<string, [IconName, IconName]> = {
   universes: ['planet', 'planet-outline'],
   explore: ['compass', 'compass-outline'],
   library: ['bookmark', 'bookmark-outline'],
-  collections: ['albums', 'albums-outline'],
   profile: ['person', 'person-outline'],
 };
 /** Alt menünün kapladığı yükseklik (içerik bu kadar boşluk bırakır) */
@@ -25,10 +24,10 @@ export const TABBAR_SPACE = 84;
 /** Sade alt menü: ince çizgili simgeler, seçilende dolu simge ve altında küçük nokta */
 /** En son açık olan sekme: yapım sayfalarında alt menüde bu sekme seçili görünür */
 let lastTab = 'index';
-const TAB_LIST: { name: string; title: string; href: '/' | '/explore' | '/library' | '/collections' | '/universes' }[] = [
+const TAB_LIST: { name: string; title: string; href: '/' | '/explore' | '/library' | '/universes' }[] = [
   { name: 'index', title: 'Ana Sayfa', href: '/' }, { name: 'explore', title: 'Keşfet', href: '/explore' },
   { name: 'library', title: 'Kütüphanem', href: '/library' },
-  { name: 'collections', title: 'Koleksiyonlar', href: '/collections' }, { name: 'universes', title: 'Evrenler', href: '/universes' },
+  { name: 'universes', title: 'Evrenler', href: '/universes' },
 ];
 
 export function GlassTabBar({ state, descriptors, navigation, insets }: any) {
@@ -63,7 +62,7 @@ export function StackTabBar() {
   const insets = useSafeAreaInsets();
   const { state } = useStore();
   const acc = useAccount();
-  const tabRoot = ['/', '/explore', '/library', '/collections', '/universes'].includes(path);
+  const tabRoot = ['/', '/explore', '/library', '/universes'].includes(path);
   const hidden = tabRoot || /^\/(welcome|onboarding|account)/.test(path) || !state.onboarded || (!acc.user && !acc.guest);
   if (hidden) return null;
   return (

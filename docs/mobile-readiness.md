@@ -70,3 +70,7 @@ Worker dağıtım betiği artık Supabase yönetici anahtarını istemiyor/dağ�
 ## Bu değişiklik paketinin doğrulanması
 
 Başarılı kontroller: TypeScript, lint (0 hata/0 uyarı), 36 eşitleme/kimlik/oturum testi, PGlite veritabanı testleri, mevcut arayüz mantık denetimi ve 3 Worker testi. iOS ve Android için Metro/Hermes paketleri başarıyla üretildi (`expo export`); bunlar imzalı mağaza derlemeleri değildir. Testler PGlite, saf TypeScript ve paketleme düzeyindedir; gerçek Supabase erişimi, imzalı mağaza derlemesi veya fiziksel cihaz testi yerine geçmez.
+
+## Ürün sadeleştirme paketi
+
+Dört ana sekme, odaklı ana sayfa, Keşfet üzerinden koleksiyon/platform erişimi, geçmiş bölüm işaretleme, yedek önizlemesi ve kayıt durumları eklendi. Kütüphane sanallaştırıldı; TMDB istekleri birleştirilip sınırlandırıldı. Ayrıntılar ve henüz açık olan boyut/cihaz doğrulamaları `docs/product-improvements.md` içindedir.

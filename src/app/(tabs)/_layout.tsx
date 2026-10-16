@@ -15,7 +15,6 @@ const TABS = [
   { name: 'index', title: 'Ana Sayfa', icon: 'home' },
   { name: 'explore', title: 'Keşfet', icon: 'search' },
   { name: 'library', title: 'Kütüphanem', icon: 'bookmark' },
-  { name: 'collections', title: 'Koleksiyonlar', icon: 'layers' },
   { name: 'universes', title: 'Evrenler', icon: 'globe' },
 ] as const;
 

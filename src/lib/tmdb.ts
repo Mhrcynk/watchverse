@@ -1,3 +1,4 @@
+import { getJson } from './http';
 import { isEn } from './i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -32,6 +33,10 @@ export const today = () => new Date(Date.now() - new Date().getTimezoneOffset() 
 
 const mem = new Map<string, { t: number; v: unknown }>();
 const PERSIST = 'wv:tmdb:';
+function remember(url:string, value:{t:number;v:unknown}) {
+  mem.delete(url);mem.set(url,value);
+  if(mem.size>200)mem.delete(mem.keys().next().value!);
+}
 
 async function get<T>(path: string, params: Record<string, string | number | undefined> = {}, maxAgeMin = 60, persist = false): Promise<T> {
   if (!API) throw new Error('no-api');
@@ -43,15 +48,13 @@ async function get<T>(path: string, params: Record<string, string | number | und
   if (persist && !hit) {
     try {
       const s = await AsyncStorage.getItem(PERSIST + url);
-      if (s) { const o = JSON.parse(s); mem.set(url, o); if (Date.now() - o.t < maxAgeMin * 6e4) return o.v as T; }
+      if (s) { const o = JSON.parse(s); remember(url, o); if (Date.now() - o.t < maxAgeMin * 6e4) return o.v as T; }
     } catch {}
   }
   try {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('http ' + r.status);
-    const v = (await r.json()) as T;
+    const v = await getJson<T>(url);
     const o = { t: Date.now(), v };
-    mem.set(url, o);
+    remember(url, o);
     if (persist) AsyncStorage.setItem(PERSIST + url, JSON.stringify(o)).catch(() => {});
     return v;
   } catch (e) {

@@ -103,6 +103,10 @@ function Online() {
       ) : (
         <>
           <PickBanner style={{ marginTop: 18 }} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+            <Btn kind="secondary" icon="layers" label="Koleksiyonlar ve seçkiler" onPress={() => router.push('/collections')} />
+            <Btn kind="secondary" icon="compass" label="Platformlar ve öneriler" onPress={() => router.push('/discover')} />
+          </View>
           <CategoryStrip />
           <PopularList />
           <Btn kind="secondary" icon="globe" label={`Evrenlerdeki ${CATALOG.length} yapıma göz at`} style={{ marginTop: 30, alignSelf: 'flex-start' }} onPress={() => router.push('/universes')} />
@@ -219,7 +223,7 @@ function CatalogOnly() {
         <Grid items={found.slice(0, limit)} cols={posterCols} gap={14} rowGap={22} keyOf={(t) => t.id} render={(t, cw) => <PosterCard t={t} width={cw} />} />
       ) : <Empty icon="search" title="Aramana uygun yapım bulunamadı." text="Farklı bir yazım dene ya da tür filtresini kaldır." />}
       {found.length > limit && <Btn kind="secondary" label="Daha fazla göster" style={{ marginTop: 24 }} onPress={() => setLimit((l) => l + PAGE)} />}
-      <Small style={{ marginTop: 24 }}>Tüm film ve dizilerde arama, ara sunucu kurulunca açılır.</Small>
+      <Small style={{ marginTop: 24 }}>Çevrimiçi arama şu an kullanılamıyor. Evren kataloğunda aramaya devam edebilirsin.</Small>
     </Screen>
   );
 }

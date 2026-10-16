@@ -1,3 +1,5 @@
+import { bump, bumpEps, minutesOf } from './watch-stats';
+import { updateEpisodeBatch } from './episode-actions';
 import { known, sanitize } from './state-validation';
 import { localTransition } from './state-transition';
 import { initialState } from './state-defaults';
@@ -12,40 +14,21 @@ import { TBY, UBY } from './catalog';
 import { loadCachedCatalog } from './remote';
 import type { LibItem, ListItem, ListView, Mode, Order, State } from './types';
 
-export const BACKUP_PREFIX = 'WATCHVERSE:';
+import { BACKUP_PREFIX, toBase64, decodeBackup } from './backup-code';
+export { minutesOf } from './watch-stats';
+export { BACKUP_PREFIX, __b64 } from './backup-code';
 
 export { initialState } from './state-defaults';
 
 export { sanitize } from './state-validation';
 
-/* ---------- aylık izleme özeti ---------- */
-const monthKey = (t = Date.now()) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
-/** Bir film ya da bölümün dakikası (bilinmiyorsa 0) */
-export function minutesOf(s: State, key: string, n?: number) {
-  const t = TBY[key];
-  if (t) return t.episodes ? t.ep[(n || 1) - 1]?.[2] || 0 : t.minutes || 0;
-  return s.lib[key]?.runtime || 0;
-}
-function bump(s: State, d: { f?: number; e?: number; m?: number }, at = Date.now()): State['log'] {
-  const k = monthKey(at);
-  const cur = s.log[k] || { f: 0, e: 0, m: 0 };
-  return { ...s.log, [k]: { f: Math.max(0, cur.f + (d.f || 0)), e: Math.max(0, cur.e + (d.e || 0)), m: Math.max(0, cur.m + (d.m || 0)) } };
-}
-/** Bölüm listesindeki değişimi özete yansıtır */
-function bumpEps(s: State, key: string, before: number[], after: number[]) {
-  const a = new Set(before), b = new Set(after);
-  let e = 0, m = 0;
-  for (const n of b) if (!a.has(n)) { e++; m += minutesOf(s, key, n); }
-  for (const n of a) if (!b.has(n)) { e--; m -= minutesOf(s, key, n); }
-  return e || m ? bump(s, { e, m }) : s.log;
-}
 const newId = (len = 10) => Array.from({ length: len }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join('');
 
 type Actions = {
   setState: (fn: (s: State) => State) => void;
   toggleWatched: (id: string, value?: boolean) => boolean;
   toggleEpisode: (id: string, n: number) => void;
-  setEpisodes: (id: string, nums: number[], value: boolean) => void;
+  setEpisodes: (id: string, nums: number[], value: boolean, trackToday?: boolean) => void;
   toggleList: (id: string) => boolean;
   toggleFollow: (u: string) => void;
   setMode: (m: Mode) => void;
@@ -63,7 +46,7 @@ type Actions = {
   libSave: (key: string, item: LibItem) => void;
   libRemove: (key: string) => void;
   watchKey: (key: string, value: boolean) => void;
-  setEpsKey: (key: string, nums: number[], value: boolean) => void;
+  setEpsKey: (key: string, nums: number[], value: boolean, trackToday?: boolean) => void;
   /** diziyi yarıda bıraktım / yeniden başladım */
   setDropped: (key: string, on: boolean) => void;
   /** filmi bir kez daha izledim (+1) ya da geri al (−1) */
@@ -172,16 +155,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return { ...s, episodes, touched: { ...s.touched, [id]: Date.now() }, log: bumpEps(s, id, s.episodes[id] || [], episodes[id] || []) };
       });
     },
-    setEpisodes(id, nums, value) {
-      const t = TBY[id];
-      if (!t) return;
-      setRaw((s) => {
-        const set = new Set(s.episodes[id] || []);
-        nums.forEach((n) => (value ? set.add(n) : set.delete(n)));
-        const episodes = { ...s.episodes };
-        if (set.size) episodes[id] = [...set].filter((n) => n >= 1 && n <= t.episodes).sort((a, b) => a - b); else delete episodes[id];
-        return { ...s, episodes, touched: { ...s.touched, [id]: Date.now() }, log: bumpEps(s, id, s.episodes[id] || [], episodes[id] || []) };
-      });
+    setEpisodes(id, nums, value, trackToday = true) {
+      if (!TBY[id]) return;
+      setRaw(s=>updateEpisodeBatch(s,id,nums,value,trackToday));
     },
     toggleList(id) {
       const has = ref.current.list.includes(id);
@@ -231,13 +207,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (value) watched[key] = Date.now(); else delete watched[key];
       return { ...s, watched, log, touched: { ...s.touched, [key]: Date.now() } };
     }),
-    setEpsKey: (key, nums, value) => setRaw((s) => {
-      const set = new Set(s.episodes[key] || []);
-      nums.forEach((n) => (value ? set.add(n) : set.delete(n)));
-      const episodes = { ...s.episodes };
-      if (set.size) episodes[key] = [...set].filter((n) => n >= 1).sort((a, b) => a - b); else delete episodes[key];
-      return { ...s, episodes, touched: { ...s.touched, [key]: Date.now() }, log: bumpEps(s, key, s.episodes[key] || [], episodes[key] || []) };
-    }),
+    setEpsKey: (key, nums, value, trackToday = true) => setRaw(s=>updateEpisodeBatch(s,key,nums,value,trackToday)),
     setDropped: (key, on) => setRaw((s) => ({ ...s, dropped: { ...s.dropped, [key]: on ? Date.now() : -Date.now() }, touched: { ...s.touched, [key]: Date.now() } })),
     rewatch: (key, delta) => setRaw((s) => {
       const n = Math.max(0, (s.rewatch[key] || 0) + delta);
@@ -315,15 +285,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
     },
     exportBackup() {
-      const json = JSON.stringify(ref.current);
+      const json = JSON.stringify({ ...ref.current, backupCreatedAt: Date.now(), device: undefined });
       return BACKUP_PREFIX + toBase64(json);
     },
     importBackup(code) {
       try {
-        const body = code.trim().replace(/^WATCHVERSE:/, '');
-        const obj = JSON.parse(fromBase64(body));
-        const clean = sanitize(obj);
-        setRaw({ ...clean, onboarded: true });
+        const { state: clean } = decodeBackup(code);
+        setRaw({ ...clean, device: ref.current.device, onboarded: true });
         return true;
       } catch {
         return false;
@@ -343,52 +311,3 @@ export function useStore() {
   if (!ctx) throw new Error('useStore, StoreProvider içinde kullanılmalı');
   return ctx;
 }
-
-// UTF-8 güvenli base64 (Türkçe karakterler için)
-// TextEncoder/TextDecoder her JavaScript motorunda bulunmadığı için elle UTF-8
-function utf8Encode(str: string): number[] {
-  const out: number[] = [];
-  for (const ch of str) {
-    const c = ch.codePointAt(0)!;
-    if (c < 0x80) out.push(c);
-    else if (c < 0x800) out.push(0xc0 | (c >> 6), 0x80 | (c & 63));
-    else if (c < 0x10000) out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
-    else out.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
-  }
-  return out;
-}
-function utf8Decode(b: number[]): string {
-  let s = '';
-  for (let i = 0; i < b.length; ) {
-    const x = b[i++];
-    let c: number;
-    if (x < 0x80) c = x;
-    else if (x < 0xe0) c = ((x & 31) << 6) | (b[i++] & 63);
-    else if (x < 0xf0) c = ((x & 15) << 12) | ((b[i++] & 63) << 6) | (b[i++] & 63);
-    else c = ((x & 7) << 18) | ((b[i++] & 63) << 12) | ((b[i++] & 63) << 6) | (b[i++] & 63);
-    s += String.fromCodePoint(c);
-  }
-  return s;
-}
-const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-function toBase64(str: string) {
-  const bytes = utf8Encode(str);
-  let out = '';
-  for (let i = 0; i < bytes.length; i += 3) {
-    const n = (bytes[i] << 16) | ((bytes[i + 1] ?? 0) << 8) | (bytes[i + 2] ?? 0);
-    out += B64[(n >> 18) & 63] + B64[(n >> 12) & 63] + (i + 1 < bytes.length ? B64[(n >> 6) & 63] : '=') + (i + 2 < bytes.length ? B64[n & 63] : '=');
-  }
-  return out;
-}
-function fromBase64(b64: string) {
-  const clean = b64.replace(/[^A-Za-z0-9+/]/g, '');
-  const bytes: number[] = [];
-  for (let i = 0; i < clean.length; i += 4) {
-    const n = (B64.indexOf(clean[i]) << 18) | (B64.indexOf(clean[i + 1]) << 12) | ((B64.indexOf(clean[i + 2]) & 63) << 6) | (B64.indexOf(clean[i + 3]) & 63);
-    bytes.push((n >> 16) & 255);
-    if (clean[i + 2] !== undefined && B64.indexOf(clean[i + 2]) >= 0) bytes.push((n >> 8) & 255);
-    if (clean[i + 3] !== undefined && B64.indexOf(clean[i + 3]) >= 0) bytes.push(n & 255);
-  }
-  return utf8Decode(bytes);
-}
-export const __b64 = { toBase64, fromBase64 };

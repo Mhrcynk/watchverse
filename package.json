@@ -49,10 +49,12 @@
     "posters": "node scripts/resolve-tmdb.mjs",
     "update": "node scripts/update-catalog.mjs",
     "test:audit": "node scripts/test-audit.cjs",
-    "test:sync": "node --test scripts/test-sync.cjs",
+    "test:sync": "node --test scripts/test-sync.cjs scripts/test-product.cjs",
     "lint": "expo lint",
     "test:database": "node scripts/test-database.mjs",
-    "test:worker": "node --test scripts/test-worker.mjs"
+    "test:worker": "node --test scripts/test-worker.mjs",
+    "test:product": "node --test scripts/test-product.cjs",
+    "measure:sync": "node scripts/measure-sync.cjs"
   },
   "private": true
 }

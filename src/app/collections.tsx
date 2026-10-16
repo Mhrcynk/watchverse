@@ -5,7 +5,7 @@ import { CollectionCard, useFriendsLiked } from '@/components/collections';
 import { Backdrop, PageHeader } from '@/components/home';
 import { usePreview } from '@/components/preview';
 import { Row, Tile, useTileW } from '@/components/rows';
-import { Empty, FadeIn, Grid, Screen, Small, useLayout } from '@/components/ui';
+import { BackLink, Empty, FadeIn, Grid, Screen, Small, useLayout } from '@/components/ui';
 import { isEn } from '@/lib/i18n';
 import { loadCollections, type Collection } from '@/lib/collections';
 import { useStore } from '@/lib/store';
@@ -36,6 +36,7 @@ export default function Collections() {
   return (
     <Screen>
       <Backdrop />
+      <BackLink label="Keşfet" onPress={() => router.canGoBack() ? router.back() : router.replace('/explore')} />
       <PageHeader bold="Koleksiyonlar" light={isEn ? undefined : 've seçkiler'} sub="Ödüllü yapımlar, klasikler ve kısa diziler. Her gün güncellenir." />
 
       {liked.length >= 2 && (
@@ -51,7 +52,7 @@ export default function Collections() {
           ))}
         </View>
       ) : !all.length ? (
-        <Empty icon="layers" title={api ? 'Koleksiyonlar şu an yüklenemedi.' : 'Koleksiyonlar ara sunucu kurulunca açılır.'} text={api ? 'İnternet bağlantını kontrol edip sayfayı yenile.' : undefined} />
+        <Empty icon="layers" title={api ? 'Koleksiyonlar şu an yüklenemedi.' : 'Koleksiyonlar şu an kullanılamıyor.'} text={api ? 'İnternet bağlantını kontrol edip sayfayı yenile.' : undefined} />
       ) : (
         <>
           {section('Ödüllüler', awards)}
