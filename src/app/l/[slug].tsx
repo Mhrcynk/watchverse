@@ -19,13 +19,16 @@ export default function SharedList() {
   const store = useStore();
   const toast = useToast();
   const { posterCols } = useLayout();
-  const [d, setD] = useState<Shared | null | undefined>(undefined);
+  const [result, setResult] = useState<{ slug: string; data: Shared | null } | null>(null);
+  const d = !sb() || !slug ? null : result?.slug === slug ? result.data : undefined;
   const mine = Object.values(store.state.lists).find((l) => l.share === slug);
 
   useEffect(() => {
     const c = sb();
-    if (!c || !slug) { setD(null); return; }
-    c.rpc('get_shared_list', { p_slug: slug }).then(({ data, error }) => setD(error || !data ? null : (data as Shared)), () => setD(null));
+    if (!c || !slug) return;
+    let alive = true;
+    c.rpc('get_shared_list', { p_slug: slug }).then(({ data, error }) => { if (alive) setResult({ slug, data: error || !data ? null : (data as Shared) }); }, () => { if (alive) setResult({ slug, data: null }); });
+    return () => { alive = false; };
   }, [slug]);
 
   const home = () => router.replace('/');

@@ -1,23 +1,20 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/tabs';
-import { useEffect, useRef } from 'react';
-import { Animated, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, View, ActivityIndicator } from 'react-native';
 import { ND, useReducedMotion } from '@/lib/motion';
-import { alpha } from '@/lib/theme';
+import { alpha, C, F } from '@/lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLayout } from '@/components/ui';
 import { GlassTabBar } from '@/components/glass-tabbar';
 import { useStore } from '@/lib/store';
 import { useAccount } from '@/lib/account';
-import { ActivityIndicator } from 'react-native';
-import { C, F } from '@/lib/theme';
 
 const TABS = [
   { name: 'index', title: 'Ana Sayfa', icon: 'home' },
   { name: 'explore', title: 'Keşfet', icon: 'search' },
   { name: 'library', title: 'Kütüphanem', icon: 'bookmark' },
-  { name: 'collections', title: 'Koleksiyonlar', icon: 'layers' },
   { name: 'universes', title: 'Evrenler', icon: 'globe' },
 ] as const;
 
@@ -73,7 +70,7 @@ export default function TabsLayout() {
 
 /** Seçili sekmede ikonun arkasında beliren yumuşak kapsül */
 function TabIcon({ name, color, focused, pill }: { name: React.ComponentProps<typeof Feather>['name']; color: any; focused: boolean; pill: boolean }) {
-  const a = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  const [a] = useState(() => new Animated.Value(focused ? 1 : 0));
   const reduced = useReducedMotion();
   useEffect(() => {
     if (reduced) a.setValue(focused ? 1 : 0);

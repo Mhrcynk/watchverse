@@ -31,7 +31,7 @@ export default function ListScreen() {
       <Screen><Backdrop />
         <BackLink label="Kütüphanem" onPress={back} />
         <PageHeader bold="Yeni liste" />
-        <Muted style={{ marginTop: 6, marginBottom: 18 }}>Bir ad ver; sonra bir yapımda "Kaydet"e dokunup bu listeyi seç.</Muted>
+        <Muted style={{ marginTop: 6, marginBottom: 18 }}>Bir ad ver; sonra bir yapımda &quot;Kaydet&quot;e dokunup bu listeyi seç.</Muted>
         <TextInput value={name} onChangeText={setName} autoFocus placeholder="Örn. Hafta sonu, Eşimle izleyeceklerim" placeholderTextColor={C.dim} maxLength={60} accessibilityLabel="Liste adı" onSubmitEditing={create} returnKeyType="done" style={inputStyle} />
         <Btn label="Oluştur" style={{ marginTop: 14 }} disabled={!name.trim()} onPress={create} />
       </Screen>

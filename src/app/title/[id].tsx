@@ -1,15 +1,17 @@
-import { changedEpisodes } from '@/lib/audit-logic';
+import { RatingNotes } from '@/components/rating-notes';
+import { SeasonActions } from '@/components/season-actions';
+import { CatchUpControl } from '@/components/catch-up';
+import { catchUpSelection } from '@/lib/catch-up';
 import { isEn } from '@/lib/i18n';
 import { detail, hasApi, type Person } from '@/lib/tmdb';
 import Feather from '@expo/vector-icons/Feather';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Art, Wordmark } from '@/components/media';
-import { BackLink, Bar, Btn, Chip, Empty, Eyebrow, H1, H2, H3, Muted, Panel, Pills, Press, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Art } from '@/components/media';
+import { BackLink, Bar, Btn, Chip, Empty, Eyebrow, H1, H3, Muted, Panel, Pills, Press, Screen, SectionHead, Small, tap, useLayout, useToast } from '@/components/ui';
 import { AFTER, TBY, TIER_TR, TYPE_TR, UBY, backdropUrl, whyOf } from '@/lib/catalog';
 import { duration } from '@/lib/format';
 import { episodeLabel, fraction, isDone, nextEpisode, readiness, remaining, route, totalMinutes, watchedEps } from '@/lib/progress';
@@ -23,6 +25,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TitleDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  return <TitleDetailContent key={id} routeId={id} />;
+}
+
+function TitleDetailContent({ routeId: id }: { routeId: string }) {
   const store = useStore();
   const { state } = store;
   const toast = useToast();
@@ -44,10 +50,11 @@ export default function TitleDetail() {
   const [enSummary, setEnSummary] = useState<string | null>(null);
   const [credits, setCredits] = useState<{ cast: Person[]; makers: Person[] } | null>(null);
   useEffect(() => {
-    setCredits(null);
     if (!t?.tmdb?.id || t.tmdb.id < 0 || !hasApi()) return;
+    let alive = true;
     // Oyuncular ve (İngilizcede) konu özeti TMDB'den
-    detail((t.tmdb.m || t.media) as 'movie' | 'tv', t.tmdb.id).then((d) => { if (isEn) setEnSummary(d.overview || null); setCredits({ cast: d.cast || [], makers: d.makers || [] }); }, () => {});
+    detail((t.tmdb.m || t.media) as 'movie' | 'tv', t.tmdb.id).then((d) => { if (!alive) return; if (isEn) setEnSummary(d.overview || null); setCredits({ cast: d.cast || [], makers: d.makers || [] }); }, () => {});
+    return () => { alive = false; };
   }, [t?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const summary = isEn ? enSummary : t?.summary;
 
@@ -67,7 +74,6 @@ export default function TitleDetail() {
   const bd = backdropUrl(t);
   const eps = watchedEps(state, t.id);
   const seasonIdx = t.ep.map((e, i) => ({ e, n: i + 1 })).filter((x) => x.e[0] === season);
-  const seasonDone = seasonIdx.length > 0 && seasonIdx.every((x) => state.episodes[t.id]?.includes(x.n));
   const epCols = width >= 1000 ? 4 : tablet ? 3 : 2;
 
   const back = () => (router.canGoBack() ? router.back() : router.replace(`/universe/${t.u}`));
@@ -131,36 +137,19 @@ export default function TitleDetail() {
 
       {credits && <CastRow cast={credits.cast} makers={credits.makers} />}
 
-      <Panel style={{ marginTop: 14 }}>
-        <Eyebrow>Senin değerlendirmen</Eyebrow>
-        <View accessibilityLabel={`Puan: ${state.ratings[t.id] || 0} / 5`} style={{ flexDirection: 'row', gap: 4, marginTop: 8 }}>
-          {[1, 2, 3, 4, 5].map((n) => {
-            const on = (state.ratings[t.id] || 0) >= n;
-            return (
-              <Press key={n} accessibilityRole="button" accessibilityLabel={`${n} yıldız`} accessibilityState={{ selected: state.ratings[t.id] === n }} aria-pressed={state.ratings[t.id] === n} scaleTo={0.85} hitSlop={4}
-                onPress={() => { store.setRating(t.id, n); tap(); }} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name={on ? 'star' : 'star-outline'} size={28} color={on ? C.amber : C.dim} />
-              </Press>
-            );
-          })}
-        </View>
-        <TextInput value={state.notes[t.id] || ''} onChangeText={(v) => store.setNote(t.id, v)}
-          placeholder="Kısa bir not ekle (sadece sen görürsün)" placeholderTextColor={C.dim} multiline maxLength={500} accessibilityLabel="Not"
-          style={{ marginTop: 10, minHeight: 64, padding: 12, borderRadius: R.md, backgroundColor: C.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line, color: C.text, fontFamily: F.regular, fontSize: 16, lineHeight: 22, textAlignVertical: 'top' }} />
-      </Panel>
+      <RatingNotes rating={state.ratings[t.id] || 0} note={state.notes[t.id] || ''} onRating={n=>store.setRating(t.id,n)} onNote={v=>store.setNote(t.id,v)} />
 
       {t.episodes > 0 && (
         <>
           <SectionHead title="Bölüm ilerlemen" note={`${eps} / ${t.episodes} · ${done ? 'Tamamlandı' : remaining(state, t) > 0 ? `${duration(remaining(state, t))} kaldı` : 'Süre bilgisi yok'}`} />
           <Bar pct={fraction(state, t) * 100} color={u.color} height={6} />
+          {t.ep.length>0 && <CatchUpControl seasons={seasons} seen={()=>store.getState().episodes[t.id] || []}
+            load={async(s,e)=>({nums:catchUpSelection(t.ep.map((ep,i)=>({n:i+1,season:ep[0],episode:ep[1],aired:true})),s,e)})}
+            apply={(nums,value)=>store.setEpisodes(t.id,nums,value,false)} />}
           {t.ep.length ? (
             <>
               {seasons.length > 1 && <View style={{ marginTop: 16 }}><Pills value={String(season)} onChange={(v) => setSeason(Number(v))} options={seasons.map((s) => ({ id: String(s), label: `Sezon ${s}` }))} /></View>}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
-                <Small>{seasonIdx.filter((x) => state.episodes[t.id]?.includes(x.n)).length} / {seasonIdx.length} bölüm izlendi</Small>
-                <Btn kind="quiet" label={seasonDone ? 'Sezonun işaretlerini kaldır' : 'Sezonu tamamladım'}
-                  onPress={() => { const nums = seasonIdx.map((x) => x.n); const changed = changedEpisodes(nums, state.episodes[t.id] || [], seasonDone); store.setEpisodes(t.id, nums, !seasonDone); tap('success'); toast(seasonDone ? 'Sezon işaretleri kaldırıldı' : `Sezon ${season} tamamlandı`, { label: 'Geri al', onPress: () => store.setEpisodes(t.id, changed, seasonDone) }); }} />
-              </View>
+              <SeasonActions nums={seasonIdx.map(x=>x.n)} seen={state.episodes[t.id] || []} set={(nums,value)=>store.setEpisodes(t.id,nums,value)} />
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
                 {seasonIdx.map(({ e, n }) => {
                   const on = !!state.episodes[t.id]?.includes(n);

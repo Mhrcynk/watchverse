@@ -114,7 +114,7 @@ export default function Pick() {
   };
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  if (!api) return <Screen><Backdrop /><BackLink label="Geri" onPress={back} /><Empty icon="shuffle" title="Bu araç ara sunucu kurulunca açılır." /></Screen>;
+  if (!api) return <Screen><Backdrop /><BackLink label="Geri" onPress={back} /><Empty icon="shuffle" title="Öneriler şu an kullanılamıyor. Daha sonra tekrar dene." /></Screen>;
 
   const platName = (id: number) => plats.find((p) => p.id === id)?.name || '';
   const summary = [ch.kind === 'movie' ? 'Film' : ch.kind === 'tv' ? 'Dizi' : 'Film ya da dizi', ch.source === 'mine' ? 'Kendi listemden' : ch.plats.length ? ch.plats.map(platName).filter(Boolean).join(', ') : 'Tüm platformlar', ch.time === 'short' ? 'Kısa' : ch.time === 'mid' ? 'Normal süre' : null, mood.id !== 'any' ? mood.label : null].filter(Boolean).join(' · ');
@@ -237,7 +237,7 @@ function Result({ x, d, busy, saved, chosen, ownList, onSave, onTrailer, onMore,
         <Feather name="sliders" size={16} color={C.accentSoft} />
         <Text style={{ fontFamily: F.semibold, fontSize: 14.5, color: C.accentSoft }}>Seçimleri değiştir</Text>
       </Press>
-      {!ownList && chosen.length === 0 && <Small style={{ marginTop: 4 }}>Öneriler Türkiye'deki abonelik platformlarında izlenebilen yapımlardan seçilir.</Small>}
+      {!ownList && chosen.length === 0 && <Small style={{ marginTop: 4 }}>Öneriler Türkiye&apos;deki abonelik platformlarında izlenebilen yapımlardan seçilir.</Small>}
     </FadeIn>
   );
 }

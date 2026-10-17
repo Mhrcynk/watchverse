@@ -1,8 +1,8 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
-import { enablePush, pushPermission } from '@/lib/push';
+import { StyleSheet, Text, View } from 'react-native';
+import { enablePush, nativePushEnabled } from '@/lib/push';
 import { useStore } from '@/lib/store';
 import { hasSyncApi, syncDevice } from '@/lib/sync';
 import { C, F, R, alpha } from '@/lib/theme';
@@ -15,12 +15,12 @@ export function StarterCard() {
   const store = useStore();
   const s = store.state;
   const toast = useToast();
-  const [pushOn, setPushOn] = useState(() => pushPermission() === 'granted');
+  const [pushOn, setPushOn] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const steps: { k: string; icon: IconName; title: string; sub: string; done: boolean; go: () => void }[] = [
+  const allSteps: { k: string; icon: IconName; title: string; sub: string; done: boolean; go: () => void }[] = [
     { k: 'u', icon: 'globe', title: 'Evrenlerini seç', sub: 'Marvel, Star Wars, Yüzüklerin Efendisi… Takip ettiklerin öne çıkar.', done: s.follow.length > 0, go: () => router.push('/onboarding?only=universes') },
-    ...(Platform.OS === 'web' ? [{ k: 'i', icon: 'download' as IconName, title: 'İzlediklerini aktar', sub: 'Letterboxd ya da TV Time kaydın varsa tek seferde gelsin.', done: Object.keys(s.lib).length + Object.keys(s.watched).length >= 10, go: () => router.push('/import') }] : []),
+    { k: 'i', icon: 'download' as IconName, title: 'İzlediklerini aktar', sub: 'Letterboxd ya da TV Time kaydın varsa tek seferde gelsin.', done: Object.keys(s.lib).length + Object.keys(s.watched).length >= 10, go: () => router.push('/import') },
     {
       k: 'n', icon: 'bell', title: 'Bildirimleri aç', sub: 'Takip ettiğin dizide yeni bölüm çıkınca haber ver.', done: pushOn,
       go: async () => {
@@ -34,6 +34,7 @@ export function StarterCard() {
       },
     },
   ];
+  const steps = allSteps.filter(x=>x.k!=='n' || nativePushEnabled);
   const left = steps.filter((x) => !x.done).length;
   const close = () => store.setState((x) => ({ ...x, starter: false }));
   // hepsi tamamlanınca kart kendiliğinden kalkar

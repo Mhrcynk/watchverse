@@ -16,10 +16,7 @@ const scrub = (s: string) =>
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '…@…')
     .replace(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '…');
 
-function screen() {
-  if (typeof window === 'undefined') return Platform.OS;
-  return scrub(window.location.pathname).slice(0, 200);
-}
+const screen = () => Platform.OS;
 
 export function reportError(err: unknown, where?: string) {
   try {
@@ -33,18 +30,12 @@ export function reportError(err: unknown, where?: string) {
     count++;
     const c = sb();
     if (!c) { if (__DEV__) console.warn('[hata]', message); return; }
-    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : Platform.OS;
+    const ua = Platform.OS;
     c.from('app_errors')
       .insert({ message, stack: e?.stack ? scrub(e.stack).slice(0, 4000) : null, screen: (where ? `${where} @ ` : '') + screen(), version: BUILD, platform: ua.slice(0, 200) })
       .then(() => {}, () => {});
   } catch {}
 }
 
-let installed = false;
-/** Yakalanmayan hataları dinler (bir kez) */
-export function installErrorTracking() {
-  if (installed || typeof window === 'undefined' || Platform.OS !== 'web') return;
-  installed = true;
-  window.addEventListener('error', (ev) => reportError(ev.error || ev.message, 'window'));
-  window.addEventListener('unhandledrejection', (ev) => reportError((ev as PromiseRejectionEvent).reason, 'promise'));
-}
+// Screen ErrorBoundary calls reportError; native crash reporting is a release gate.
+export function installErrorTracking() {}

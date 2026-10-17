@@ -15,31 +15,72 @@ create policy "own row read" on public.user_state for select to authenticated us
 -- Yazma yalnızca save_state ile yapılır (sürüm kontrolü için)
 revoke insert, update, delete on public.user_state from anon, authenticated;
 
--- Kaydet: başka cihaz araya girdiyse kaydetmez, güncel sürümü eksi işaretle döndürür
-create or replace function public.save_state(p_data jsonb, p_base bigint)
-returns bigint
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  uid uuid := auth.uid();
-  cur bigint;
+-- Additive protocol migration: older clients may read, but cannot overwrite a v3 snapshot.
+alter table public.user_state add column if not exists min_writer integer not null default 2;
+grant select on public.user_state to authenticated;
+
+create or replace function public.save_state_internal(p_data jsonb, p_base bigint, p_writer integer)
+returns bigint language plpgsql security definer set search_path = '' as $$
+declare uid uuid := auth.uid(); cur bigint; required integer;
 begin
   if uid is null then raise exception 'giris gerekli'; end if;
-  if jsonb_typeof(p_data) <> 'object' or pg_column_size(p_data) > 2000000 then raise exception 'veri cok buyuk'; end if;
-  select rev into cur from public.user_state where user_id = uid for update;
+  if pg_column_size(p_data) > 2000000 then raise exception 'esitleme boyut siniri'; end if;
+  if p_data is null or jsonb_typeof(p_data) <> 'object' then
+    raise exception 'gecersiz veri';
+  end if;
+  if p_base is null or p_base < 0 then raise exception 'surum gerekli'; end if;
+  -- Serialize even the first write; SELECT FOR UPDATE cannot lock a missing row.
+  perform pg_advisory_xact_lock(hashtextextended(uid::text, 0));
+  select rev, min_writer into cur, required from public.user_state where user_id = uid for update;
   if cur is null then
-    insert into public.user_state (user_id, data, rev) values (uid, p_data, 1);
+    if p_base <> 0 then raise exception 'kayit bulunamadi'; end if;
+    insert into public.user_state(user_id, data, rev, min_writer) values(uid, p_data, 1, p_writer);
     return 1;
   end if;
-  if p_base is not null and p_base <> cur then return -cur; end if;
-  update public.user_state set data = p_data, rev = cur + 1, updated_at = now() where user_id = uid;
-  return cur + 1;
+  if p_writer < required then raise exception 'uygulama guncellemesi gerekli'; end if;
+  if p_base <> cur then return -cur; end if;
+  update public.user_state set data=p_data, rev=cur+1, min_writer=greatest(required,p_writer), updated_at=now() where user_id=uid;
+  return cur+1;
 end;
 $$;
-revoke all on function public.save_state(jsonb, bigint) from public, anon;
-grant execute on function public.save_state(jsonb, bigint) to authenticated;
+revoke all on function public.save_state_internal(jsonb,bigint,integer) from public,anon,authenticated;
+
+create or replace function public.save_state(p_data jsonb,p_base bigint)
+returns bigint language sql security definer set search_path = '' as $$
+  select public.save_state_internal(p_data,p_base,2);
+$$;
+create or replace function public.save_state_v3(p_data jsonb,p_base bigint)
+returns bigint language sql security definer set search_path = '' as $$
+  select public.save_state_internal(p_data,p_base,3);
+$$;
+revoke all on function public.save_state(jsonb,bigint) from public,anon;
+revoke all on function public.save_state_v3(jsonb,bigint) from public,anon;
+grant execute on function public.save_state(jsonb,bigint) to authenticated;
+grant execute on function public.save_state_v3(jsonb,bigint) to authenticated;
+
+-- Bind writes to the account that initiated them, even if client credentials change in flight.
+create or replace function public.save_state_v4(p_data jsonb,p_base bigint,p_owner uuid)
+returns bigint language plpgsql security definer set search_path = '' as $$
+begin
+  if p_owner is null or auth.uid() is null or p_owner <> auth.uid() then
+    raise exception 'oturum degisti';
+  end if;
+  return public.save_state_internal(p_data,p_base,4);
+end;
+$$;
+revoke all on function public.save_state_v4(jsonb,bigint,uuid) from public,anon;
+grant execute on function public.save_state_v4(jsonb,bigint,uuid) to authenticated;
+
+create or replace function public.save_state_v5(p_data jsonb,p_base bigint,p_owner uuid)
+returns bigint language plpgsql security definer set search_path = '' as $$
+begin
+  if p_owner is null or auth.uid() is null or p_owner <> auth.uid() then raise exception 'oturum degisti'; end if;
+  if p_data->'replica'->>'version' is distinct from '1' then raise exception 'gecersiz esitleme protokolu'; end if;
+  return public.save_state_internal(p_data,p_base,5);
+end;
+$$;
+revoke all on function public.save_state_v5(jsonb,bigint,uuid) from public,anon;
+grant execute on function public.save_state_v5(jsonb,bigint,uuid) to authenticated;
 
 -- 2) Hesabı silme: kullanıcı kendi hesabını ve tüm verisini kalıcı olarak siler
 create or replace function public.delete_my_account()
@@ -60,6 +101,18 @@ end;
 $$;
 revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
+
+create or replace function public.delete_my_account_v2(p_owner uuid)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if p_owner is null or auth.uid() is null or p_owner <> auth.uid() then
+    raise exception 'oturum degisti';
+  end if;
+  perform public.delete_my_account();
+end;
+$$;
+revoke all on function public.delete_my_account_v2(uuid) from public,anon;
+grant execute on function public.delete_my_account_v2(uuid) to authenticated;
 
 -- 3) Paylaşılan listeler: bağlantıyı bilen herkes görebilir, yalnızca sahibi değiştirebilir (kullanıcı başı maks. 50 liste)
 create table if not exists public.shared_lists (
@@ -82,8 +135,10 @@ as $$
 declare uid uuid := auth.uid(); cur uuid; cnt int;
 begin
   if uid is null then raise exception 'giris gerekli'; end if;
-  if p_slug !~ '^[a-z0-9]{8,24}$' then raise exception 'gecersiz baglanti'; end if;
-  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) > 1000 or pg_column_size(p_items) > 400000 then raise exception 'liste cok buyuk'; end if;
+  if p_slug is null or p_slug !~ '^[a-z0-9]{8,24}$' then raise exception 'gecersiz baglanti'; end if;
+  if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) > 1000 or pg_column_size(p_items) > 400000 then raise exception 'liste cok buyuk'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('share-owner:' || uid::text,0));
+  perform pg_advisory_xact_lock(hashtextextended('share-slug:' || p_slug,0));
   select owner into cur from public.shared_lists where slug = p_slug;
   if cur is not null and cur <> uid then raise exception 'izin yok'; end if;
   if cur is null then
@@ -92,7 +147,9 @@ begin
   end if;
   insert into public.shared_lists (slug, owner, name, owner_name, items, updated_at)
   values (p_slug, uid, left(p_name, 60), left(nullif(p_owner_name, ''), 40), p_items, now())
-  on conflict (slug) do update set name = excluded.name, owner_name = excluded.owner_name, items = excluded.items, updated_at = now();
+  on conflict (slug) do update set name = excluded.name, owner_name = excluded.owner_name, items = excluded.items, updated_at = now()
+  where shared_lists.owner = uid;
+  if not found then raise exception 'izin yok'; end if;
 end;
 $$;
 revoke all on function public.share_list(text, text, jsonb, text) from public, anon;
@@ -192,11 +249,14 @@ as $$
 declare uid uuid := auth.uid(); other uuid; oname text; cnt int;
 begin
   if uid is null then raise exception 'giris gerekli'; end if;
-  select count(*) into cnt from public.friendships where a = uid;
-  if cnt >= 200 then raise exception 'arkadas siniri asildi'; end if;
   select user_id, display_name into other, oname from public.profiles where invite_code = p_code;
   if other is null then raise exception 'davet gecersiz'; end if;
   if other = uid then raise exception 'kendi davetin'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('friend:' || least(uid,other)::text,0));
+  perform pg_advisory_xact_lock(hashtextextended('friend:' || greatest(uid,other)::text,0));
+  if not exists(select 1 from public.friendships where a=uid and b=other) then
+    if (select count(*) from public.friendships where a=uid)>=200 or (select count(*) from public.friendships where a=other)>=200 then raise exception 'arkadas siniri asildi'; end if;
+  end if;
   insert into public.profiles (user_id, display_name) values (uid, left(coalesce(p_name, ''), 40)) on conflict (user_id) do nothing;
   insert into public.friendships (a, b) values (uid, other), (other, uid) on conflict do nothing;
   return coalesce(nullif(oname, ''), 'Arkadaşın');
@@ -294,27 +354,149 @@ create trigger limit_error_reports before insert on public.app_errors
 -- 60 günden eski hata kayıtlarını temizle
 delete from public.app_errors where at < now() - interval '60 days';
 
--- 6) Push abonelikleri: yalnızca sunucu/worker (service_role) erişebilir
-create table if not exists public.push_subscriptions (
-  id uuid default gen_random_uuid() primary key,
-  endpoint text not null unique check (endpoint ~ '^https://'),
-  subscription jsonb not null,
-  created_at timestamptz not null default now()
+-- 6) Native push devices. No anonymous writes and no caller-supplied owner.
+create table if not exists public.native_devices (
+  id text primary key check (id ~ '^[a-f0-9-]{16,64}$'),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  token text unique not null check (token ~ '^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]+\]$'),
+  follow jsonb not null default '[]', tv jsonb not null default '[]',
+  updated_at timestamptz not null default now()
 );
-alter table public.push_subscriptions enable row level security;
-revoke all on public.push_subscriptions from public, anon, authenticated;
-drop policy if exists "Service role full access on push_subscriptions" on public.push_subscriptions;
-create policy "Service role full access on push_subscriptions"
-  on public.push_subscriptions
-  as restrictive
-  using (auth.role() = 'service_role');
-create index if not exists idx_push_subscriptions_endpoint on public.push_subscriptions(endpoint);
+alter table public.native_devices enable row level security;
+revoke all on public.native_devices from public,anon,authenticated;
+grant select,delete on public.native_devices to authenticated;
+grant all on public.native_devices to service_role;
+drop policy if exists "own devices" on public.native_devices;
+create policy "own devices" on public.native_devices to authenticated using(user_id=auth.uid());
+create or replace function public.register_native_device(p_id text,p_token text,p_follow jsonb,p_tv jsonb)
+returns void language plpgsql security definer set search_path='' as $$
+declare uid uuid:=auth.uid(); owner uuid;
+begin
+  if uid is null then raise exception 'giris gerekli'; end if;
+  if p_follow is null or p_tv is null or jsonb_typeof(p_follow)<>'array' or jsonb_typeof(p_tv)<>'array' then raise exception 'gecersiz liste'; end if;
+  if jsonb_array_length(p_follow)>40 or jsonb_array_length(p_tv)>600 or pg_column_size(p_follow)+pg_column_size(p_tv)>60000 then raise exception 'liste cok buyuk'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('device:' || p_id,0));
+  if exists(select 1 from public.revoked_native_devices where id=p_id and user_id=auth.uid()) then raise exception 'cihaz iptal edildi'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(uid::text,0));
+  select user_id into owner from public.native_devices where id=p_id for update;
+  if owner is not null and owner<>uid then raise exception 'izin yok'; end if;
+  if owner is null and (select count(*) from public.native_devices where user_id=uid)>=10 then raise exception 'cihaz siniri'; end if;
+  insert into public.native_devices(id,user_id,token,follow,tv) values(p_id,uid,p_token,p_follow,p_tv)
+  on conflict(id) do update set token=excluded.token,follow=excluded.follow,tv=excluded.tv,updated_at=now()
+  where native_devices.user_id=uid;
+  if not found then raise exception 'izin yok'; end if;
+end;
+$$;
+revoke all on function public.register_native_device(text,text,jsonb,jsonb) from public,anon;
+grant execute on function public.register_native_device(text,text,jsonb,jsonb) to authenticated;
 
--- Idempotent migration for subscriptions created before preferences were stored with them.
-alter table public.push_subscriptions add column if not exists device_id text;
-alter table public.push_subscriptions add column if not exists follow jsonb not null default '[]'::jsonb;
-alter table public.push_subscriptions add column if not exists tv jsonb not null default '[]'::jsonb;
-alter table public.push_subscriptions add column if not exists updated_at timestamptz not null default now();
-create index if not exists push_subscriptions_device on public.push_subscriptions(device_id);
-grant select, insert, update, delete on public.push_subscriptions to service_role;
-delete from public.push_subscriptions where updated_at < now() - interval '180 days';
+-- Revocation tombstones prevent a delayed registration from recreating a logged-out device.
+create table if not exists public.revoked_native_devices (
+ id text not null, user_id uuid not null references auth.users(id) on delete cascade,
+ primary key(id,user_id),
+ revoked_at timestamptz not null default now()
+);
+alter table public.revoked_native_devices enable row level security;
+revoke all on public.revoked_native_devices from public,anon,authenticated;
+create or replace function public.unregister_native_device(p_id text,p_owner uuid)
+returns void language plpgsql security definer set search_path='' as $$
+begin
+ if p_owner is null or auth.uid() is distinct from p_owner then raise exception 'oturum degisti'; end if;
+ if p_id is null or p_id !~ '^[a-f0-9-]{16,64}$' then raise exception 'gecersiz cihaz'; end if;
+ perform pg_advisory_xact_lock(hashtextextended('device:' || p_id,0));
+ if exists(select 1 from public.native_devices where id=p_id and user_id<>auth.uid()) then raise exception 'izin yok'; end if;
+ insert into public.revoked_native_devices(id,user_id) values(p_id,auth.uid()) on conflict(id,user_id) do nothing;
+ delete from public.native_devices where id=p_id and user_id=auth.uid();
+end;
+$$;
+create or replace function public.register_native_device_v2(p_id text,p_token text,p_follow jsonb,p_tv jsonb,p_owner uuid)
+returns void language plpgsql security definer set search_path='' as $$
+begin
+ if p_owner is null or auth.uid() is distinct from p_owner then raise exception 'oturum degisti'; end if;
+ perform pg_advisory_xact_lock(hashtextextended('device:' || p_id,0));
+ if exists(select 1 from public.revoked_native_devices where id=p_id and user_id=auth.uid()) then raise exception 'cihaz iptal edildi'; end if;
+ perform public.register_native_device(p_id,p_token,p_follow,p_tv);
+end;
+$$;
+revoke all on function public.unregister_native_device(text,uuid),public.register_native_device_v2(text,text,jsonb,jsonb,uuid) from public,anon;
+grant execute on function public.unregister_native_device(text,uuid),public.register_native_device_v2(text,text,jsonb,jsonb,uuid) to authenticated;
+
+create or replace function public.share_list_v2(p_slug text,p_name text,p_items jsonb,p_owner_name text,p_owner uuid)
+returns void language plpgsql security definer set search_path='' as $$
+begin
+ if p_owner is null or auth.uid() is distinct from p_owner then raise exception 'oturum degisti'; end if;
+ perform public.share_list(p_slug,p_name,p_items,p_owner_name);
+end;
+$$;
+revoke all on function public.share_list_v2(text,text,jsonb,text,uuid) from public,anon;
+grant execute on function public.share_list_v2(text,text,jsonb,text,uuid) to authenticated;
+
+create or replace function public.unshare_list_v2(p_slug text,p_owner uuid)
+returns void language plpgsql security definer set search_path='' as $$
+begin
+ if p_owner is null or auth.uid() is distinct from p_owner then raise exception 'oturum degisti'; end if;
+ perform public.unshare_list(p_slug);
+end;
+$$;
+revoke all on function public.unshare_list_v2(text,uuid) from public,anon;
+grant execute on function public.unshare_list_v2(text,uuid) to authenticated;
+
+create or replace function public.my_profile_v2(p_name text,p_owner uuid)
+returns jsonb language plpgsql security definer set search_path='' as $$
+begin
+ if p_owner is null or auth.uid() is distinct from p_owner then raise exception 'oturum degisti'; end if;
+ return public.my_profile(p_name);
+end;
+$$;
+revoke all on function public.my_profile_v2(text,uuid) from public,anon;
+grant execute on function public.my_profile_v2(text,uuid) to authenticated;
+
+create or replace function public.reset_invite_v2(p_owner uuid)
+returns text language plpgsql security definer set search_path='' as $$
+begin
+ if p_owner is null or auth.uid() is distinct from p_owner then raise exception 'oturum degisti'; end if;
+ return public.reset_invite();
+end;
+$$;
+revoke all on function public.reset_invite_v2(uuid) from public,anon;
+grant execute on function public.reset_invite_v2(uuid) to authenticated;
+
+create or replace function public.set_sharing_v2(p_on boolean,p_owner uuid)
+returns void language plpgsql security definer set search_path='' as $$
+begin
+ if p_owner is null or auth.uid() is distinct from p_owner then raise exception 'oturum degisti'; end if;
+ perform public.set_sharing(p_on);
+end;
+$$;
+revoke all on function public.set_sharing_v2(boolean,uuid) from public,anon;
+grant execute on function public.set_sharing_v2(boolean,uuid) to authenticated;
+
+create or replace function public.accept_invite_v2(p_code text,p_name text,p_owner uuid)
+returns text language plpgsql security definer set search_path='' as $$
+begin
+ if p_owner is null or auth.uid() is distinct from p_owner then raise exception 'oturum degisti'; end if;
+ return public.accept_invite(p_code,p_name);
+end;
+$$;
+revoke all on function public.accept_invite_v2(text,text,uuid) from public,anon;
+grant execute on function public.accept_invite_v2(text,text,uuid) to authenticated;
+
+create or replace function public.remove_friend_v2(p_id uuid,p_owner uuid)
+returns void language plpgsql security definer set search_path='' as $$
+begin
+ if p_owner is null or auth.uid() is distinct from p_owner then raise exception 'oturum degisti'; end if;
+ perform public.remove_friend(p_id);
+end;
+$$;
+revoke all on function public.remove_friend_v2(uuid,uuid) from public,anon;
+grant execute on function public.remove_friend_v2(uuid,uuid) to authenticated;
+
+create or replace function public.friend_feed_v2(p_owner uuid)
+returns jsonb language plpgsql security definer set search_path='' as $$
+begin
+ if p_owner is null or auth.uid() is distinct from p_owner then raise exception 'oturum degisti'; end if;
+ return public.friend_feed();
+end;
+$$;
+revoke all on function public.friend_feed_v2(uuid) from public,anon;
+grant execute on function public.friend_feed_v2(uuid) to authenticated;

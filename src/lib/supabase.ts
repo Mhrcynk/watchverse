@@ -1,7 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
 
 const URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY || '';
@@ -19,23 +17,23 @@ export function sb(): SupabaseClient | null {
         storageKey: 'watchverse:auth',
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: Platform.OS === 'web',
+        detectSessionInUrl: false,
+        flowType: 'pkce',
       },
     });
   }
   return client;
 }
 
-/** Sitenin kök adresi (giriş dönüşleri için) */
-export function siteUrl() {
-  if (typeof window === 'undefined') return '';
-  const base = String(Constants.expoConfig?.experiments?.baseUrl || '').replace(/\/$/, '');
-  return `${window.location.origin}${base}/`;
-}
+/** Mobil uygulama içi paylaşım bağlantılarının kökü. */
+export const siteUrl = () => 'watchverse://';
 
 /** Supabase hata mesajlarını sade Türkçeye çevirir */
 export function authError(e: unknown): string {
   const m = String((e as { message?: string })?.message || e || '').toLowerCase();
+  if (m.includes('esitleme boyut siniri')) return 'Eşitleme kaydı sunucu boyut sınırını aştı. Yerel kayıtların korunuyor; yedeğini dışa aktar.';
+  if (m.includes('oturum degisti')) return 'Oturum değişti. Lütfen tekrar dene.';
+  if (m.includes('uygulama guncellemesi gerekli')) return 'Kayıtların daha yeni bir sürümle güncellenmiş. Devam etmek için uygulamayı güncelle.';
   if (m.includes('invalid login')) return 'Mail ya da şifre yanlış.';
   if (m.includes('already registered') || m.includes('already been registered') || m.includes('user_already_exists')) return 'Bu mail ile zaten bir hesap var. Giriş yapmayı dene.';
   if (m.includes('password') && (m.includes('at least') || m.includes('short') || m.includes('weak'))) return 'Şifre en az 8 karakter olmalı.';

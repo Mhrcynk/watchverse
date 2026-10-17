@@ -65,10 +65,12 @@ export type Liked = { k: string; title: string; p: string | null; year: number |
 /** Arkadaşlarının 4-5 yıldız verdikleri */
 export function useFriendsLiked() {
   const acc = useAccount();
-  const [liked, setLiked] = useState<Liked[]>([]);
+  const [result, setResult] = useState<{ uid: string; liked: Liked[] } | null>(null);
+  const uid = acc.user?.id;
   useEffect(() => {
-    if (!acc.user) { setLiked([]); return; }
-    friendFeed().then((fs) => {
+    if (!uid) return;
+    let alive = true;
+    friendFeed(uid).then((fs) => {
       const seen = new Set<string>();
       const out: Liked[] = [];
       for (const f of fs) for (const x of f.items) {
@@ -76,8 +78,9 @@ export function useFriendsLiked() {
         seen.add(x.k);
         out.push({ k: x.k, title: TBY[x.k]?.trTitle || TBY[x.k]?.title || x.t || '', p: TBY[x.k]?.tmdb?.p || x.p, year: TBY[x.k]?.year || (x.y ? Number(x.y) : null), who: f.name || 'Arkadaşın' });
       }
-      setLiked(out.filter((x) => x.title).slice(0, 20));
+      if (alive) setResult({ uid, liked: out.filter((x) => x.title).slice(0, 20) });
     }).catch(() => {});
-  }, [acc.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  return liked;
+    return () => { alive = false; };
+  }, [uid]);
+  return result && result.uid === uid ? result.liked : [];
 }

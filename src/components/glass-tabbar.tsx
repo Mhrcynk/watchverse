@@ -1,14 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Animated, Pressable, View } from 'react-native';
 import { EASE_OUT, ND, useReducedMotion } from '@/lib/motion';
 import { C, M } from '@/lib/theme';
 import { useAccount } from '@/lib/account';
 import { useStore } from '@/lib/store';
-import { tap, useLayout } from './ui';
+import { tap } from './ui';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 export const TAB_ICONS: Record<string, [IconName, IconName]> = {
@@ -16,7 +16,6 @@ export const TAB_ICONS: Record<string, [IconName, IconName]> = {
   universes: ['planet', 'planet-outline'],
   explore: ['compass', 'compass-outline'],
   library: ['bookmark', 'bookmark-outline'],
-  collections: ['albums', 'albums-outline'],
   profile: ['person', 'person-outline'],
 };
 /** Alt menünün kapladığı yükseklik (içerik bu kadar boşluk bırakır) */
@@ -25,15 +24,16 @@ export const TABBAR_SPACE = 84;
 /** Sade alt menü: ince çizgili simgeler, seçilende dolu simge ve altında küçük nokta */
 /** En son açık olan sekme: yapım sayfalarında alt menüde bu sekme seçili görünür */
 let lastTab = 'index';
-const TAB_LIST: { name: string; title: string; href: '/' | '/explore' | '/library' | '/collections' | '/universes' }[] = [
+const TAB_LIST: { name: string; title: string; href: '/' | '/explore' | '/library' | '/universes' }[] = [
   { name: 'index', title: 'Ana Sayfa', href: '/' }, { name: 'explore', title: 'Keşfet', href: '/explore' },
   { name: 'library', title: 'Kütüphanem', href: '/library' },
-  { name: 'collections', title: 'Koleksiyonlar', href: '/collections' }, { name: 'universes', title: 'Evrenler', href: '/universes' },
+  { name: 'universes', title: 'Evrenler', href: '/universes' },
 ];
 
 export function GlassTabBar({ state, descriptors, navigation, insets }: any) {
   const routes = state.routes as { key: string; name: string }[];
-  lastTab = routes[state.index]?.name || lastTab;
+  const activeTab = routes[state.index]?.name;
+  useEffect(() => { if (activeTab) lastTab = activeTab; }, [activeTab]);
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
       <LinearGradient pointerEvents="none" colors={['rgba(21,23,29,0)', 'rgba(21,23,29,0.96)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 120 }} />
@@ -60,10 +60,9 @@ export function GlassTabBar({ state, descriptors, navigation, insets }: any) {
 export function StackTabBar() {
   const path = usePathname();
   const insets = useSafeAreaInsets();
-  const { tablet } = useLayout();
   const { state } = useStore();
   const acc = useAccount();
-  const tabRoot = ['/', '/explore', '/library', '/collections', '/universes'].includes(path);
+  const tabRoot = ['/', '/explore', '/library', '/universes'].includes(path);
   const hidden = tabRoot || /^\/(welcome|onboarding|account)/.test(path) || !state.onboarded || (!acc.user && !acc.guest);
   if (hidden) return null;
   return (
@@ -82,8 +81,8 @@ export function StackTabBar() {
 }
 
 function TabButton({ focused, label, icon, onPress, onLongPress }: { focused: boolean; label: string; icon: IconName; onPress: () => void; onLongPress: () => void }) {
-  const s = useRef(new Animated.Value(1)).current;
-  const dot = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  const [s] = useState(() => new Animated.Value(1));
+  const [dot] = useState(() => new Animated.Value(focused ? 1 : 0));
   const reduced = useReducedMotion();
   useEffect(() => {
     if (reduced) dot.setValue(focused ? 1 : 0);

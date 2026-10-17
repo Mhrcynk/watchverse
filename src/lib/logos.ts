@@ -50,22 +50,22 @@ async function fetchLogo(u: string): Promise<string> {
 
 /** Evren logosu (yüklenene kadar null, logo yoksa '') */
 export function useUniverseLogo(u: string): string | null {
-  const [v, setV] = useState<string | null>(cache ? cache[u] ?? null : null);
+  const [result, setResult] = useState<{ u: string; value: string } | null>(null);
   useEffect(() => {
     let alive = true;
-    if (!API) { setV(''); return; }
+    if (!API) return;
     load().then((c) => {
-      if (c[u] !== undefined) { if (alive) setV(c[u]); return; }
+      if (c[u] !== undefined) { if (alive) setResult({ u, value: c[u] }); return; }
       // ağ hatasında kaydetme; bir sonraki açılışta yeniden denenir
       waiting[u] ||= fetchLogo(u).catch(() => null);
       waiting[u].then((url) => {
-        if (url === null) { delete waiting[u]; if (alive) setV(''); return; }
+        if (url === null) { delete waiting[u]; if (alive) setResult({ u, value: '' }); return; }
         c[u] = url;
         AsyncStorage.setItem(KEY, JSON.stringify(c)).catch(() => {});
-        if (alive) setV(url);
+        if (alive) setResult({ u, value: url });
       });
     });
     return () => { alive = false; };
   }, [u]);
-  return v;
+  return !API ? '' : result?.u === u ? result.value : cache?.[u] ?? null;
 }

@@ -12,7 +12,7 @@ export type Universe = {
 export type TitleType = 'Film' | 'Dizi' | 'Special';
 
 /** [sezon, bölüm, dakika | null] */
-export type Episode = [number, number, number | null];
+export type Episode = [number, number, number | null, number?];
 
 export type Title = {
   id: string;
@@ -53,6 +53,7 @@ export type Order = 'recommended' | 'release' | 'chrono';
 /** TMDB'den eklenen yapım (kütüphane kaydı) */
 export type LibItem = {
   m: 'movie' | 'tv'; id: number; title: string; year: number | null; p: string | null; b: string | null; added: number;
+  episodeIds?: Record<string, number>;
   runtime?: number | null; seasons?: { n: number; count: number }[]; aired?: number;
   last?: { s: number; e: number; date: string } | null; next?: { s: number; e: number; date: string } | null; at?: number;
   /** türler (TMDB) */
@@ -67,6 +68,7 @@ export type MonthLog = { f: number; e: number; m: number };
 
 export type State = {
   v: 2;
+  replica?: import('./replica').Replica;
   onboarded: boolean;
   /** ana sayfadaki "Başlarken" kartı gösterilsin mi (yeni hesaplarda açık, kapatılınca kapanır) */
   starter?: boolean;
@@ -76,6 +78,11 @@ export type State = {
   watched: Record<string, number>;
   /** diziler: izlenen bölüm sıra numaraları (1'den başlar) */
   episodes: Record<string, number[]>;
+  /** Durable IDs; numeric episodes above are only the current UI projection. */
+  episodeMarks?: Record<string, string[]>;
+  episodeAliases?: Record<string, Record<string,string>>;
+  episodeLayouts?: Record<string, import('./episode-identity').EpisodeLayout>;
+  unresolvedEpisodes?: Record<string, number[]>;
   /** son etkileşim zamanı — "devam ettiklerin" sırası için */
   touched: Record<string, number>;
   list: string[];

@@ -1,27 +1,26 @@
+import { accountRpc } from '@/lib/account-rpc';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Share, View } from 'react-native';
 import { useAccount } from '@/lib/account';
 import { confirm } from '@/lib/confirm';
 import { copyText } from '@/lib/push';
 import { useStore } from '@/lib/store';
-import { sb, siteUrl } from '@/lib/supabase';
+import { siteUrl } from '@/lib/supabase';
 import type { UList } from '@/lib/types';
 import { Btn, useToast } from './ui';
 
 const slugId = () => Array.from({ length: 12 }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join('');
 export const shareUrl = (slug: string) => `${siteUrl()}l/${slug}`;
 
-async function pushList(l: UList, ownerName: string, slug: string) {
-  const { error } = await sb()!.rpc('share_list', { p_slug: slug, p_name: l.name, p_items: l.items.map(({ k, t, p, y }) => ({ k, t, p, y })), p_owner_name: ownerName });
-  if (error) throw error;
+async function pushList(l: UList, ownerName: string, slug: string, owner: string) {
+  await accountRpc('share_list_v2', { p_slug: slug, p_name: l.name, p_items: l.items.map(({ k, t, p, y }) => ({ k, t, p, y })), p_owner_name: ownerName }, owner);
 }
 
 /** Bağlantıyı paylaşma penceresi ya da panoya kopyalama */
 export async function shareLink(url: string, title: string, toast: (m: string) => void, text?: string) {
-  if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'share' in navigator) {
-    try { await navigator.share(text ? { title, text, url } : { title, url }); return; } catch (e) { if ((e as Error)?.name === 'AbortError') return; }
-  }
+  try { await Share.share({message: [text, url].filter(Boolean).join('\n'), title}); return; } catch {}
+
   toast((await copyText(url)) ? 'Bağlantı kopyalandı' : url);
 }
 
@@ -40,9 +39,11 @@ export function ShareListButton({ list, compact }: { list: UList; compact?: bool
       <>
         <Btn icon="share-2" label="Bağlantıyı paylaş" onPress={() => shareLink(shareUrl(slug), list.name, toast)} />
         <Btn kind="quiet" label="Paylaşımı kapat" onPress={() => confirm('Paylaşım kapatılsın mı?', 'Bağlantı artık açılmaz. Listen sende kalır.', 'Kapat', async () => {
-          await sb()!.rpc('unshare_list', { p_slug: slug });
-          store.listSetShare(list.id, undefined);
-          toast('Paylaşım kapatıldı');
+          try {
+            await accountRpc('unshare_list_v2', { p_slug: slug }, acc.user!.id);
+            store.listSetShare(list.id, undefined);
+            toast('Paylaşım kapatıldı');
+          } catch { toast('Paylaşım kapatılamadı. Tekrar dene.'); }
         })} />
       </>
     );
@@ -53,7 +54,7 @@ export function ShareListButton({ list, compact }: { list: UList; compact?: bool
         setBusy(true);
         const slug = slugId();
         try {
-          await pushList(list, store.state.name, slug);
+          await pushList(list, store.state.name, slug, acc.user!.id);
           store.listSetShare(list.id, slug);
           await shareLink(shareUrl(slug), list.name, toast);
         } catch { toast('Paylaşılamadı. İnternet bağlantını kontrol et.'); }
@@ -74,7 +75,7 @@ export function SharedListsSync() {
       for (const l of Object.values(state.lists)) {
         if (!l.share || pushed.current[l.share] === l.updated) continue;
         const at = l.updated;
-        pushList(l, state.name, l.share).then(() => { pushed.current[l.share!] = at; }).catch(() => {});
+        pushList(l, state.name, l.share, acc.user!.id).then(() => { pushed.current[l.share!] = at; }).catch(() => {});
       }
     }, 2500);
     return () => clearTimeout(h);

@@ -2,8 +2,8 @@ import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
-import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { isEn } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { C, F, R, alpha } from '@/lib/theme';
@@ -63,7 +63,7 @@ export function Coverflow({ items }: { items: TItem[] }) {
   const gap = 14;
   const step = cw + gap;
   const side = (width - cw) / 2;
-  const x = useRef(new Animated.Value(0)).current;
+  const [x] = useState(() => new Animated.Value(0));
   const [i, setI] = useState(0);
   if (!items.length) return null;
   return (
@@ -170,7 +170,7 @@ export function PageHeader({ bold, light, sub, right }: { bold: string; light?: 
 /** Sayfa zemini: üstte hafif aydınlık, alta doğru koyulaşan arduvaz */
 export function Backdrop() {
   return (
-    <LinearGradient pointerEvents="none" colors={[alpha('#3A4050', 0.55), alpha('#15171D', 0)]} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 420, ...(Platform.OS === 'web' ? {} : {}) }} />
+    <LinearGradient pointerEvents="none" colors={[alpha('#3A4050', 0.55), alpha('#15171D', 0)]} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 420 }} />
   );
 }
 

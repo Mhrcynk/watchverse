@@ -12,7 +12,7 @@ import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
 import type { State, Title, Universe } from '@/lib/types';
 import { backdropOf, useUniverseLogo } from '@/lib/logos';
-import { Bar, CheckButton, FadeIn, H3, Press, Small, tap, useToast } from './ui';
+import { Bar, CheckButton, FadeIn, Press, Small, tap, useToast } from './ui';
 import { usePreview } from './preview';
 
 const hash = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); };

@@ -3,18 +3,20 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Platform, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Backdrop } from '@/components/home';
 import { usePreview } from '@/components/preview';
 import { Row, Tile, useTileW } from '@/components/rows';
 import { BackLink, Btn, Chip, FadeIn, Press, Screen, Small, useToast } from '@/components/ui';
+import { backupSummary } from '@/lib/backup-code';
+import { SaveStatus } from '@/components/save-status';
 import { pickBackupFile, saveBackupFile } from '@/lib/backup-file';
 import { TBY, VIEWS, VIEW_TR } from '@/lib/catalog';
 import { confirm } from '@/lib/confirm';
 import { useAccount } from '@/lib/account';
-import { LANG, isEn, setLang } from '@/lib/i18n';
+import { isEn } from '@/lib/i18n';
 import { history } from '@/lib/progress';
-import { copyText, enablePush, pushPermission } from '@/lib/push';
+import { enablePush, nativePushEnabled } from '@/lib/push';
 import { fullStats } from '@/lib/stats';
 import { useStore } from '@/lib/store';
 import { hasSyncApi, syncDevice } from '@/lib/sync';
@@ -37,9 +39,8 @@ export default function Profile() {
     .sort((a, b) => b.r - a.r || (state.touched[b.t.id] || 0) - (state.touched[a.t.id] || 0)), [state]);
   const [importing, setImporting] = useState(false);
   const [code, setCode] = useState('');
-  const [pushCode, setPushCode] = useState<string | null>(null);
   const [pushOn, setPushOn] = useState(false);
-  const pushActive = hasSyncApi() && (pushOn || pushPermission() === 'granted');
+  const pushActive = hasSyncApi() && pushOn;
 
   const turnOnPush = async () => {
     const r = await enablePush(state.follow);
@@ -48,27 +49,38 @@ export default function Profile() {
       const ok = await syncDevice(state, store.ensureDevice(), true);
       if (ok) { setPushOn(true); toast('Bildirimler açıldı'); return; }
     }
-    setPushCode(r.code);
+    toast('Bildirim izni verildi ancak sunucu kaydı tamamlanamadı. Giriş yapıp tekrar dene.');
   };
   const refreshPush = async () => {
     const r = await enablePush(state.follow);
     const ok = r.ok && (await syncDevice(state, store.ensureDevice(), true));
     toast(ok ? 'Bildirim aboneliği yenilendi' : r.ok ? 'Sunucuya ulaşılamadı, sonra tekrar dene' : r.reason);
   };
+  const previewBackup = (txt: string) => {
+    try {
+      const summary = backupSummary(txt);
+      const date = summary.createdAt ? new Date(summary.createdAt).toLocaleString('tr-TR') : 'Eski yedek: oluşturma tarihi bilinmiyor';
+      confirm('Yedek önizlemesi', `${summary.titles} yapım · ${summary.episodes} bölüm · ${summary.lists} liste\n${date}${summary.unresolved ? `\n${summary.unresolved} eski bölüm işareti eşleştirme bekliyor.` : ''}\n\nMevcut ilerlemenin yerine bu yedek gelecek. Hesabına giriş yaptıysan değişiklikler eşitlenerek diğer cihazlarına da yansır. Devam etmeden önce mevcut kayıtlarını dosyaya yedekleyebilirsin.`, 'Yedeği uygula', () => {
+        const ok = store.importBackup(txt);
+        toast(ok ? 'Yedek uygulandı; kayıt durumu aşağıda gösteriliyor.' : 'Yedek uygulanamadı.');
+        if (ok) { setCode(''); setImporting(false); }
+      });
+    } catch { toast('Geçerli bir WatchVerse yedeği okunamadı. Kayıtların değiştirilmedi.'); }
+  };
   const restoreFile = async () => {
-    const txt = await pickBackupFile();
-    if (txt === null) { if (Platform.OS !== 'web') setImporting(true); return; }
-    confirm('Yedek geri yüklensin mi?', 'Bu cihazdaki mevcut ilerlemenin yerine yedekteki ilerleme gelir.', 'Geri yükle', () => {
-      toast(store.importBackup(txt) ? 'Yedek geri yüklendi' : 'Dosya okunamadı. WatchVerse yedeği olduğundan emin ol.');
-    });
+    try { const txt = await pickBackupFile(); if (txt !== null) previewBackup(txt); }
+    catch { toast('Yedek dosyası okunamadı veya çok büyük.'); }
   };
   const lastBackup = state.lastBackup ? new Date(state.lastBackup).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : undefined;
 
   return (
     <Screen>
       <Backdrop />
+      {acc.syncError && <Small style={{ color: C.amber, marginVertical: 12 }}>{acc.syncError}</Small>}
+      {Object.values(state.unresolvedEpisodes || {}).some(nums=>nums.length>0) && <Small style={{ color: C.amber, marginVertical: 12 }}>Eski bölüm işaretlerinin bir kısmı güvenle eşleştirilemedi. Kayıtlar yedeğinde korunuyor; yeniden işaretlemeden önce yedeğini dışa aktar.</Small>}
       <BackLink label="Ana sayfa" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
       <Header />
+      <SaveStatus />
 
       <StatStrip items={[[state.follow.length, 'Evren'], [fs.films, 'Film'], [fs.eps, 'Bölüm'], [Math.round(fs.minutes / 60), 'Saat']]} />
 
@@ -112,11 +124,6 @@ export default function Profile() {
       </Group>
 
       <Group title="Tercihler">
-        {Platform.OS === 'web' && (
-          <Item icon="globe" label="Dil · Language" right={
-            <Mini<'tr' | 'en'> value={LANG} onChange={(v) => v !== LANG && setLang(v)} options={[{ id: 'tr', label: 'TR' }, { id: 'en', label: 'EN' }]} />
-          } />
-        )}
         <Item icon="eye-off" label="Spoiler koruması" sub="İzlemediklerinin devamını gizler" right={
           <Switch value={state.spoiler} onValueChange={store.setSpoiler} trackColor={{ true: C.accent, false: C.line }} thumbColor="#fff" {...({ activeThumbColor: '#fff' } as object)} accessibilityLabel="Spoiler koruması" />
         } />
@@ -125,30 +132,21 @@ export default function Profile() {
             {VIEWS.map((v) => <Chip key={v} label={VIEW_TR[v]} active={state.view === v} onPress={() => store.setView(v as ListView)} />)}
           </View>
         } />
-        <Item icon="bell" label="Bildirimler" sub={pushActive ? 'Açık: yeni bölüm ve yeni yapımlar' : 'Yeni bölüm çıkınca haber ver'}
+        {nativePushEnabled && <Item icon="bell" label="Bildirimler" sub={pushActive ? 'Açık: yeni bölüm ve yeni yapımlar' : 'Yeni bölüm çıkınca haber ver'}
           right={pushActive ? <SmallBtn label="Yenile" a11y="Bildirim aboneliğini yenile" onPress={refreshPush} /> : <SmallBtn label="Aç" a11y="Bildirimleri aç" strong onPress={turnOnPush} />}
-          below={pushCode ? (
-            <View style={{ gap: 10 }}>
-              <Small style={{ color: C.green }}>İzin verildi. Bu kodu kopyala ve GitHub'da PUSH_SUBSCRIPTION ayarına yapıştır.</Small>
-              <Text selectable numberOfLines={3} style={{ padding: 12, borderRadius: R.md, backgroundColor: C.bg, color: C.muted, fontFamily: F.regular, fontSize: 12 }}>{pushCode}</Text>
-              <Btn icon="copy" label="Kodu kopyala" style={{ alignSelf: 'flex-start' }} onPress={async () => toast((await copyText(pushCode)) ? 'Kod kopyalandı' : 'Kopyalanamadı; metne uzun basıp kopyala')} />
-            </View>
-          ) : undefined} />
+        />}
       </Group>
 
       <Group title="Kayıtların">
-        {Platform.OS === 'web' && <Item icon="log-in" label="Letterboxd / TV Time'dan aktar" onPress={() => router.push('/import')} />}
+        <Item icon="log-in" label="Letterboxd / TV Time'dan aktar" onPress={() => router.push('/import')} />
         <Item icon="download" label="Dosyaya yedekle" value={lastBackup} onPress={async () => { if (await saveBackupFile(store.exportBackup())) { store.markBackup(); toast('Yedek hazırlandı'); } }} />
+        <Item icon="clipboard" label="Yedek kodu yapıştır" onPress={() => setImporting(v=>!v)} />
         <Item icon="upload" label="Yedekten geri yükle" onPress={restoreFile} below={importing ? (
           <View>
             <TextInput value={code} onChangeText={setCode} placeholder="WATCHVERSE: ile başlayan kodu yapıştır" placeholderTextColor={C.dim} multiline accessibilityLabel="Yedek kodu"
               style={{ minHeight: 90, borderRadius: R.md, backgroundColor: C.raised, color: C.text, padding: 12, fontFamily: F.regular, fontSize: 16, textAlignVertical: 'top' }} />
             <Btn label="Yedeği geri yükle" style={{ marginTop: 10, alignSelf: 'flex-start' }} disabled={!code.trim()}
-              onPress={() => confirm('Yedek geri yüklensin mi?', 'Bu cihazdaki mevcut ilerlemenin yerine yedekteki ilerleme gelir.', 'Geri yükle', () => {
-                const ok = store.importBackup(code);
-                toast(ok ? 'Yedek geri yüklendi' : 'Kod okunamadı. Tamamını kopyaladığından emin ol.');
-                if (ok) { setCode(''); setImporting(false); }
-              })} />
+              onPress={() => previewBackup(code)} />
           </View>
         ) : undefined} />
         <Item icon="rotate-ccw" label="Tüm ilerlemeyi sıfırla" danger
@@ -157,7 +155,7 @@ export default function Profile() {
 
       {acc.user && (
         <Group title="Hesap">
-          <Item icon="log-out" label="Çıkış yap" onPress={() => confirm('Çıkış yapılsın mı?', 'Kayıtların hesabında kalır. Bu cihazdaki kayıtlar da silinmez.', 'Çıkış yap', async () => { await acc.signOut(); toast('Çıkış yapıldı'); router.replace('/welcome'); })} />
+          <Item icon="log-out" label="Çıkış yap" onPress={() => confirm('Çıkış yapılsın mı?', 'Kayıtların hesabında kalır. Bu cihazdaki kayıtlar da silinmez.', 'Çıkış yap', async () => { const error = await acc.signOut(); if (error) { toast(error); return; } toast('Çıkış yapıldı'); router.replace('/welcome'); })} />
           <Item icon="trash-2" label="Hesabı sil" danger onPress={() => confirm('Hesabın kalıcı olarak silinsin mi?', 'Hesabın ve sunucudaki tüm kayıtların hemen silinir; geri alınamaz. Bu cihazdaki kayıtlar kalır.', 'Hesabı sil', async () => {
             const r = await acc.deleteAccount();
             toast(r ? r : 'Hesabın silindi');
@@ -189,7 +187,6 @@ function Header() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(store.state.name);
   const [, tick] = useState(0);
-  useEffect(() => setName(store.state.name), [store.state.name]);
   useEffect(() => { const h = setInterval(() => tick((n) => n + 1), 30000); return () => clearInterval(h); }, []);
   const initial = (store.state.name.trim()[0] || 'W').toLocaleUpperCase('tr');
   const save = () => { store.setName(name.trim()); setEditing(false); };
@@ -213,7 +210,7 @@ function Header() {
           </Press>
         </View>
       ) : (
-        <Press accessibilityRole="button" accessibilityLabel="Adını düzenle" onPress={() => setEditing(true)} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 }}>
+        <Press accessibilityRole="button" accessibilityLabel="Adını düzenle" onPress={() => { setName(store.state.name); setEditing(true); }} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 }}>
           <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.bold, fontSize: 26, color: C.text, letterSpacing: -0.6 }}>{store.state.name || 'Adını ekle'}</Text>
           <Feather name="edit-2" size={15} color={C.dim} />
         </Press>
@@ -302,22 +299,5 @@ function SmallBtn({ label, a11y, onPress, strong }: { label: string; a11y?: stri
       style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 99, backgroundColor: strong ? C.accent : C.raised }}>
       <Text style={{ fontFamily: F.bold, fontSize: 13, color: strong ? C.onAccent : C.text }}>{label}</Text>
     </Press>
-  );
-}
-
-/** Küçük iki seçenekli anahtar (dil gibi) */
-function Mini<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
-  return (
-    <View style={{ flexDirection: 'row', padding: 3, borderRadius: 99, backgroundColor: C.raised }}>
-      {options.map((o) => {
-        const on = o.id === value;
-        return (
-          <Press key={o.id} accessibilityRole="radio" accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={o.label} onPress={() => onChange(o.id)} scaleTo={0.95}
-            style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99, backgroundColor: on ? C.accent : 'transparent' }}>
-            <Text style={{ fontFamily: F.bold, fontSize: 12, color: on ? C.onAccent : C.muted }}>{o.label}</Text>
-          </Press>
-        );
-      })}
-    </View>
   );
 }

@@ -1,18 +1,21 @@
-import { changedEpisodes } from '@/lib/audit-logic';
+import { compatibleLayout, libraryLayout } from '@/lib/episode-identity';
+import { RatingNotes } from '@/components/rating-notes';
+import { SeasonActions } from '@/components/season-actions';
+import { CatchUpControl } from '@/components/catch-up';
+import { catchUpSelection } from '@/lib/catch-up';
 import Feather from '@expo/vector-icons/Feather';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Row, TItemTile, useTileW } from '@/components/rows';
 import { BackLink, Bar, Btn, Chip, Empty, Eyebrow, FadeIn, H1, Muted, Panel, Pills, Press, Screen, SectionHead, Small, tap, useLayout, useToast, SkeletonPage, SkeletonRows } from '@/components/ui';
 import { duration } from '@/lib/format';
-import { catalogOf, libFromDetail, libProgress, routeOf, shortDate } from '@/lib/library';
+import { catalogOf, libFromDetail, libProgress, shortDate } from '@/lib/library';
 import { useStore } from '@/lib/store';
-import { C, F, R, alpha } from '@/lib/theme';
+import { C, F, R } from '@/lib/theme';
 import { RecommendBanner, TitleExtras } from '@/components/extras';
 import { CastRow } from '@/components/people';
 import { itemFromDetail, useListPicker } from '@/components/lists';
@@ -21,6 +24,10 @@ import { detail, epIndex, hasApi, img, parseKey, season as loadSeason, today, ty
 
 export default function Show() {
   const { key = '' } = useLocalSearchParams<{ key: string }>();
+  return <ShowContent key={key} routeId={key} />;
+}
+
+function ShowContent({ routeId: key }: { routeId: string }) {
   const pk = parseKey(key);
   const store = useStore();
   const { state } = store;
@@ -33,7 +40,8 @@ export default function Show() {
   const [d, setD] = useState<TDetail | null>(null);
   const [err, setErr] = useState(false);
   const [sn, setSn] = useState<number | null>(null);
-  const [eps, setEps] = useState<TEpisode[] | null>(null);
+  const [seasonResult, setSeasonResult] = useState<{ sn: number; eps: TEpisode[] } | null>(null);
+  const eps = seasonResult?.sn === sn ? seasonResult.eps : null;
 
   // Evren kataloğunda olan yapımlar kendi sayfasında açılır
   const cat = catalogOf(key);
@@ -42,7 +50,6 @@ export default function Show() {
   useEffect(() => {
     if (!pk || !hasApi()) return;
     let alive = true;
-    setD(null); setErr(false);
     detail(pk.m, pk.id).then((x) => {
       if (!alive) return;
       setD(x);
@@ -60,13 +67,17 @@ export default function Show() {
   useEffect(() => {
     if (!d || d.m !== 'tv' || sn == null) return;
     let alive = true;
-    setEps(null);
-    loadSeason(d.id, sn).then((x) => alive && setEps(x)).catch(() => alive && setEps([]));
+    loadSeason(d.id, sn).then((x) => {
+      if (!alive) return;
+      const item = store.getState().lib[key];
+      if (item) store.libSave(key, { ...item, episodeIds: { ...item.episodeIds, ...Object.fromEntries(x.filter(e=>e.id).map(e=>[`s${e.s}e${e.e}`,e.id!])) } });
+      setSeasonResult({ sn, eps: x });
+    }).catch(() => alive && setSeasonResult({ sn, eps: [] }));
     return () => { alive = false; };
   }, [d?.id, sn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!pk) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><Empty title="Bu yapım bulunamadı." /></Screen>;
-  if (!hasApi()) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><Empty icon="wifi-off" title="Arama henüz kurulmadı." text="Tüm film ve dizileri görmek için ara sunucu kurulumu gerekiyor." /></Screen>;
+  if (!hasApi()) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><Empty icon="wifi-off" title="Yapım bilgisi şu an kullanılamıyor." text="Daha sonra tekrar dene." /></Screen>;
   if (err && !d) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><Empty icon="wifi-off" title="Yapım bilgisi alınamadı." text="İnternet bağlantını kontrol edip tekrar dene." action="Tekrar dene" onAction={() => router.replace(`/show/${key}`)} /></Screen>;
   if (!d) return <Screen><BackLink label="Geri" onPress={() => router.back()} /><SkeletonPage /></Screen>;
 
@@ -75,12 +86,20 @@ export default function Show() {
   const pr = libProgress(state, key, li || libFromDetail(d));
   const done = pr.finished;
   const t0 = today();
-  const save = () => store.libSave(key, libFromDetail(d));
+  const save = () => store.libSave(key, { ...libFromDetail(d), episodeIds: Object.fromEntries((eps || []).filter(e=>e.id).map(e=>[`s${e.s}e${e.e}`,e.id!])) });
   const back = () => (router.canGoBack() ? router.back() : router.replace('/explore'));
   const seen = new Set(state.episodes[key] || []);
   const idx = (e: TEpisode) => epIndex(d.seasons, e.s, e.e);
   const airedEps = (eps || []).filter((e) => e.date && e.date <= t0);
-  const seasonDone = airedEps.length > 0 && airedEps.every((e) => seen.has(idx(e)));
+  const catchUpLoad = async (s:number,e:number) => {
+    const all:TEpisode[]=[];
+    for(const part of d.seasons.filter(x=>x.n<=s).sort((a,b)=>a.n-b.n)) all.push(...await loadSeason(d.id,part.n));
+    const ids=Object.fromEntries(all.filter(x=>x.id).map(x=>[`s${x.s}e${x.e}`,x.id!]));
+    const old=store.getState().lib[key];
+    if(old?.seasons && !compatibleLayout(libraryLayout(key,old),libraryLayout(key,{...old,...libFromDetail(d),episodeIds:{...old.episodeIds,...ids}}))) throw new Error('Bölüm sırası değişmiş. Güvenli eşleştirme tamamlanmadan toplu işaretleme yapılamıyor.');
+    return {nums:catchUpSelection(all.map(x=>({n:idx(x),season:x.s,episode:x.e,aired:!!x.date && x.date<=t0})),s,e),ids};
+  };
+
   const epCols = width >= 1000 ? 3 : tablet ? 2 : 1;
   const meta = [d.year, d.m === 'movie' ? 'Film' : 'Dizi', d.m === 'movie' ? (d.runtime ? duration(d.runtime) : null) : `${d.seasons.length} sezon · ${d.aired} bölüm`].filter(Boolean).join(' · ');
   const bd = img(d.b, 'w780');
@@ -144,37 +163,18 @@ export default function Show() {
 
       <CastRow cast={d.cast || []} makers={d.makers || []} />
 
-      <Panel style={{ marginTop: 14 }}>
-        <Eyebrow>Senin değerlendirmen</Eyebrow>
-        <View style={{ flexDirection: 'row', gap: 4, marginTop: 8 }}>
-          {[1, 2, 3, 4, 5].map((n) => {
-            const on = (state.ratings[key] || 0) >= n;
-            return (
-              <Press key={n} accessibilityRole="button" accessibilityLabel={`${n} yıldız`} accessibilityState={{ selected: state.ratings[key] === n }} aria-pressed={state.ratings[key] === n} scaleTo={0.85} hitSlop={4}
-                onPress={() => { if (!inLib) save(); store.setRating(key, n); tap(); }} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name={on ? 'star' : 'star-outline'} size={28} color={on ? C.amber : C.dim} />
-              </Press>
-            );
-          })}
-        </View>
-        <TextInput value={state.notes[key] || ''} onChangeText={(v) => store.setNote(key, v)} placeholder="Kısa bir not ekle (sadece sen görürsün)" placeholderTextColor={C.dim} multiline maxLength={500} accessibilityLabel="Not"
-          style={{ marginTop: 10, minHeight: 64, padding: 12, borderRadius: R.md, backgroundColor: C.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line, color: C.text, fontFamily: F.regular, fontSize: 16, lineHeight: 22, textAlignVertical: 'top' }} />
-      </Panel>
+      <RatingNotes rating={state.ratings[key] || 0} note={state.notes[key] || ''} onRating={n=>{if(!inLib)save();store.setRating(key,n);}} onNote={v=>{if(!inLib)save();store.setNote(key,v);}} />
 
       {d.m === 'tv' && d.seasons.length > 0 && (
         <>
           <SectionHead title="Bölümler" note={`${pr.done} / ${d.aired} izlendi`} />
           <Bar pct={d.aired ? (pr.done / d.aired) * 100 : 0} height={6} />
-          {d.seasons.length > 1 && <View style={{ marginTop: 16 }}><Pills value={String(sn)} onChange={(v) => setSn(Number(v))} options={d.seasons.map((s) => ({ id: String(s.n), label: s.name.length < 16 ? s.name : `${s.n}. sezon` }))} /></View>}
+          <CatchUpControl seasons={d.seasons.map(s=>s.n)} load={catchUpLoad} seen={()=>store.getState().episodes[key] || []}
+                apply={(nums,value,ids)=>{ if(value) {const old=store.getState().lib[key];const candidate={...old,...libFromDetail(d),episodeIds:{...old?.episodeIds,...ids}};if(old?.seasons && !compatibleLayout(libraryLayout(key,old),libraryLayout(key,candidate)))throw new Error('Bölüm eşlemesi değişti; yeniden önizle.');store.libSave(key,candidate);} store.setEpsKey(key,nums,value,false); }} />
+              {d.seasons.length > 1 && <View style={{ marginTop: 16 }}><Pills value={String(sn)} onChange={(v) => setSn(Number(v))} options={d.seasons.map((s) => ({ id: String(s.n), label: s.name.length < 16 ? s.name : `${s.n}. sezon` }))} /></View>}
           {eps === null ? <SkeletonRows n={3} /> : (
             <>
-              {airedEps.length > 0 && (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
-                  <Small>{airedEps.filter((e) => seen.has(idx(e))).length} / {airedEps.length} bölüm izlendi</Small>
-                  <Btn kind="quiet" label={seasonDone ? 'Sezonun işaretlerini kaldır' : 'Sezonu tamamladım'}
-                    onPress={() => { if (!inLib) save(); const nums = airedEps.map(idx); const changed = changedEpisodes(nums, [...seen], seasonDone); store.setEpsKey(key, nums, !seasonDone); tap('success'); toast(seasonDone ? 'Sezon işaretleri kaldırıldı' : 'Sezon tamamlandı', { label: 'Geri al', onPress: () => store.setEpsKey(key, changed, seasonDone) }); }} />
-                </View>
-              )}
+              <SeasonActions nums={airedEps.map(idx)} seen={[...seen]} set={(nums,value)=>{if(!inLib)save();store.setEpsKey(key,nums,value);}} />
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
                 {eps.map((e) => {
                   const n = idx(e);

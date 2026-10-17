@@ -2,7 +2,7 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, In
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ConfirmProvider, ToastProvider, useToast } from '@/components/ui';
 import { PreviewProvider } from '@/components/preview';
@@ -14,16 +14,15 @@ import { FriendsSync } from '@/components/friends-sync';
 import { refreshLibrary } from '@/lib/library';
 import { syncCatalog } from '@/lib/remote';
 import { hasSyncApi, syncDevice } from '@/lib/sync';
+import { checkpoint } from '@/lib/checkpoint';
 import { StoreProvider, useStore } from '@/lib/store';
 import { AccountProvider } from '@/lib/account';
 import { installErrorTracking, reportError } from '@/lib/errors';
-import { startTranslator } from '@/lib/i18n';
-import { Text, View } from 'react-native';
+import { AppState, Text, View } from 'react-native';
 import type { ErrorBoundaryProps } from 'expo-router';
 import { C } from '@/lib/theme';
 
 installErrorTracking();
-startTranslator();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 SplashScreen.setOptions({ duration: 300, fade: true });
 
@@ -35,19 +34,19 @@ const theme = {
 // Uygulama açılınca ve her öne gelişte güncel kataloğu kontrol eder
 function CatalogSync({ onChange }: { onChange: () => void }) {
   const toast = useToast();
+  const { setState } = useStore();
   useEffect(() => {
     let last = 0;
     const run = async () => {
       if (Date.now() - last < 30 * 60 * 1000) return;
       last = Date.now();
       const r = await syncCatalog();
-      if (r) { onChange(); if (r.added) toast(`Katalog güncellendi · ${r.added} yeni yapım`); }
+      if (r) { setState(s=>s); onChange(); if (r.added) toast(`Katalog güncellendi · ${r.added} yeni yapım`); }
     };
     run();
-    const onVis = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') run(); };
-    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
-    return () => { if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis); };
-  }, [onChange, toast]);
+    const listener = AppState.addEventListener('change', (state) => { if (state === 'active') run(); });
+    return () => listener.remove();
+  }, [onChange, toast, setState]);
   return null;
 }
 
@@ -55,39 +54,45 @@ function CatalogSync({ onChange }: { onChange: () => void }) {
 function LibrarySync() {
   const store = useStore();
   const { state } = store;
-  const stateRef = useRef(state);
-  stateRef.current = state;
+  const getState = store.getState;
   useEffect(() => {
     let last = 0;
     const run = () => {
       if (Date.now() - last < 15 * 60 * 1000) return;
       last = Date.now();
-      refreshLibrary(stateRef.current, store.libSave).catch(() => {});
+      refreshLibrary(getState(), store.libSave).catch(() => {});
     };
     run();
-    const onVis = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') run(); };
-    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
-    return () => { if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis); };
+    const listener = AppState.addEventListener('change', (state) => { if (state === 'active') run(); });
+    return () => listener.remove();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Takip listesi değişince (birkaç saniye sonra) sunucuya bildir
   const sig = state.follow.join(',') + '|' + Object.keys(state.lib).join(',') + '|' + Object.keys(state.episodes).length;
   useEffect(() => {
     if (!hasSyncApi()) return;
-    const h = setTimeout(() => syncDevice(stateRef.current, store.ensureDevice()).catch(() => {}), 3000);
+    const h = setTimeout(() => syncDevice(getState(), store.ensureDevice()).catch(() => {}), 3000);
     return () => clearTimeout(h);
   }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 
 function Gate({ fontsReady }: { fontsReady: boolean }) {
-  const { ready } = useStore();
+  const { ready, storageError } = useStore();
   const [catVersion, setCatVersion] = useState(0);
   const bump = useCallback(() => setCatVersion((v) => v + 1), []);
   const go = ready && fontsReady;
-  useEffect(() => { if (go) SplashScreen.hide(); }, [go]);
+  useEffect(() => { if (go || storageError) SplashScreen.hide(); }, [go, storageError]);
+  if (storageError && !ready) return <View style={{ flex: 1, backgroundColor: C.bg, padding: 32, justifyContent: 'center' }}>
+    <Text style={{ color: C.text }}>Yerel kayıt okunamadı veya değişiklikler telefona kaydedilemedi. Uygulamayı silmeyin.</Text>
+    <Text style={{ color: C.text }}>Uygulamayı kapatıp yeniden açarak tekrar deneyin.</Text>
+  </View>;
   if (!go) return null;
   return (
     <ThemeProvider value={theme}>
+      {storageError && <View style={{ backgroundColor: C.bg, padding: 24 }}>
+        <Text style={{ color: C.text }}>Değişiklikler telefona kaydedilemedi. Uygulamayı silmeyin.</Text>
+        <Text accessibilityRole="button" onPress={() => { void checkpoint.flush().catch(() => {}); }} style={{ color: C.accent, paddingVertical: 12 }}>Kaydetmeyi yeniden dene</Text>
+      </View>}
       <AccountProvider><ToastProvider><ConfirmProvider><ListPickerProvider><TrailerProvider><PreviewProvider>
         <StatusBar style="light" />
         <CatalogSync onChange={bump} />

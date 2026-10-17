@@ -2,7 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Animated, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useReducedMotion } from '@/lib/motion';
 import { isEn } from '@/lib/i18n';
 import { C, F, R, alpha } from '@/lib/theme';
@@ -84,7 +84,7 @@ export function TItemTile({ x, width, index, badge }: { x: TItem; width: number;
 export function Top10Tile({ x, n, width }: { x: TItem; n: number; width: number }) {
   const { open } = usePreview();
   const big = Math.round(width * 1.25);
-  const stroke = Platform.OS === 'web' ? ({ WebkitTextStroke: `2px ${C.line}`, color: C.bg } as any) : { color: C.line };
+  const stroke = { color: C.line };
   return (
     <FadeIn index={n}>
       <Press accessibilityRole="button" accessibilityLabel={`${n}. sıra: ${x.title}`} onPress={() => open(x)} scaleTo={0.95} style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
@@ -109,11 +109,14 @@ export function RowLoading({ width }: { width: number }) {
 /** Uzaktan yüklenen satır: veri gelince görünür, boşsa hiç çıkmaz */
 export function RemoteRow({ title, load, deps = [], top10, onMore, filter, note }: { title: string; load: () => Promise<TItem[]>; deps?: unknown[]; top10?: boolean; onMore?: () => void; filter?: (x: TItem) => boolean; note?: string }) {
   const w = useTileW();
-  const [items, setItems] = useState<TItem[] | null>(null);
+  const requestKey = JSON.stringify(deps);
+  const [result, setResult] = useState<{ key: string; items: TItem[] } | null>(null);
+  const items = result?.key === requestKey ? result.items : null;
   useEffect(() => {
-    let a = true; setItems(null);
-    load().then((r) => a && setItems(r.filter((x) => x.p && (!filter || filter(x))).slice(0, top10 ? 10 : 20))).catch(() => a && setItems([]));
-    return () => { a = false; };
+    let alive = true;
+    load().then(r => { if (alive) setResult({ key: requestKey, items: r.filter(x => x.p && (!filter || filter(x))).slice(0, top10 ? 10 : 20) }); })
+      .catch(() => { if (alive) setResult({ key: requestKey, items: [] }); });
+    return () => { alive = false; };
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   if (items && items.length < (top10 ? 5 : 3)) return null;
   return (
@@ -175,6 +178,6 @@ export function Billboard({ items }: { items: BillboardItem[] }) {
 
 /** Animasyonlu yukarı kayan üst çubuk arka planı (kaydırınca koyulaşır) */
 export function useHeaderFade() {
-  const y = useRef(new Animated.Value(0)).current;
+  const [y] = useState(() => new Animated.Value(0));
   return { y, bg: y.interpolate({ inputRange: [0, 120], outputRange: ['rgba(0,0,0,0)', 'rgba(0,0,0,0.92)'], extrapolate: 'clamp' }) };
 }

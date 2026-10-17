@@ -1,5 +1,5 @@
 import { isEn } from './i18n';
-import raw from '@/data/catalog.json';
+import raw from '../data/catalog.json';
 import type { ListView, Mode, Order, Title, Universe } from './types';
 export type { ListView } from './types';
 

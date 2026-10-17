@@ -3,7 +3,6 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { memo, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { scoreText, usePreview } from '@/components/preview';
 import { PersonChip } from '@/components/people';
@@ -16,12 +15,9 @@ import { CATALOG, CATEGORIES, CATEGORY_TR, search as searchCatalog } from '@/lib
 import { routeOf } from '@/lib/library';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
-import { GENRES, discover, hasApi, img, niceProvider, providers, searchAll, today, trending, type Person, type TItem } from '@/lib/tmdb';
+import { GENRES, hasApi, img, searchAll, trending, type Person, type TItem } from '@/lib/tmdb';
 
 const PAGE = 48;
-const PLATFORMS = ['Netflix', 'Disney+', 'Prime Video', 'HBO Max', 'TOD', 'Exxen', 'tabii', 'Gain', 'BluTV', 'Apple TV+'];
-// Türkçe ek: "Netflix'te", "Disney+'ta"...
-const AT: Record<string, string> = { Netflix: "Netflix'te", 'Disney+': "Disney+'ta", 'Prime Video': "Prime Video'da", 'HBO Max': "HBO Max'te", TOD: "TOD'da", Exxen: "Exxen'de", tabii: "tabii'de", Gain: "Gain'de", BluTV: "BluTV'de", 'Apple TV+': "Apple TV+'ta" };
 
 export default function Explore() {
   return hasApi() ? <Online /> : <CatalogOnly />;
@@ -51,37 +47,26 @@ function Online() {
   const [q, setQ] = useState('');
   const { openTitle } = usePreview();
   const [type, setType] = useState<'all' | 'movie' | 'tv'>('all');
-  const [res, setRes] = useState<TItem[] | null>(null);
-  const [people, setPeople] = useState<(Person & { known: string })[]>([]);
-  const [err, setErr] = useState(false);
-  const [plats, setPlats] = useState<{ id: number; name: string }[]>([]);
+  const [result, setResult] = useState<{ query: string; items: TItem[]; people: (Person & { known: string })[]; error: boolean } | null>(null);
   const query = q.trim();
+  const current = result?.query === query ? result : null;
+  const res = current?.items ?? null;
+  const people = current?.people ?? [];
+  const err = current?.error ?? false;
 
   useEffect(() => {
-    providers().then((list) => {
-      const pick: { id: number; name: string }[] = [];
-      for (const name of PLATFORMS) {
-        const p = list.find((x) => niceProvider(x.name) === name && !/kids|channel|with ads|standard|basic/i.test(x.name));
-        if (p && !pick.some((x) => x.id === p.id)) pick.push({ id: p.id, name });
-      }
-      setPlats(pick);
-    }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (query.length < 2) { setRes(null); setErr(false); return; }
+    if (query.length < 2) return;
     let alive = true;
-    setRes(null); setPeople([]); setErr(false);
     const h = setTimeout(() => {
-      setRes(null); setErr(false);
-      searchAll(query).then((r) => { if (alive) { setRes(r.items); setPeople(r.people); } }).catch(() => alive && setErr(true));
+      searchAll(query).then((r) => {
+        if (alive) setResult({ query, items: r.items, people: r.people, error: false });
+      }).catch(() => { if (alive) setResult({ query, items: [], people: [], error: true }); });
     }, 350);
     return () => { alive = false; clearTimeout(h); };
   }, [query]);
 
   const local = useMemo(() => (query.length >= 2 ? searchCatalog(query, null).filter((t) => type === 'all' || (t.tmdb?.m || t.media) === type).slice(0, 12) : []), [query, type]);
   const shown = remoteSearchResults(res || [], local, type);
-  const t0 = today();
 
   return (
     <Screen>
@@ -118,6 +103,10 @@ function Online() {
       ) : (
         <>
           <PickBanner style={{ marginTop: 18 }} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+            <Btn kind="secondary" icon="layers" label="Koleksiyonlar ve seçkiler" onPress={() => router.push('/collections')} />
+            <Btn kind="secondary" icon="compass" label="Platformlar ve öneriler" onPress={() => router.push('/discover')} />
+          </View>
           <CategoryStrip />
           <PopularList />
           <Btn kind="secondary" icon="globe" label={`Evrenlerdeki ${CATALOG.length} yapıma göz at`} style={{ marginTop: 30, alignSelf: 'flex-start' }} onPress={() => router.push('/universes')} />
@@ -207,24 +196,6 @@ function Rail({ items }: { items: RailItem[] }) {
   );
 }
 
-function Section({ title, load }: { title: string; load: () => Promise<TItem[]> }) {
-  const { state } = useStore();
-  const [items, setItems] = useState<TItem[] | null>(null);
-  useEffect(() => { let a = true; load().then((r) => a && setItems(r.filter((x) => x.p).slice(0, 20))).catch(() => a && setItems([])); return () => { a = false; }; }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  if (items && !items.length) return null;
-  return (
-    <>
-      <SectionHead title={title} />
-      {items === null ? <SkeletonGrid rows={1} /> : (
-        <Rail items={items.map((x) => {
-          const r = routeOf(x.key);
-          return { key: x.key, uri: img(x.p, 'w342'), title: x.title, sub: [x.year, x.m === 'movie' ? 'Film' : 'Dizi'].filter(Boolean).join(' · '), go: () => router.push(r), badge: r.startsWith('/title/') ? 'Evrende' : state.lib[x.key] ? 'Ekli' : undefined };
-        })} />
-      )}
-    </>
-  );
-}
-
 /* ---------- ara sunucu kurulmadıysa: yalnızca evren kataloğu ---------- */
 function CatalogOnly() {
   const { posterCols } = useLayout();
@@ -252,8 +223,7 @@ function CatalogOnly() {
         <Grid items={found.slice(0, limit)} cols={posterCols} gap={14} rowGap={22} keyOf={(t) => t.id} render={(t, cw) => <PosterCard t={t} width={cw} />} />
       ) : <Empty icon="search" title="Aramana uygun yapım bulunamadı." text="Farklı bir yazım dene ya da tür filtresini kaldır." />}
       {found.length > limit && <Btn kind="secondary" label="Daha fazla göster" style={{ marginTop: 24 }} onPress={() => setLimit((l) => l + PAGE)} />}
-      <Small style={{ marginTop: 24 }}>Tüm film ve dizilerde arama, ara sunucu kurulunca açılır.</Small>
+      <Small style={{ marginTop: 24 }}>Çevrimiçi arama şu an kullanılamıyor. Evren kataloğunda aramaya devam edebilirsin.</Small>
     </Screen>
   );
 }
-

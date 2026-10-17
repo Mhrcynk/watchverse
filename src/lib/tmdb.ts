@@ -1,3 +1,4 @@
+import { getJson } from './http';
 import { isEn } from './i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -20,7 +21,7 @@ export type TDetail = TItem & {
 };
 export type Person = { id: number; name: string; role: string; p: string | null };
 export type PersonDetail = { id: number; name: string; p: string | null; bio: string; born: string | null; died: string | null; place: string | null; dept: string; acting: (TItem & { role: string })[]; directing: TItem[] };
-export type TEpisode = { s: number; e: number; name: string; date: string | null; runtime: number | null; overview: string; still: string | null };
+export type TEpisode = { id?: number; s: number; e: number; name: string; date: string | null; runtime: number | null; overview: string; still: string | null };
 
 export const keyOf = (m: Media, id: number) => `${m}:${id}`;
 export const parseKey = (k: string): { m: Media; id: number } | null => {
@@ -32,6 +33,10 @@ export const today = () => new Date(Date.now() - new Date().getTimezoneOffset() 
 
 const mem = new Map<string, { t: number; v: unknown }>();
 const PERSIST = 'wv:tmdb:';
+function remember(url:string, value:{t:number;v:unknown}) {
+  mem.delete(url);mem.set(url,value);
+  if(mem.size>200)mem.delete(mem.keys().next().value!);
+}
 
 async function get<T>(path: string, params: Record<string, string | number | undefined> = {}, maxAgeMin = 60, persist = false): Promise<T> {
   if (!API) throw new Error('no-api');
@@ -43,15 +48,13 @@ async function get<T>(path: string, params: Record<string, string | number | und
   if (persist && !hit) {
     try {
       const s = await AsyncStorage.getItem(PERSIST + url);
-      if (s) { const o = JSON.parse(s); mem.set(url, o); if (Date.now() - o.t < maxAgeMin * 6e4) return o.v as T; }
+      if (s) { const o = JSON.parse(s); remember(url, o); if (Date.now() - o.t < maxAgeMin * 6e4) return o.v as T; }
     } catch {}
   }
   try {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('http ' + r.status);
-    const v = (await r.json()) as T;
+    const v = await getJson<T>(url);
     const o = { t: Date.now(), v };
-    mem.set(url, o);
+    remember(url, o);
     if (persist) AsyncStorage.setItem(PERSIST + url, JSON.stringify(o)).catch(() => {});
     return v;
   } catch (e) {
@@ -167,7 +170,7 @@ export async function detail(m: Media, id: number, fresh = false): Promise<TDeta
 
 export async function season(id: number, n: number): Promise<TEpisode[]> {
   const j = await get<any>(`/tv/${id}/season/${n}`, {}, 360, true);
-  return (j.episodes || []).map((e: any) => ({ s: n, e: e.episode_number, name: e.name || `${e.episode_number}. bölüm`, date: e.air_date || null, runtime: e.runtime || null, overview: e.overview || '', still: e.still_path || null }));
+  return (j.episodes || []).map((e: any) => ({ id: e.id, s: n, e: e.episode_number, name: e.name || `${e.episode_number}. bölüm`, date: e.air_date || null, runtime: e.runtime || null, overview: e.overview || '', still: e.still_path || null }));
 }
 
 /** Sezon/bölüm → sıra numarası (1'den başlar); sezonlar sırayla dizilir */

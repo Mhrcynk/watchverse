@@ -3,12 +3,11 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Brand } from '@/components/brand';
 import { Btn, Press, Small, useLayout } from '@/components/ui';
 import { useAccount } from '@/lib/account';
-import { LANG, setLang } from '@/lib/i18n';
 import { CATALOG, TBY, TIER_TR, UNIVERSES, posterUrl } from '@/lib/catalog';
 import { TIER_COLOR } from '@/components/media';
 import { C, F, R, alpha } from '@/lib/theme';
@@ -122,7 +121,7 @@ export default function Welcome() {
     { art: 'posters', title: 'Tüm film ve diziler tek yerde', text: 'Türk dizilerinden dünya yapımlarına her şeyi bul. Puanını ve hangi platformda olduğunu gör.' },
     { art: 'order', title: 'Evrenleri doğru sırayla izle', text: `Marvel, Star Wars ve ${Math.max(UNIVERSES.length - 2, 0)} evren daha. Ana hikâye, çıkış sırası ya da kronolojik.` },
     { art: 'episodes', title: 'Kaldığın yeri unutma', text: 'Bölüm bölüm işaretle, sıradakini hemen gör. Yeni bölüm çıkınca bildirim gelsin.' },
-    { art: 'devices', title: 'Her cihazda seninle', text: 'Hesabınla giriş yap; izlediklerin telefonda da bilgisayarda da aynı görünür, kaybolmaz.' },
+    { art: 'devices', title: 'Her cihazda seninle', text: 'Hesabınla giriş yap; izlediklerin telefonunda ve tabletinde eşitlenir.' },
   ];
 
   if (acc.ready && acc.user) return <Redirect href="/" />;
@@ -138,12 +137,6 @@ export default function Welcome() {
         <View style={{ paddingHorizontal: pad, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Brand />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-            {Platform.OS === 'web' && (
-              <Press accessibilityRole="button" accessibilityLabel={LANG === 'en' ? 'Türkçe' : 'English'} onPress={() => setLang(LANG === 'en' ? 'tr' : 'en')} hitSlop={10}
-                style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: C.line }}>
-                <Text style={{ fontFamily: F.semibold, fontSize: 12, color: C.muted }}>{LANG === 'en' ? 'TR' : 'EN'}</Text>
-              </Press>
-            )}
             {!last && <Press accessibilityRole="button" onPress={() => go(slides.length - 1)} hitSlop={10}><Small style={{ color: C.muted }}>Atla</Small></Press>}
           </View>
         </View>

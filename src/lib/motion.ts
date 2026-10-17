@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, Platform } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing } from 'react-native';
 import { M } from './theme';
 
-export const ND = Platform.OS !== 'web';
+export const ND = true;
 export const EASE_OUT = Easing.bezier(0.22, 1, 0.36, 1);
 
 /** Cihazda "hareketi azalt" açıksa true */
@@ -20,7 +20,7 @@ export function useReducedMotion() {
 /** Bir kez oynayan giriş değeri (0 → 1); index ile kısa aralıklarla sıralanır */
 export function useEnter(index = 0, enabled = true) {
   const reduced = useReducedMotion();
-  const v = useRef(new Animated.Value(enabled ? 0 : 1)).current;
+  const [v] = useState(() => new Animated.Value(enabled ? 0 : 1));
   useEffect(() => {
     if (!enabled) return;
     if (reduced) { v.setValue(1); return; }

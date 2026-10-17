@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Linking, View } from 'react-native';
-import { BackLink, Body, H1, H3, Muted, Panel, Press, Screen, Small } from '@/components/ui';
+import { BackLink, Body, H3, Muted, Panel, Press, Screen, Small } from '@/components/ui';
 import { CONTACT, LEGAL, LEGAL_UPDATED } from '@/lib/legal';
 import { Backdrop, PageHeader } from '@/components/home';
 import { C } from '@/lib/theme';

@@ -82,7 +82,7 @@ export default function Invite() {
 
   const accept = async () => {
     setBusy(true);
-    try { const n = await acceptInvite(code!, state.name); toast(`${n || 'Davet eden'} ile artık arkadaşsınız`); router.replace('/friends'); }
+    try { const n = await acceptInvite(code!, state.name, acc.user!.id); toast(`${n || 'Davet eden'} ile artık arkadaşsınız`); router.replace('/friends'); }
     catch (e) { toast(/kendi/.test(String((e as Error)?.message)) ? 'Bu senin kendi davet bağlantın.' : 'Davet kabul edilemedi.'); setBusy(false); }
   };
   const join = (mode: 'signup' | 'signin') => { savePending(code!); router.push(`/account?mode=${mode}&from=welcome`); };

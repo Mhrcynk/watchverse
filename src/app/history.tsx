@@ -16,7 +16,7 @@ export default function History() {
   for (const h of hist) {
     const label = h.at ? monthLabel(h.at) : 'Tarihsiz';
     const g = groups.find((x) => x.label === label);
-    g ? g.items.push(h) : groups.push({ label, items: [h] });
+    if (g) g.items.push(h); else groups.push({ label, items: [h] });
   }
   const back = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
   return (

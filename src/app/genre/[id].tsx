@@ -1,24 +1,27 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 import { TItemTile } from '@/components/rows';
-import { BackLink, Btn, Empty, Grid, H1, Pills, Screen, Small, useLayout, SkeletonGrid } from '@/components/ui';
-import { C } from '@/lib/theme';
+import { BackLink, Btn, Empty, Grid, Pills, Screen, Small, useLayout, SkeletonGrid } from '@/components/ui';
 import { Backdrop, PageHeader } from '@/components/home';
 import { GENRES, byGenre, hasApi, type Kind, type TItem } from '@/lib/tmdb';
 
 export default function GenrePage() {
   const p = useLocalSearchParams<{ id: string; k?: string }>();
-  const g = GENRES.find((x) => x.name === p.id);
-  const { posterCols } = useLayout();
   const [kind, setKind] = useState<Kind>((['all', 'movie', 'tv'].includes(p.k || '') ? p.k : 'all') as Kind);
+  return <GenreContent key={`${p.id}:${kind}`} id={p.id} kind={kind} setKind={setKind} />;
+}
+
+function GenreContent({ id, kind, setKind }: { id: string; kind: Kind; setKind: (kind: Kind) => void }) {
+  const g = GENRES.find(x => x.name === id);
+  const { posterCols } = useLayout();
   const [items, setItems] = useState<TItem[] | null>(null);
   const [page, setPage] = useState(1);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!g || !hasApi()) return;
-    let a = true; setItems(null); setPage(1);
+    let a = true;
     byGenre(g, kind, 1).then((r) => a && setItems(r.filter((x) => x.p))).catch(() => a && setItems([]));
     return () => { a = false; };
   }, [g?.name, kind]); // eslint-disable-line react-hooks/exhaustive-deps
