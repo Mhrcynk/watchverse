@@ -1,4 +1,4 @@
-# Mobil uygulamanın kataloğunu ve API servislerini günceller. Web yayını yok.
+# Kataloğu ve API servislerini günceller, kişisel web sitesini yeniden yayınlar.
 # Elle çalıştırmak için: GitHub → Actions → "Katalogu güncelle" → Run workflow
 name: Katalogu güncelle
 
@@ -16,14 +16,19 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
-  group: mobile-backend
+  group: pages
   cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,6 +43,21 @@ jobs:
       - run: npm run test:sync
       - run: node scripts/test-database.mjs
       - run: node --test scripts/test-worker.mjs
+
+      - name: Site adresini belirle
+        id: site
+        env:
+          CUSTOM_DOMAIN: ${{ secrets.CUSTOM_DOMAIN }}
+        run: |
+          D=$(echo "$CUSTOM_DOMAIN" | sed -E 's#^https?://##; s#/.*$##' | tr -d '[:space:]')
+          OLD="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          if [ -n "$D" ]; then
+            echo "url=https://$D/" >> "$GITHUB_OUTPUT"; echo "base=" >> "$GITHUB_OUTPUT"; echo "domain=$D" >> "$GITHUB_OUTPUT"
+            echo "::notice::Site adresi: https://$D/"
+          else
+            echo "url=$OLD" >> "$GITHUB_OUTPUT"; echo "base=/${{ github.event.repository.name }}" >> "$GITHUB_OUTPUT"; echo "domain=" >> "$GITHUB_OUTPUT"
+          fi
+          echo "old=$OLD" >> "$GITHUB_OUTPUT"
 
       - name: Yeni bölüm, sezon ve yapımları bul
         if: github.event_name != 'push'
@@ -83,6 +103,8 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          SITE_URL: ${{ steps.site.outputs.url }}
+          OLD_SITE_URL: ${{ steps.site.outputs.old }}
         run: node scripts/setup-supabase.mjs
 
       - name: Ara sunucuyu kur ya da güncelle
@@ -110,3 +132,24 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: node scripts/collections.mjs || true
+
+      - name: Web uygulamasını hazırla
+        env:
+          CI: 1
+          EXPO_PUBLIC_API_URL: ${{ steps.worker.outputs.api_url }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ steps.supa.outputs.supabase_url }}
+          EXPO_PUBLIC_SUPABASE_KEY: ${{ steps.supa.outputs.supabase_key }}
+          EXPO_PUBLIC_BUILD: ${{ github.sha }}
+          EXPO_BASE_URL: ${{ steps.site.outputs.base }}
+          DOMAIN: ${{ steps.site.outputs.domain }}
+        run: |
+          npx expo export --platform web --output-dir dist
+          node scripts/pwa.mjs dist "$EXPO_BASE_URL"
+          if [ -n "$DOMAIN" ]; then echo "$DOMAIN" > dist/CNAME; fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deploy
+        uses: actions/deploy-pages@v4
