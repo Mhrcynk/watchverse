@@ -13,7 +13,7 @@ import { DiscoverFeed } from '@/components/discover-feed';
 import { CATALOG, CATEGORIES, CATEGORY_TR, search as searchCatalog } from '@/lib/catalog';
 import { routeOf } from '@/lib/library';
 import { useStore } from '@/lib/store';
-import { C, F, alpha } from '@/lib/theme';
+import { C, F, R, alpha } from '@/lib/theme';
 import { GENRES, hasApi, searchAll, type Person, type TItem } from '@/lib/tmdb';
 
 const PAGE = 48;
@@ -113,32 +113,23 @@ const GICON: Record<string, React.ComponentProps<typeof Feather>['name']> = {
   Romantik: 'heart', Fantastik: 'star', Macera: 'compass', Animasyon: 'pen-tool', Aile: 'users', Belgesel: 'video', Savaş: 'crosshair', Tarih: 'clock',
 };
 
-/** Kategoriler: telefonda iki sıra halinde yana kayan küçük kapsüller, geniş ekranda hepsi görünür */
+/** Kategoriler: iki sütunlu renkli kutular (geniş ekranda dört sütun) */
 function CategoryStrip() {
-  const { width, pad } = useLayout();
-  const wide = width >= 680;
-  const pill = (g: (typeof GENRES)[number], i: number) => {
-    const tone = TONES[i % TONES.length];
-    return (
-      <Press key={g.name} accessibilityRole="button" accessibilityLabel={`${g.name} kategorisi`} onPress={() => router.push({ pathname: '/genre/[id]', params: { id: g.name } })} scaleTo={0.95}
-        style={{ height: 44, flexDirection: 'row', alignItems: 'center', gap: 9, paddingLeft: 6, paddingRight: 16, borderRadius: 22, backgroundColor: C.card }}>
-        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: alpha(tone, 0.28), alignItems: 'center', justifyContent: 'center' }}>
-          <Feather name={GICON[g.name] || 'film'} size={15} color="#F1F1F4" />
-        </View>
-        <Text style={{ fontFamily: F.semibold, fontSize: 14.5, color: C.text }}>{g.name}</Text>
-      </Press>
-    );
-  };
+  const { width } = useLayout();
+  const cols = width >= 680 ? 4 : 2;
   return (
     <>
-      <Text accessibilityRole="header" style={{ marginTop: 26, marginBottom: 12, fontFamily: F.bold, fontSize: 18.5, color: C.text }}>Kategoriler</Text>
-      {wide ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{GENRES.map(pill)}</View>
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -pad }} contentContainerStyle={{ paddingHorizontal: pad, gap: 8, flexDirection: 'column' }}>
-          {[0, 1].map((r) => <View key={r} style={{ flexDirection: 'row', gap: 8 }}>{GENRES.map((g, i) => (i % 2 === r ? pill(g, i) : null))}</View>)}
-        </ScrollView>
-      )}
+      <Text accessibilityRole="header" style={{ marginTop: 28, marginBottom: 12, fontFamily: F.bold, fontSize: 19, letterSpacing: -0.3, color: C.text }}>Kategoriler</Text>
+      <Grid items={GENRES as unknown as (typeof GENRES)[number][]} cols={cols} gap={10} keyOf={(g) => g.name} render={(g) => {
+        const tone = TONES[GENRES.indexOf(g) % TONES.length];
+        return (
+          <Press accessibilityRole="button" accessibilityLabel={`${g.name} kategorisi`} onPress={() => router.push({ pathname: '/genre/[id]', params: { id: g.name } })} scaleTo={0.96}
+            style={{ height: 62, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, borderRadius: R.md, backgroundColor: alpha(tone, 0.32), overflow: 'hidden' }}>
+            <Feather name={GICON[g.name] || 'film'} size={17} color="#F1F1F4" />
+            <Text numberOfLines={1} style={{ flex: 1, fontFamily: F.bold, fontSize: 15, color: C.text }}>{g.name}</Text>
+          </Press>
+        );
+      }} />
     </>
   );
 }

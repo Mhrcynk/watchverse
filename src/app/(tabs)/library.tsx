@@ -33,6 +33,9 @@ export default function Library() {
   const { pad } = useLayout();
   const { openTitle, openKey } = usePreview();
   const e = useMemo(() => libraryEntries(state), [state]);
+  const ym = new Date().toISOString().slice(0, 7);
+  const lg = state.log?.[ym];
+  const month = { e: lg?.e || 0, f: lg?.f || 0, h: Math.round((lg?.m || 0) / 60) };
   const lists = useMemo(() => Object.values(state.lists).sort((a, b) => b.updated - a.updated), [state.lists]);
   const first: Part = e.watching.length ? 'watching' : e.plan.length ? 'plan' : 'done';
   const [sel, setSel] = useState<string | null>(null);
@@ -57,8 +60,16 @@ export default function Library() {
   const header = (
     <>
       <Backdrop />
-      <PageHeader bold="Kütüphanem" sub="Kaydettiğin her şey ve listelerin bir arada." />
-      <SaveStatus />
+      <PageHeader bold="Kütüphanem" />
+      <SaveStatus onlyProblems />
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }} accessibilityLabel={`Bu ay ${month.e} bölüm, ${month.f} film, ${month.h} saat`}>
+        {[[month.e, 'bölüm bu ay'], [month.f, 'film bu ay'], [month.h, 'saat bu ay']].map(([v, k]) => (
+          <View key={String(k)} style={{ flex: 1, padding: 12, borderRadius: R.md, backgroundColor: C.card }}>
+            <Text style={{ fontFamily: F.heavy, fontSize: 22, color: C.text }}>{v}</Text>
+            <Text numberOfLines={1} style={{ marginTop: 2, fontFamily: F.regular, fontSize: 12, color: C.muted }}>{k}</Text>
+          </View>
+        ))}
+      </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -pad, marginTop: 18 }} contentContainerStyle={{ gap: 8, paddingHorizontal: pad }}>
         {PARTS.filter(([p]) => p !== 'dropped' || e.dropped.length || cur === 'dropped').map(([p, label]) => <Chip key={p} label={`${label} · ${e[p].length}`} active={cur === p} onPress={() => setSel(p)} />)}

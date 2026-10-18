@@ -12,7 +12,7 @@ import { usePreview } from './preview';
 import { Btn, Bar, FadeIn, Press, useLayout } from './ui';
 
 /** Selamlama + profil yuvarlağı */
-export function Greeting({ name, sub }: { name: string; sub: string }) {
+export function Greeting({ name, sub, onSearch }: { name: string; sub: string; onSearch?: () => void }) {
   const initial = (name.trim()[0] || 'W').toLocaleUpperCase('tr');
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
@@ -24,6 +24,12 @@ export function Greeting({ name, sub }: { name: string; sub: string }) {
         </Text>
         <Text style={{ marginTop: 4, fontFamily: F.regular, fontSize: 14, color: C.muted }}>{sub}</Text>
       </View>
+      {onSearch && (
+        <Press accessibilityRole="search" accessibilityLabel="Ara" onPress={onSearch} scaleTo={0.92}
+          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' }}>
+          <Feather name="search" size={19} color={C.text} />
+        </Press>
+      )}
       <Press accessibilityRole="button" accessibilityLabel="Profil" onPress={() => router.push('/profile')} scaleTo={0.92}>
         <LinearGradient colors={[C.accentSoft, '#C9902A']} style={{ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontFamily: F.bold, fontSize: 19, color: C.onAccent }}>{initial}</Text>
@@ -226,6 +232,63 @@ export function ContinueItem({ title, poster, sub, badge, pct, onPress, onWatche
           </Press>
         )}
       </View>
+    </FadeIn>
+  );
+}
+
+/**
+ * Ana sayfanın en üstündeki "Sıradaki" kartı: geniş görsel, ad, sıradaki bölüm;
+ * altında İzledim (sıradakini işaretler) ve Bölümler (yapım sayfası) düğmeleri.
+ */
+export function NextUpHero({ title, image, sub, badge, onWatched, onOpen }: {
+  title: string; image: string | null; sub: string; badge?: string; onWatched?: () => void; onOpen: () => void;
+}) {
+  return (
+    <FadeIn from={10}>
+      <View style={{ marginTop: 22, borderRadius: R.lg, overflow: 'hidden', backgroundColor: C.card }}>
+        <Press accessibilityRole="button" accessibilityLabel={`Sıradaki: ${title}, ${sub}`} onPress={onOpen} scaleTo={0.99}>
+          <View style={{ aspectRatio: 16 / 9, backgroundColor: C.raised }}>
+            {image && <Image source={{ uri: image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} />}
+            <LinearGradient colors={['rgba(15,16,21,0)', 'rgba(15,16,21,0.35)', 'rgba(15,16,21,0.92)']} locations={[0.35, 0.6, 1]} style={StyleSheet.absoluteFill} />
+            <View style={{ position: 'absolute', left: 14, top: 14, flexDirection: 'row', gap: 6 }}>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: C.accent }}>
+                <Text style={{ fontFamily: F.bold, fontSize: 12, color: C.onAccent }}>Sıradaki</Text>
+              </View>
+              {!!badge && <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: 'rgba(15,16,21,0.75)' }}>
+                <Text style={{ fontFamily: F.semibold, fontSize: 12, color: C.accentSoft }}>{badge}</Text>
+              </View>}
+            </View>
+            <View style={{ position: 'absolute', left: 16, right: 16, bottom: 14 }}>
+              <Text numberOfLines={2} style={{ fontFamily: F.heavy, fontSize: 24, lineHeight: 28, color: '#FFFFFF', letterSpacing: -0.5 }}>{title}</Text>
+              <Text numberOfLines={1} style={{ marginTop: 4, fontFamily: F.medium, fontSize: 14, color: '#E4E6EB' }}>{sub}</Text>
+            </View>
+          </View>
+        </Press>
+        <View style={{ flexDirection: 'row', gap: 10, padding: 12 }}>
+          {onWatched && <Btn icon="check" label="İzledim" onPress={onWatched} style={{ flex: 1 }} />}
+          <Btn kind="secondary" icon="list" label="Bölümler" onPress={onOpen} style={{ flex: 1 }} />
+        </View>
+      </View>
+    </FadeIn>
+  );
+}
+
+/** Bu hafta: gün etiketi, küçük geniş görsel, ad ve bölüm; yana kayan şeritte */
+export function WeekCard({ when, soon, title, what, image, width, onPress, index = 0 }: {
+  when: string; soon: boolean; title: string; what: string; image: string | null; width: number; onPress: () => void; index?: number;
+}) {
+  return (
+    <FadeIn index={index} from={8}>
+      <Press accessibilityRole="button" accessibilityLabel={`${when}: ${title}, ${what}`} onPress={onPress} scaleTo={0.97} style={{ width }}>
+        <View style={{ alignSelf: 'flex-start', marginBottom: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, backgroundColor: soon ? alpha(C.accent, 0.18) : C.card }}>
+          <Text style={{ fontFamily: F.bold, fontSize: 12, color: soon ? C.accentSoft : C.muted }}>{when}</Text>
+        </View>
+        <View style={{ width, aspectRatio: 16 / 10, borderRadius: R.sm, overflow: 'hidden', backgroundColor: C.raised }}>
+          {image && <Image source={{ uri: image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />}
+        </View>
+        <Text numberOfLines={1} style={{ marginTop: 7, fontFamily: F.semibold, fontSize: 13.5, color: C.text }}>{title}</Text>
+        <Text numberOfLines={1} style={{ marginTop: 1, fontFamily: F.regular, fontSize: 12, color: C.muted }}>{what}</Text>
+      </Press>
     </FadeIn>
   );
 }

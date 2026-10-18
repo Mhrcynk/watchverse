@@ -73,6 +73,8 @@ function TitleDetailContent({ routeId: id }: { routeId: string }) {
   const hideAfter = state.spoiler && !done && !showAfter;
   const bd = backdropUrl(t);
   const eps = watchedEps(state, t.id);
+  // Yarıda kalan dizide en üstte "S01 · B05 izledim" düğmesi
+  const nextN = t.episodes && eps > 0 && !done ? nextEpisode(state, t) : null;
   const seasonIdx = t.ep.map((e, i) => ({ e, n: i + 1 })).filter((x) => x.e[0] === season);
   const epCols = width >= 1000 ? 4 : tablet ? 3 : 2;
 
@@ -119,7 +121,11 @@ function TitleDetailContent({ routeId: id }: { routeId: string }) {
       <Small style={{ marginTop: 10 }}>{whyOf(t)}</Small>
       <View style={{ height: 16 }} />
       <RecommendBanner />
-      <Btn icon="bookmark" kind={inList ? 'success' : 'primary'} label={inList ? 'Kütüphanende' : 'Kaydet'} accessibilityLabel={inList ? 'Kütüphanende; listeleri düzenle' : 'Kütüphaneme kaydet'} onPress={() => pick(itemFromTitle(t))} />
+      {nextN ? (
+        <Btn icon="check" label={`${episodeLabel(t, nextN)} izledim`} style={{ marginBottom: 10 }}
+          onPress={() => { store.setEpisodes(t.id, [nextN], true); tap('success'); toast(`${episodeLabel(t, nextN)} izlendi`, { label: 'Geri al', onPress: () => store.setEpisodes(t.id, [nextN], false) }); }} />
+      ) : null}
+      <Btn icon="bookmark" kind={inList ? 'success' : nextN ? 'secondary' : 'primary'} label={inList ? 'Kütüphanende' : 'Kaydet'} accessibilityLabel={inList ? 'Kütüphanende; listeleri düzenle' : 'Kütüphaneme kaydet'} onPress={() => pick(itemFromTitle(t))} />
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
         <Btn style={{ flex: 1 }} icon="check" kind={done ? 'success' : 'secondary'}
           label={done ? 'İzlendi · Geri al' : t.episodes ? 'Diziyi tamamladım' : 'İzledim'}

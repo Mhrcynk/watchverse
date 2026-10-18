@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -20,6 +21,30 @@ export function seenItem(s: State, x: CItem) {
 }
 
 /** Koleksiyon kartı: evren kartlarıyla aynı düzen; arka planda ilk yapımın görseli, altta ilerleme */
+/** Koleksiyon satırı: üst üste binen üç afiş, ad, yapım sayısı ve ne kadarını izlediğin */
+export function CollectionRowItem({ c, state }: { c: Collection; state: State }) {
+  const seen = c.items.filter((x) => seenItem(state, x)).length;
+  const ps = c.items.filter((x) => x.p).slice(0, 3);
+  return (
+    <Press accessibilityRole="button" accessibilityLabel={`${c.title}, ${c.items.length} yapım, ${seen} izledin`} scaleTo={0.98}
+      onPress={() => router.push({ pathname: '/collection/[id]', params: { id: c.id } })}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12, borderRadius: R.md, backgroundColor: C.card }}>
+      <View style={{ width: 92, height: 68 }}>
+        {ps.map((x, i) => (
+          <View key={x.key} style={{ position: 'absolute', left: i * 24, top: 6 - i * 3, width: 44, height: 64, borderRadius: 8, overflow: 'hidden', backgroundColor: C.raised, borderWidth: i ? 2 : 0, borderColor: C.card, zIndex: i }}>
+            <Image source={{ uri: img(x.p, 'w185')! }} style={StyleSheet.absoluteFill} contentFit="cover" />
+          </View>
+        ))}
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text numberOfLines={1} style={{ fontFamily: F.bold, fontSize: 15, color: C.text }}>{c.title}</Text>
+        <Text numberOfLines={1} style={{ marginTop: 2, fontFamily: F.regular, fontSize: 12.5, color: C.muted }}>{`${c.items.length} yapım${seen ? ` · ${seen} izledin` : ''}${c.sub ? ` · ${c.sub}` : ''}`}</Text>
+      </View>
+      <Feather name="chevron-right" size={18} color={C.muted} />
+    </Press>
+  );
+}
+
 export function CollectionCard({ c, state, style }: { c: Collection; state: State; style?: StyleProp<ViewStyle> }) {
   const seen = c.items.filter((x) => seenItem(state, x)).length;
   const pct = c.items.length ? Math.round((seen / c.items.length) * 100) : 0;

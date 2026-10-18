@@ -100,6 +100,19 @@ function ShowContent({ routeId: key }: { routeId: string }) {
     return {nums:catchUpSelection(all.map(x=>({n:idx(x),season:x.s,episode:x.e,aired:!!x.date && x.date<=t0})),s,e),ids};
   };
 
+  // Yarıda kalan dizide en üstte "S01 · B05 izledim": yayınlanmış ilk izlenmemiş bölüm
+  const nextEp = (() => {
+    if (d.m !== 'tv' || !inLib || !seen.size || done) return null;
+    for (let n = 1; n <= (d.aired || 0); n++) if (!seen.has(n)) {
+      let left = n;
+      for (const s of d.seasons) {
+        if (left <= s.count) return { n, label: `S${String(s.n).padStart(2, '0')} · B${String(left).padStart(2, '0')}` };
+        left -= s.count;
+      }
+      return { n, label: `Bölüm ${n}` };
+    }
+    return null;
+  })();
   const epCols = width >= 1000 ? 3 : tablet ? 2 : 1;
   const meta = [d.year, d.m === 'movie' ? 'Film' : 'Dizi', d.m === 'movie' ? (d.runtime ? duration(d.runtime) : null) : `${d.seasons.length} sezon · ${d.aired} bölüm`].filter(Boolean).join(' · ');
   const bd = img(d.b, 'w780');
@@ -140,7 +153,11 @@ function ShowContent({ routeId: key }: { routeId: string }) {
           </View>
           <View style={{ height: 16 }} />
           <RecommendBanner />
-          <Btn icon="bookmark" kind={inLib ? 'success' : 'primary'} label={inLib ? 'Kütüphanende' : 'Kaydet'}
+          {nextEp && (
+            <Btn icon="check" label={`${nextEp.label} izledim`} style={{ marginBottom: 10 }}
+              onPress={() => { store.setEpsKey(key, [nextEp.n], true); tap('success'); toast(`${nextEp.label} izlendi`, { label: 'Geri al', onPress: () => store.setEpsKey(key, [nextEp.n], false) }); }} />
+          )}
+          <Btn icon="bookmark" kind={inLib ? 'success' : nextEp ? 'secondary' : 'primary'} label={inLib ? 'Kütüphanende' : 'Kaydet'}
             accessibilityLabel={inLib ? 'Kütüphanende; listeleri düzenle' : 'Kütüphaneme kaydet'} onPress={() => { pick(itemFromDetail(d)); if (!inLib) save(); }} />
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
             {d.m === 'movie' && (
