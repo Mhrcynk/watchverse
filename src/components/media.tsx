@@ -126,6 +126,25 @@ export function UniverseCard({ u, state, style }: { u: Universe; state: State; s
   );
 }
 
+/** Evren kutusu (ızgarada iki sütun): görsel, küçük logo/ad ve yapım sayısı */
+export function UniverseTile({ u, state }: { u: Universe; state: State }) {
+  const p = universeProgress(state, u.id);
+  const bd = backdropOf(u.id);
+  return (
+    <Press accessibilityRole="button" accessibilityLabel={`${u.name}, ${p.total} yapım`} onPress={() => router.push(`/universe/${u.id}`)} scaleTo={0.97}
+      style={{ borderRadius: R.md, overflow: 'hidden', backgroundColor: C.card }}>
+      <View style={{ aspectRatio: 4 / 3, justifyContent: 'flex-end' }}>
+        {bd ? <Image source={{ uri: bd }} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} /> : <LinearGradient colors={[alpha(u.color, 0.55), C.card]} style={StyleSheet.absoluteFill} />}
+        <LinearGradient colors={['rgba(21,23,29,0)', 'rgba(21,23,29,0.5)', 'rgba(21,23,29,0.95)']} locations={[0.2, 0.55, 1]} style={StyleSheet.absoluteFill} />
+        <View style={{ padding: 12 }}>
+          <UniverseLogo u={u} height={28} maxWidth={130} />
+          <Small numberOfLines={1} style={{ marginTop: 6, color: '#D5D8E0' }}>{`${p.total} yapım`}</Small>
+        </View>
+      </View>
+    </Press>
+  );
+}
+
 /** Liste satırı: afiş + bilgi + izlendi düğmesi */
 export const TitleRow = memo(function TitleRow({ t, dim, showUniverse, index }: { t: Title; dim?: boolean; showUniverse?: boolean; index?: number }) {
   const { state, toggleWatched } = useStore();

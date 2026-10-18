@@ -4,20 +4,18 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Billboard, RemoteRow, Row, Tile, TItemTile, useTileW, type BillboardItem } from '@/components/rows';
-import { Coverflow, PickBanner } from '@/components/home';
-import { isEn } from '@/lib/i18n';
+import { Billboard, RemoteRow, Row, Tile, useTileW, type BillboardItem } from '@/components/rows';
+import { PickBanner } from '@/components/home';
 import { mergedPopular, platformLists, popularOf, type Lists, type PlatformList } from '@/lib/platform-lists';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Btn, FadeIn, Press, Segmented, Small, tap, useLayout } from '@/components/ui';
 import { TBY, TYPE_TR, UBY, daysUntil, posterPath, upcomingFor, type Upcoming } from '@/lib/catalog';
 import { usePreview } from '@/components/preview';
-import { loadCollections, ofKind, todays, type Collection } from '@/lib/collections';
 import { useFriendsLiked } from '@/components/collections';
 import { nextUp } from '@/lib/progress';
 import { useStore } from '@/lib/store';
 import { C, F, R, alpha } from '@/lib/theme';
-import { GENRES, detail, discover, hasApi, img, keyOf, today, trendingKind, type Kind, type TItem } from '@/lib/tmdb';
+import { GENRES, detail, discover, hasApi, img, keyOf, today, type Kind, type TItem } from '@/lib/tmdb';
 import type { State } from '@/lib/types';
 
 type Plat = 'all' | number;
@@ -35,6 +33,18 @@ async function onPlatform(pid: number, kind: Kind, tv: Record<string, string | n
   return out;
 }
 
+/** Son 60 günde çıkan, ilgi gören yapımlar (dizi ve film harmanlanır) */
+async function newReleases(kind: Kind, t0: string) {
+  const from = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);
+  const [a, b] = await Promise.all([
+    kind !== 'movie' ? discover('tv', { sort_by: 'popularity.desc', 'first_air_date.gte': from, 'first_air_date.lte': t0, 'vote_count.gte': 10 }) : Promise.resolve([] as TItem[]),
+    kind !== 'tv' ? discover('movie', { sort_by: 'popularity.desc', 'primary_release_date.gte': from, 'primary_release_date.lte': t0, 'vote_count.gte': 20 }) : Promise.resolve([] as TItem[]),
+  ]);
+  const out: TItem[] = [];
+  for (let i = 0; i < 20; i++) { if (a[i]) out.push(a[i]); if (b[i]) out.push(b[i]); }
+  return out;
+}
+
 /**
  * Keşfet akışı (arama yapılmıyorken): tür ve platform seçimi, öne çıkanlar, popüler,
  * senin için, koleksiyonlar ve yakında. Eskiden ayrı "Öneriler" sayfasındaydı.
@@ -46,10 +56,7 @@ export function DiscoverFeed({ footer }: { footer?: React.ReactNode }) {
   const [kind, setKind] = useState<Kind>('all');
   const [plat, setPlatRaw] = useState<Plat>('all');
   const [lists, setLists] = useState<Lists | null>(null);
-  const [trend, setTrend] = useState<TItem[]>([]);
-  const [colls, setColls] = useState<Collection[]>([]);
   const { openKey } = usePreview();
-  useEffect(() => { if (api) loadCollections(setColls).then(setColls).catch(() => {}); }, [api]);
   const liked = useFriendsLiked();
   useEffect(() => {
     if (!api) return;
@@ -59,21 +66,15 @@ export function DiscoverFeed({ footer }: { footer?: React.ReactNode }) {
     return () => listener.remove();
   }, [api]);
   useEffect(() => { AsyncStorage.getItem(PLAT_KEY).then((v) => { if (v && v !== 'all') setPlatRaw(Number(v)); }).catch(() => {}); }, []);
-  useEffect(() => { let a = true; if (api) trendingKind(kind).then((r) => a && setTrend(r.filter((x) => x.p).slice(0, 8))).catch(() => {}); return () => { a = false; }; }, [kind, api]);
   const setPlat = (p: Plat) => { tap(); setPlatRaw(p); AsyncStorage.setItem(PLAT_KEY, String(p)).catch(() => {}); };
 
-  const typeOk = (t: 'movie' | 'tv') => kind === 'all' || kind === t;
-  const forYou = useForYou(state, kind);
   const soon = useMemo(() => upcomingFor(state.follow), [state.follow]);
   const mine = (k: string) => !!(state.watched[k] || state.episodes[k]?.length);
   const likedNow = liked.filter((x) => !mine(x.k) && (kind === 'all' || (TBY[x.k] ? (kind === 'tv') === !!TBY[x.k].episodes : x.k.startsWith(kind))));
-  // Bugünün koleksiyonları; seçili türde yeterli yapımı olanlar
-  const collNow = todays(colls.filter((c) => ofKind(c, kind).length >= 6), 4);
   const ps = lists?.platforms || [];
   const P = plat === 'all' ? null : ps.find((x) => x.id === plat) || null;
   const t0 = today();
   const popular = P ? popularOf(P, kind) : mergedPopular(ps, kind);
-  const featured = P ? popular.filter((x) => x.p).slice(0, 8) : trend.filter((x) => typeOk(x.m));
   const genres = ['Aksiyon', 'Komedi', 'Dram', 'Bilim kurgu'].map((n) => GENRES.find((g) => g.name === n)!).filter((g) => kind === 'all' || g[kind]);
 
   return (
@@ -83,20 +84,12 @@ export function DiscoverFeed({ footer }: { footer?: React.ReactNode }) {
       </View>
       {ps.length > 0 && <PlatformBar ps={ps} value={plat} onChange={setPlat} />}
 
-      {api ? (
-        featured.length > 0 && (
-          <View style={{ marginTop: 22 }}>
-            <SectionTitle text={P ? `${P.name} öne çıkanlar` : 'Öne çıkan yapımlar'} />
-            <Coverflow key={`${plat}-${kind}`} items={featured} />
-          </View>
-        )
-      ) : <View style={{ marginTop: 18 }}><CatalogBillboard state={state} /></View>}
-
-      <PickBanner style={{ marginTop: 22 }} />
+      {!api && <View style={{ marginTop: 18 }}><CatalogBillboard state={state} /></View>}
 
       {P ? (
         <>
-          {popular.length >= 5 && <RemoteRow title={`${P.at} popüler`} top10 load={() => Promise.resolve(popular)} deps={[plat, kind, lists?.updated]} />}
+          {popular.length >= 5 && <RemoteRow title={`${P.at} Top 10`} top10 load={() => Promise.resolve(popular)} deps={[plat, kind, lists?.updated]} />}
+          <PickBanner style={{ marginTop: 22 }} />
           <RemoteRow title={`${P.at} yeni`} deps={[plat, kind]}
             load={() => onPlatform(P.id, kind, { sort_by: 'first_air_date.desc', 'first_air_date.lte': t0, 'vote_count.gte': 5 }, { sort_by: 'primary_release_date.desc', 'primary_release_date.lte': t0, 'vote_count.gte': 10 })} />
           <RemoteRow title={`${P.at} en beğenilenler`} deps={[plat, kind]}
@@ -105,25 +98,23 @@ export function DiscoverFeed({ footer }: { footer?: React.ReactNode }) {
             <RemoteRow key={g.name} title={`${P.at} ${g.name.toLocaleLowerCase('tr')}`} deps={[plat, kind]}
               load={() => onPlatform(P.id, kind, { with_genres: g.tv || '', sort_by: 'popularity.desc', 'vote_count.gte': 20 }, { with_genres: g.movie || '', sort_by: 'popularity.desc', 'vote_count.gte': 50 })} />
           ))}
-          <Small style={{ marginTop: 20 }}>{P.source === 'netflix' ? "Popüler listesi Netflix'in Türkiye için yayımladığı haftalık izlenme sıralamasının son 4 haftasından hazırlanır." : P.source === 'apple' ? "Apple TV+ izlenme verisi yayımlamıyor ve Türkiye kataloğu TMDB/JustWatch'ta yer almıyor. Liste, Apple'ın kendi dizi ve filmlerinin son 30 gündeki Türkçe Wikipedia görüntülenmesi ve TMDB ilgisiyle sıralanır." : `${P.name} izlenme verisi yayımlamıyor. Popüler listesi, ${P.name}'da Türkiye'de izlenebilen yapımların son 30 gündeki Türkçe Wikipedia görüntülenmesi ve TMDB/JustWatch ilgisiyle sıralanır; her gün güncellenir.`}</Small>
+          <Small style={{ marginTop: 20 }}>{P.source === 'netflix' ? "Top 10 listesi Netflix'in Türkiye için yayımladığı haftalık izlenme sıralamasının son 4 haftasından hazırlanır." : P.source === 'apple' ? "Apple TV+ izlenme verisi yayımlamıyor ve Türkiye kataloğu TMDB/JustWatch'ta yer almıyor. Liste, Apple'ın kendi dizi ve filmlerinin son 30 gündeki Türkçe Wikipedia görüntülenmesi ve TMDB ilgisiyle sıralanır." : `${P.name} izlenme verisi yayımlamıyor. Top 10 listesi, ${P.name}'da Türkiye'de izlenebilen yapımların son 30 gündeki Türkçe Wikipedia görüntülenmesi ve TMDB/JustWatch ilgisiyle sıralanır; her gün güncellenir.`}</Small>
         </>
       ) : (
         <>
-          {popular.length >= 5 && <RemoteRow title="Şu an popüler" top10 load={() => Promise.resolve(popular)} deps={[kind, lists?.updated]} note="platformlarda" />}
-          {forYou.length >= 3 && <Row title="Senin için">{forYou.map((x, i) => <TItemTile key={x.key} x={x} width={w} index={i} />)}</Row>}
-          {likedNow.length >= 2 && (
-            <Row title="Arkadaşlarının beğendikleri" onMore={() => router.push('/friends')}>
-              {likedNow.map((x, i) => <Tile key={x.k} index={i} width={w} uri={img(x.p, 'w342')} title={x.title} sub={x.who} onPress={() => openKey(x.k, { title: x.title, year: x.year, p: x.p })} />)}
-            </Row>
-          )}
-          {collNow.slice(0, 2).map((c) => <CollectionRow key={c.id} c={c} kind={kind} w={w} />)}
+          {popular.length >= 5 && <RemoteRow title="Türkiye'de bu hafta Top 10" top10 load={() => Promise.resolve(popular.slice(0, 10))} deps={[kind, lists?.updated]} />}
+          <PickBanner style={{ marginTop: 22 }} />
+          {api && <RemoteRow title="Yeni çıkanlar" deps={[kind]} load={() => newReleases(kind, t0)} />}
           {soon.length > 0 && (
             <Row title="Yakında" onMore={() => router.push('/calendar')}>
               {soon.map((x, i) => <SoonCard key={x.k + x.date} x={x} width={Math.round(w * 1.1)} index={i} />)}
             </Row>
           )}
-          {collNow.slice(2).map((c) => <CollectionRow key={c.id} c={c} kind={kind} w={w} />)}
-          {api && <Btn kind="secondary" icon="layers" label="Tüm koleksiyonlar ve seçkiler" style={{ marginTop: 22, alignSelf: 'flex-start' }} onPress={() => router.push('/collections')} />}
+          {likedNow.length >= 2 && (
+            <Row title="Arkadaşlarının beğendikleri" onMore={() => router.push('/friends')}>
+              {likedNow.map((x, i) => <Tile key={x.k} index={i} width={w} uri={img(x.p, 'w342')} title={x.title} sub={x.who} onPress={() => openKey(x.k, { title: x.title, year: x.year, p: x.p })} />)}
+            </Row>
+          )}
         </>
       )}
 
@@ -157,14 +148,6 @@ function PlatformBar({ ps, value, onChange }: { ps: PlatformList[]; value: Plat;
   );
 }
 
-function SectionTitle({ text }: { text: string }) {
-  const [a, ...b] = text.split(' ');
-  return (
-    <Text accessibilityRole="header" style={{ fontSize: 19, color: C.text, letterSpacing: -0.3, marginBottom: 14 }}>
-      {isEn ? <Text style={{ fontFamily: F.bold }}>{text}</Text> : <><Text style={{ fontFamily: F.bold }}>{a}</Text><Text style={{ fontFamily: F.regular }}>{' ' + b.join(' ')}</Text></>}
-    </Text>
-  );
-}
 
 /* ---------- vitrin (çevrimiçi arama yokken) ---------- */
 function CatalogBillboard({ state }: { state: State }) {
@@ -179,7 +162,7 @@ function CatalogBillboard({ state }: { state: State }) {
 }
 
 /* ---------- senin için ---------- */
-function useForYou(s: State, kind: Kind) {
+export function useForYou(s: State, kind: Kind) {
   const [result, setResult] = useState<{ key: string; items: TItem[] } | null>(null);
   const seeds = useMemo(() => {
     const keys: { key: string; r: number }[] = [];
@@ -241,12 +224,3 @@ function SoonCard({ x, width, index }: { x: Upcoming; width: number; index: numb
   );
 }
 
-/** Bir koleksiyon satırı */
-function CollectionRow({ c, kind, w }: { c: Collection; kind: Kind; w: number }) {
-  const items = ofKind(c, kind).slice(0, 20);
-  return (
-    <Row title={c.title} onMore={() => router.push({ pathname: '/collection/[id]', params: { id: c.id } })}>
-      {items.map((x, i) => <TItemTile key={x.key} x={x} width={w} index={i} badge={x.note && c.kind === 'award' ? x.note : undefined} />)}
-    </Row>
-  );
-}
