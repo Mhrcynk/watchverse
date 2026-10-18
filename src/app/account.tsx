@@ -1,39 +1,20 @@
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { BackLink, Btn, FadeIn, Muted, Panel, Press, Screen, Small, useToast } from '@/components/ui';
+import { ActivityIndicator, Text, View } from 'react-native';
+import { BackLink, FadeIn, Muted, Panel, Press, Screen, Small, useToast } from '@/components/ui';
 import { useAccount } from '@/lib/account';
-import { confirm } from '@/lib/confirm';
 import { Backdrop, PageHeader } from '@/components/home';
 import { C, F, R, alpha } from '@/lib/theme';
 
-type Mode = 'signin' | 'signup' | 'reset' | 'newpass';
 const CONSENT = 'watchverse:consent';
-const okMail = (m: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m.trim());
-
-function Field({ label, error, ...p }: TextInputProps & { label: string; error?: string | null; ref?: React.Ref<TextInput> }) {
-  const [focus, setFocus] = useState(false);
-  return (
-    <View style={{ marginTop: 14 }}>
-      <Text style={{ fontFamily: F.medium, fontSize: 13, color: C.muted, marginBottom: 6 }}>{label}</Text>
-      <TextInput
-        placeholderTextColor={C.dim}
-        accessibilityLabel={label}
-        onFocus={() => setFocus(true)}
-        onBlur={() => setFocus(false)}
-        {...p}
-        style={{ height: 50, borderRadius: R.md, backgroundColor: C.raised, color: C.text, paddingHorizontal: 14, fontFamily: F.regular, fontSize: 16, borderWidth: 1, borderColor: error ? C.accent : focus ? C.muted : 'transparent', outlineStyle: 'none' } as never}
-      />
-    </View>
-  );
-}
 
 function Check({ value, onChange, children }: { value: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
   return (
-    <Press accessibilityRole="checkbox" accessibilityState={{ checked: value }} aria-checked={value} onPress={() => onChange(!value)} scaleTo={1} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginTop: 18 }}>
+    <Press accessibilityRole="checkbox" accessibilityState={{ checked: value }} aria-checked={value} onPress={() => onChange(!value)} scaleTo={1} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginTop: 20 }}>
       <View style={{ width: 22, height: 22, borderRadius: 6, marginTop: 1, borderWidth: 1.5, borderColor: value ? C.accent : C.dim, backgroundColor: value ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
         {value && <Feather name="check" size={15} color={C.onAccent} />}
       </View>
@@ -42,128 +23,85 @@ function Check({ value, onChange, children }: { value: boolean; onChange: (v: bo
   );
 }
 
+/**
+ * Giriş: yalnızca Apple ve Google. Mail ve şifre yok; şifre yenileme ya da mail doğrulama gerekmez.
+ * Hesap açmak da giriş yapmak da aynı düğmedir: ilk girişte hesap kendiliğinden açılır.
+ */
 export default function Account() {
   const acc = useAccount();
   const toast = useToast();
-  const params = useLocalSearchParams<{ mode?: string; from?: string }>();
+  const params = useLocalSearchParams<{ from?: string }>();
   const fromWelcome = params.from === 'welcome';
-  const [selectedMode, setMode] = useState<Mode>(acc.recovery ? 'newpass' : params.mode === 'signup' ? 'signup' : 'signin');
-  const [email, setEmail] = useState('');
-  const [pw, setPw] = useState('');
-  const [show, setShow] = useState(false);
   const [consent, setConsent] = useState(false);
   const [consentSaved, setConsentSaved] = useState(false);
-  const [busy, setBusy] = useState<null | 'mail' | 'google'>(null);
+  const [busy, setBusy] = useState<null | 'apple' | 'google'>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mailError, setMailError] = useState(false);
-  const [info, setInfo] = useState<string | null>(null);
-  const pwRef = useRef<TextInput>(null);
   const wasIn = useRef(!!acc.user);
 
   useEffect(() => { AsyncStorage.getItem(CONSENT).then((v) => { if (v) { setConsent(true); setConsentSaved(true); } }).catch(() => {}); }, []);
-  const mode = acc.recovery ? 'newpass' : selectedMode;
-  // Giriş tamamlanınca profile dön
+  // Giriş tamamlanınca geldiği yere dön
   useEffect(() => {
-    if (acc.user && !acc.recovery && mode !== 'newpass') {
-      if (!wasIn.current) toast(mode === 'signup' ? 'Hesabın açıldı' : 'Giriş yapıldı');
-      if (fromWelcome || !router.canGoBack()) router.replace('/'); else router.back();
-    }
-  }, [acc.user, acc.recovery]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!acc.user) return;
+    if (!wasIn.current) toast('Giriş yapıldı');
+    if (fromWelcome || !router.canGoBack()) router.replace('/'); else router.back();
+  }, [acc.user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const back = () => (router.canGoBack() ? router.back() : router.replace(fromWelcome ? '/welcome' : '/profile'));
-  const switchTo = (m: Mode) => { setMode(m); setError(null); setInfo(null); };
-  const remember = () => { if (!consentSaved) AsyncStorage.setItem(CONSENT, String(Date.now())).catch(() => {}); };
 
   if (!acc.enabled) {
     return (
       <Screen><Backdrop />
         <BackLink label={fromWelcome ? 'Geri' : 'Profil'} onPress={back} />
         <PageHeader bold="Hesap" />
-        <Panel style={{ marginTop: 20 }}><Muted>Üyelik henüz açılmadı. Kurulum tamamlanınca buradan hesap açabileceksin. O zamana kadar her şey bu cihazda saklanır.</Muted></Panel>
+        <Panel style={{ marginTop: 20 }}><Muted>Üyelik henüz açılmadı. O zamana kadar her şey bu cihazda saklanır.</Muted></Panel>
       </Screen>
     );
   }
 
-  async function submit() {
-    setError(null); setInfo(null);
-    setMailError(false);
-    if (mode !== 'newpass' && !okMail(email)) { setMailError(true); setError('Geçerli bir mail adresi yaz.'); return; }
-    if (mode !== 'reset' && pw.length < 8) { setError('Şifre en az 8 karakter olmalı.'); return; }
-    if (mode === 'signup' && !consent) { setError('Devam etmek için aydınlatma metnini onaylaman gerekiyor.'); return; }
-    setBusy('mail');
-    let r: string | null = null;
-    if (mode === 'signin') r = await acc.signIn(email, pw);
-    else if (mode === 'signup') { remember(); r = await acc.signUp(email, pw); }
-    else if (mode === 'reset') { r = await acc.resetPassword(email); if (!r) { setInfo('Şifre yenileme bağlantısı mailine gönderildi. Gelen kutunu (ve gereksiz klasörünü) kontrol et.'); } }
-    else { r = await acc.updatePassword(pw); if (!r) { toast('Yeni şifren kaydedildi'); back(); } }
-    setBusy(null);
-    if (r) (r.startsWith('Mailine') ? setInfo : setError)(r);
-  }
-
-  async function google(agreed = consent) {
+  async function go(kind: 'apple' | 'google') {
     setError(null);
-    if (!agreed) {
-      confirm('Devam etmeden önce', 'Aydınlatma metnini ve kullanım şartlarını kabul ediyor, hesabının ve kayıtlarının yurt dışındaki (AB) sunucularda saklanmasına açık rıza veriyor musun?', 'Kabul ediyorum', () => { setConsent(true); google(true); });
-      return;
-    }
-    remember();
-    setBusy('google');
-    const r = await acc.google();
-    if (r) { setBusy(null); setError(r); }
+    if (!consent) { setError('Devam etmek için aydınlatma metnini onaylaman gerekiyor.'); return; }
+    if (!consentSaved) AsyncStorage.setItem(CONSENT, String(Date.now())).catch(() => {});
+    setBusy(kind);
+    const r = kind === 'apple' ? await acc.apple() : await acc.google();
+    setBusy(null);
+    if (r && r !== 'Giriş iptal edildi.') setError(r);
   }
 
-  const title = { signin: 'Giriş yap', signup: 'Hesap aç', reset: 'Şifreni yenile', newpass: 'Yeni şifre belirle' }[mode];
-  const cta = { signin: 'Giriş yap', signup: 'Hesap aç', reset: 'Bağlantı gönder', newpass: 'Şifreyi kaydet' }[mode];
-  const needConsent = mode === 'signup' || mode === 'signin';
+  const guest = () => { acc.setGuest(true); router.replace('/'); };
 
   return (
     <Screen><Backdrop />
       <BackLink label={fromWelcome ? 'Geri' : 'Profil'} onPress={back} />
       <View style={{ width: '100%', maxWidth: 440, alignSelf: 'center' }}>
-        <PageHeader bold={title} />
+        <PageHeader bold="Giriş yap" />
         <Muted style={{ marginTop: 8 }}>
-          {mode === 'newpass' ? 'Hesabın için yeni bir şifre yaz.' : mode === 'reset' ? 'Mail adresini yaz, şifreni yenilemen için bir bağlantı gönderelim.' : 'İzlediklerin, puanların ve listelerin hesabına kaydedilir; telefon değişse de kaybolmaz, her cihazda aynı görünür.'}
+          İzlediklerin, puanların ve listelerin hesabına kaydedilir; telefon değişse de kaybolmaz. Hesabın yoksa ilk girişte kendiliğinden açılır.
         </Muted>
 
-        {(mode === 'signin' || mode === 'signup') && (
-          <>
-            <Press accessibilityRole="button" accessibilityLabel="Google ile devam et" onPress={() => google()} disabled={!!busy}
-              style={{ marginTop: 24, height: 50, borderRadius: R.md, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: busy && busy !== 'google' ? 0.5 : 1 }}>
-              {busy === 'google' ? <ActivityIndicator color="#111" /> : <Ionicons name="logo-google" size={18} color="#111" />}
-              <Text style={{ fontFamily: F.semibold, fontSize: 15.5, color: '#111' }}>Google ile devam et</Text>
-            </Press>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 22 }}>
-              <View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
-              <Small>ya da mail ile</Small>
-              <View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
-            </View>
-          </>
-        )}
-
-        {mode !== 'newpass' && (
-          <Field label="Mail adresi" value={email} onChangeText={(v) => { setEmail(v); setMailError(false); }} placeholder="ornek@mail.com" autoCapitalize="none" autoCorrect={false}
-            keyboardType="email-address" autoComplete="email" textContentType="emailAddress" inputMode="email" returnKeyType="next"
-            onSubmitEditing={() => (mode === 'reset' ? submit() : pwRef.current?.focus())} error={mailError ? 'x' : null} />
-        )}
-        {mode !== 'reset' && (
-          <View>
-            <Field ref={pwRef} label={mode === 'signin' ? 'Şifre' : 'Şifre (en az 8 karakter)'} value={pw} onChangeText={setPw} secureTextEntry={!show}
-              autoCapitalize="none" autoCorrect={false} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-              textContentType={mode === 'signin' ? 'password' : 'newPassword'} returnKeyType="go" onSubmitEditing={submit} />
-            <Press accessibilityRole="button" accessibilityLabel={show ? 'Şifreyi gizle' : 'Şifreyi göster'} onPress={() => setShow((v) => !v)} hitSlop={10}
-              style={{ position: 'absolute', right: 14, bottom: 15 }}>
-              <Feather name={show ? 'eye-off' : 'eye'} size={19} color={C.muted} />
-            </Press>
+        {acc.appleAvailable && (
+          <View style={{ marginTop: 24, opacity: busy === 'google' ? 0.5 : 1 }} pointerEvents={busy ? 'none' : 'auto'}>
+            {busy === 'apple' ? (
+              <View style={{ height: 50, borderRadius: R.md, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#111" /></View>
+            ) : (
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                cornerRadius={R.md}
+                style={{ width: '100%', height: 50 }}
+                onPress={() => go('apple')}
+              />
+            )}
           </View>
         )}
 
-        {mode === 'signin' && (
-          <Press accessibilityRole="button" onPress={() => switchTo('reset')} style={{ alignSelf: 'flex-end', marginTop: 10 }} hitSlop={8}>
-            <Small style={{ color: C.accentSoft }}>Şifremi unuttum</Small>
-          </Press>
-        )}
+        <Press accessibilityRole="button" accessibilityLabel="Google ile devam et" onPress={() => go('google')} disabled={!!busy}
+          style={{ marginTop: acc.appleAvailable ? 12 : 24, height: 50, borderRadius: R.md, backgroundColor: C.raised, borderWidth: 1, borderColor: C.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: busy === 'apple' ? 0.5 : 1 }}>
+          {busy === 'google' ? <ActivityIndicator color={C.text} /> : <Ionicons name="logo-google" size={18} color={C.text} />}
+          <Text style={{ fontFamily: F.semibold, fontSize: 15.5, color: C.text }}>Google ile devam et</Text>
+        </Press>
 
-        {needConsent && !consentSaved && (
+        {!consentSaved && (
           <Check value={consent} onChange={setConsent}>
             <Small style={{ color: C.text }}>
               <Small style={{ color: C.accentSoft }} onPress={() => router.push('/legal/gizlilik')}>Aydınlatma metnini</Small> ve{' '}
@@ -171,19 +109,13 @@ export default function Account() {
             </Small>
           </Check>
         )}
-        {mode === 'signin' && !consentSaved && <Small style={{ marginTop: 6, marginLeft: 34, color: C.dim }}>Var olan hesabınla mail ile girerken gerekmez.</Small>}
 
         {!!error && <FadeIn><View accessibilityRole="alert" style={{ marginTop: 16, padding: 12, borderRadius: R.md, backgroundColor: alpha(C.accent, 0.14) }}><Small style={{ color: C.accentSoft }}>{error}</Small></View></FadeIn>}
-        {!!info && <FadeIn><View accessibilityRole="alert" style={{ marginTop: 16, padding: 12, borderRadius: R.md, backgroundColor: alpha(C.green, 0.14) }}><Small style={{ color: C.green }}>{info}</Small></View></FadeIn>}
 
-        <Btn label={busy === 'mail' ? 'Bekle…' : cta} onPress={submit} disabled={!!busy} style={{ marginTop: 20 }} />
-
-        <View style={{ alignItems: 'center', marginTop: 18 }}>
-          {mode === 'signin' && <Press accessibilityRole="button" onPress={() => switchTo('signup')} hitSlop={8}><Small>Hesabın yok mu? <Small style={{ color: C.accentSoft, fontFamily: F.semibold }}>Hesap aç</Small></Small></Press>}
-          {mode === 'signup' && <Press accessibilityRole="button" onPress={() => switchTo('signin')} hitSlop={8}><Small>Zaten hesabın var mı? <Small style={{ color: C.accentSoft, fontFamily: F.semibold }}>Giriş yap</Small></Small></Press>}
-          {mode === 'reset' && <Press accessibilityRole="button" onPress={() => switchTo('signin')} hitSlop={8}><Small style={{ color: C.accentSoft }}>Girişe dön</Small></Press>}
-        </View>
-        <Small style={{ marginTop: 28, textAlign: 'center', color: C.dim }}>Hesap açmak zorunlu değil. Hesapsız kullanırsan her şey yalnızca bu cihazda kalır.</Small>
+        <Press accessibilityRole="button" onPress={guest} hitSlop={8} style={{ alignSelf: 'center', marginTop: 28 }}>
+          <Small style={{ color: C.accentSoft, fontFamily: F.semibold }}>Hesap açmadan devam et</Small>
+        </Press>
+        <Small style={{ marginTop: 10, textAlign: 'center', color: C.dim }}>Hesapsız kullanırsan her şey yalnızca bu cihazda kalır. İstediğin zaman sonradan giriş yapabilirsin.</Small>
       </View>
     </Screen>
   );

@@ -56,9 +56,11 @@ const site = 'watchverse://auth/callback';
 const auth = {
   site_url: site,
   uri_allow_list: site,
-  external_email_enabled: true,
-  mailer_autoconfirm: true, // onay maili beklemeden giriş (ücretsiz mail gönderimi çok sınırlı)
-  password_min_length: 8,
+  // Mail ve şifreyle giriş yok: yalnızca Apple ve Google (şifre yenileme ve mail doğrulama gerekmez)
+  external_email_enabled: false,
+  // Apple ile giriş uygulamanın içinde yapılır; Supabase yalnızca uygulamanın paket kimliğini doğrular (gizli anahtar gerekmez)
+  external_apple_enabled: true,
+  external_apple_client_id: (process.env.APPLE_CLIENT_IDS || 'com.mihracyanik.watchverse').trim(),
 };
 // Kendi mail servisin (Resend) bağlıysa: herkese mail gider, hesap açarken onay maili istenir
 const smtp = !!(RESEND_API_KEY && MAIL_FROM);

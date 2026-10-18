@@ -23,8 +23,9 @@ export const PRIVACY: LegalDoc = {
     {
       h: 'Hesap açarsan tutulan bilgiler',
       p: [
-        'Mail adresin ve şifren. Şifren açık hâliyle saklanmaz, yalnızca geri çözülemeyen bir özeti tutulur.',
+        'Apple ile girersen Apple\'ın paylaştığı mail adresin (gizlemeyi seçersen Apple\'ın verdiği aracı adres) ve izin verirsen adın.',
         'Google ile girersen Google\'ın paylaştığı mail adresin, adın ve profil fotoğrafının bağlantısı.',
+        'Uygulama şifre tutmaz; giriş Apple ya da Google hesabınla yapılır.',
         'Uygulamadaki kayıtların: izlediğin film ve bölümler, puanların, notların, listelerin, takip ettiğin evrenler, girdiğin ad ve görünüm tercihlerin.',
         'Giriş yaptığın zaman ve oturum bilgisi (güvenlik için).',
       ],
@@ -91,7 +92,7 @@ export const TERMS: LegalDoc = {
     {
       h: 'Hesabın',
       p: [
-        'Hesabının güvenliğinden sen sorumlusun; şifreni kimseyle paylaşma.',
+        'Hesabına Apple ya da Google hesabınla girersin; o hesabın güvenliğinden sen sorumlusun.',
         'Uygulamayı kötüye kullanmak (sunucuyu yormak, başkasının hesabına girmeye çalışmak gibi) yasaktır; bu durumda hesap kapatılabilir.',
         'Hesabını istediğin an Profil → Hesap bölümünden silebilirsin.',
       ],

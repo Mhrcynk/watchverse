@@ -5,6 +5,8 @@ import { createSessionGuard } from './session-guard';
 import { checkpoint } from './checkpoint';
 import type { SyncMeta as Meta } from './checkpoint-store';
 import * as WebBrowser from 'expo-web-browser';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { AUTH_REDIRECT, finishAuth } from './auth-callback';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -20,7 +22,7 @@ sb();
 
 const GUEST = 'watchverse:guest';
 export type SyncStatus = 'off' | 'syncing' | 'ok' | 'offline' | 'error';
-export type AccountUser = { id: string; email: string | null; google: boolean; name?: string | null };
+export type AccountUser = { id: string; email: string | null; google: boolean; apple?: boolean; name?: string | null };
 
 type Ctx = {
   enabled: boolean;
@@ -35,13 +37,10 @@ type Ctx = {
   status: SyncStatus;
   lastSync: number | null;
   syncError: string | null;
-  /** maildeki bağlantıyla gelindi, yeni şifre bekleniyor */
-  recovery: boolean;
-  signIn: (email: string, pw: string) => Promise<string | null>;
-  signUp: (email: string, pw: string) => Promise<string | null>;
+  /** Apple ile giriş bu cihazda kullanılabilir mi (yalnızca iOS) */
+  appleAvailable: boolean;
+  apple: () => Promise<string | null>;
   google: () => Promise<string | null>;
-  resetPassword: (email: string) => Promise<string | null>;
-  updatePassword: (pw: string) => Promise<string | null>;
   signOut: () => Promise<string | null>;
   deleteAccount: () => Promise<string | null>;
   syncNow: () => Promise<void>;
@@ -71,7 +70,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SyncStatus>('off');
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<number | null>(null);
-  const [recovery, setRecovery] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  useEffect(() => { AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false)); }, []);
   const [ready, setReady] = useState(!enabled);
   const [guest, setGuestRaw] = useState(false);
   const [guestLoaded, setGuestLoaded] = useState(false);
@@ -213,12 +213,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (!c) return;
     let alive = true;
     const toUser = (u: { id: string; email?: string | null; app_metadata?: { provider?: string; providers?: string[] }; user_metadata?: { full_name?: string; name?: string; given_name?: string } } | null | undefined): AccountUser | null =>
-      u ? { id: u.id, email: u.email || null, google: !!u.app_metadata?.providers?.includes('google') || u.app_metadata?.provider === 'google', name: (u.user_metadata?.given_name || u.user_metadata?.full_name || u.user_metadata?.name || '').trim().split(/\s+/)[0] || null } : null;
+      u ? { id: u.id, email: u.email || null, google: !!u.app_metadata?.providers?.includes('google') || u.app_metadata?.provider === 'google', apple: !!u.app_metadata?.providers?.includes('apple') || u.app_metadata?.provider === 'apple', name: (u.user_metadata?.given_name || u.user_metadata?.full_name || u.user_metadata?.name || '').trim().split(/\s+/)[0] || null } : null;
     const fallback = setTimeout(() => alive && setReady(true), 4000);
     const { data: sub } = c.auth.onAuthStateChange((event, session) => {
       if (!alive) return;
       setReady(true);
-      if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       const u = toUser(session?.user);
       const changed = (u?.id || null) !== uidRef.current;
       uidRef.current = u?.id || null;
@@ -253,19 +252,29 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   }, [user, syncNow, run, push]);
 
   const value = useMemo<Ctx>(() => ({
-    enabled, ready: ready && guestLoaded, guest, setGuest, firstSync, user, status, lastSync, syncError, recovery, syncNow,
-    async signIn(email, pw) {
+    enabled, ready: ready && guestLoaded, guest, setGuest, firstSync, user, status, lastSync, syncError, appleAvailable, syncNow,
+    /** Apple ile giriş: Apple'ın verdiği kimlik belgesi Supabase'e doğrudan verilir (tarayıcı açılmaz) */
+    async apple() {
       if (sessionGuard.isPaused()) return 'Hesap işlemi sürüyor. Lütfen bekle.';
-      const { error } = await sb()!.auth.signInWithPassword({ email: email.trim(), password: pw });
-      return error ? authError(error) : null;
-    },
-    async signUp(email, pw) {
-      if (sessionGuard.isPaused()) return 'Hesap işlemi sürüyor. Lütfen bekle.';
-      const { data, error } = await sb()!.auth.signUp({ email: email.trim(), password: pw, options: { emailRedirectTo: AUTH_REDIRECT } });
-      if (error) return authError(error);
-      // Mail onayı açıksa oturum hemen gelmez
-      if (!data.session) return 'Mailine bir onay bağlantısı gönderdik. Bağlantıya dokunup sonra giriş yap.';
-      return null;
+      try {
+        // Tek kullanımlık rastgele değer: Apple'a özeti, Supabase'e kendisi gider
+        const raw = Crypto.randomUUID() + Crypto.randomUUID();
+        const hashed = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, raw);
+        const cred = await AppleAuthentication.signInAsync({
+          requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
+          nonce: hashed,
+        });
+        if (!cred.identityToken) return 'Apple girişi tamamlanamadı.';
+        const { error } = await sb()!.auth.signInWithIdToken({ provider: 'apple', token: cred.identityToken, nonce: raw });
+        if (error) return authError(error);
+        // Apple adı yalnızca ilk girişte verir; boşsa kaydetmeye çalışmayız
+        const given = cred.fullName?.givenName?.trim();
+        if (given) await sb()!.auth.updateUser({ data: { given_name: given, full_name: [given, cred.fullName?.familyName].filter(Boolean).join(' ') } }).catch(() => {});
+        return null;
+      } catch (error) {
+        if ((error as { code?: string })?.code === 'ERR_REQUEST_CANCELED') return 'Giriş iptal edildi.';
+        return authError(error);
+      }
     },
     async google() {
       if (sessionGuard.isPaused()) return 'Hesap işlemi sürüyor. Lütfen bekle.';
@@ -278,16 +287,6 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         await finishAuth(result.url);
         return null;
       } catch (error) { return authError(error); }
-    },
-    async resetPassword(email) {
-      const { error } = await sb()!.auth.resetPasswordForEmail(email.trim(), { redirectTo: AUTH_REDIRECT });
-      return error ? authError(error) : null;
-    },
-    async updatePassword(pw) {
-      const { error } = await sb()!.auth.updateUser({ password: pw });
-      if (error) return authError(error);
-      setRecovery(false);
-      return null;
     },
     async signOut() {
       if (sessionGuard.isPaused()) return 'Hesap işlemi sürüyor. Lütfen bekle.';
@@ -339,7 +338,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         return deleted ? 'Hesap silindi ancak cihaz oturumu kapatılamadı. Çıkış yapmayı yeniden dene.' : authError(error);
       } finally { sessionGuard.resume(ticket); }
     },
-  }), [enabled, ready, guestLoaded, guest, setGuest, firstSync, user, status, lastSync, syncError, recovery, syncNow, run, push, sessionGuard, getState, store]);
+  }), [enabled, ready, guestLoaded, guest, setGuest, firstSync, user, status, lastSync, syncError, appleAvailable, syncNow, run, push, sessionGuard, getState, store]);
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 }

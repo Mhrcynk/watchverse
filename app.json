@@ -19,7 +19,8 @@
       "infoPlist": {
         "CFBundleDevelopmentRegion": "tr",
         "CFBundleAllowMixedLocalizations": true
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.mihracyanik.watchverse",
@@ -50,7 +51,8 @@
       ],
       "expo-sharing",
       "expo-web-browser",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true

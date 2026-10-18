@@ -166,8 +166,7 @@ export default function Welcome() {
           {acc.enabled ? (
             last ? (
               <>
-                <Btn label="Hesap aç" onPress={() => router.push('/account?mode=signup&from=welcome')} />
-                <Btn kind="secondary" label="Giriş yap" style={{ marginTop: 10 }} onPress={() => router.push('/account?mode=signin&from=welcome')} />
+                <Btn label="Apple ya da Google ile giriş yap" onPress={() => router.push('/account?from=welcome')} />
                 <Press accessibilityRole="button" onPress={guest} hitSlop={8} style={{ alignSelf: 'center', marginTop: 16 }}>
                   <Small style={{ color: C.dim }}>Hesap açmadan devam et</Small>
                 </Press>
@@ -175,7 +174,7 @@ export default function Welcome() {
             ) : (
               <>
                 <Btn label="Devam" onPress={() => go(i + 1)} />
-                <Btn kind="secondary" label="Zaten hesabım var" style={{ marginTop: 10 }} onPress={() => router.push('/account?mode=signin&from=welcome')} />
+                <Btn kind="secondary" label="Zaten hesabım var" style={{ marginTop: 10 }} onPress={() => router.push('/account?from=welcome')} />
               </>
             )
           ) : (

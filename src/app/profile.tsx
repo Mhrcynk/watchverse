@@ -219,8 +219,8 @@ function Header() {
       {acc.user ? (
         <Press accessibilityRole="button" accessibilityLabel={`Şimdi eşitle. ${syncText}`} onPress={() => acc.syncNow()} hitSlop={6} style={{ alignItems: 'center', marginTop: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Ionicons name={acc.user.google ? 'logo-google' : 'mail-outline'} size={13} color={C.muted} />
-            <Text numberOfLines={1} style={{ fontFamily: F.regular, fontSize: 13.5, color: C.muted }}>{acc.user.email || 'Hesabın'}</Text>
+            <Ionicons name={acc.user.apple ? 'logo-apple' : acc.user.google ? 'logo-google' : 'mail-outline'} size={13} color={C.muted} />
+            <Text numberOfLines={1} style={{ fontFamily: F.regular, fontSize: 13.5, color: C.muted }}>{acc.user.email?.endsWith('privaterelay.appleid.com') ? 'Apple hesabın (mail gizli)' : acc.user.email || 'Hesabın'}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: color }} />
