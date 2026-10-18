@@ -10,7 +10,7 @@ import * as Crypto from 'expo-crypto';
 import { AUTH_REDIRECT, finishAuth } from './auth-callback';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { sanitize, useStore } from './store';
 import { authError, hasAuth, sb } from './supabase';
 import type { State } from './types';
@@ -279,6 +279,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     async google() {
       if (sessionGuard.isPaused()) return 'Hesap işlemi sürüyor. Lütfen bekle.';
       try {
+        if (Platform.OS === 'web') {
+          // Web: sayfa Google'a gider, dönüşte /auth/callback girişi tamamlar
+          const { error } = await sb()!.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: AUTH_REDIRECT } });
+          return error ? authError(error) : null;
+        }
         const { data, error } = await sb()!.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: AUTH_REDIRECT, skipBrowserRedirect: true } });
         if (error) return authError(error);
         if (!data.url) return 'Giriş bağlantısı alınamadı.';

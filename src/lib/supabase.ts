@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
 const URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY || '';
@@ -25,8 +26,10 @@ export function sb(): SupabaseClient | null {
   return client;
 }
 
-/** Mobil uygulama içi paylaşım bağlantılarının kökü. */
-export const siteUrl = () => 'watchverse://';
+/** Paylaşım bağlantılarının kökü: web'de sitenin kendi adresi, mobilde uygulama bağlantısı. */
+export const siteUrl = () => Platform.OS === 'web' && typeof window !== 'undefined'
+  ? `${window.location.origin}${(process.env.EXPO_BASE_URL || '').replace(/\/$/, '')}/`
+  : 'watchverse://';
 
 /** Supabase hata mesajlarını sade Türkçeye çevirir */
 export function authError(e: unknown): string {

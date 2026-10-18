@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const { SUPABASE_ACCESS_TOKEN: TOKEN, SUPABASE_PROJECT_REF: REF_RAW, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, RESEND_API_KEY, MAIL_FROM } = process.env;
+const { SUPABASE_ACCESS_TOKEN: TOKEN, SUPABASE_PROJECT_REF: REF_RAW, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SITE_URL, OLD_SITE_URL, RESEND_API_KEY, MAIL_FROM } = process.env;
 const out = (k, v) => process.env.GITHUB_OUTPUT && fs.appendFileSync(process.env.GITHUB_OUTPUT, `${k}=${v}\n`);
 const empty = () => { out('supabase_url', ''); out('supabase_key', ''); };
 
@@ -52,12 +52,13 @@ if (!s.ok) {
 console.log('Veritabanı hazır.');
 
 // 2) Giriş ayarları
-const site = 'watchverse://auth/callback';
+// Web sitesi (kişisel kullanım) ve iOS uygulaması aynı giriş servisini kullanır; ikisinin dönüş adresi de izinli olmalı.
+const app = 'watchverse://auth/callback';
+const site = SITE_URL ? SITE_URL.replace(/\/?$/, '/') : app;
 const auth = {
   site_url: site,
-  uri_allow_list: site,
-  // Mail ve şifreyle giriş yok: yalnızca Apple ve Google (şifre yenileme ve mail doğrulama gerekmez)
-  external_email_enabled: false,
+  uri_allow_list: [...new Set([SITE_URL ? site + '**' : '', OLD_SITE_URL ? OLD_SITE_URL.replace(/\/?$/, '/') + '**' : '', 'http://localhost:8081/**', app].filter(Boolean))].join(','),
+  // Mail/şifre ayarına dokunulmaz: yeni arayüzde mail girişi yok, eski hesaplar kilitlenmesin.
   // Apple ile giriş uygulamanın içinde yapılır; Supabase yalnızca uygulamanın paket kimliğini doğrular (gizli anahtar gerekmez)
   external_apple_enabled: true,
   external_apple_client_id: (process.env.APPLE_CLIENT_IDS || 'com.mihracyanik.watchverse').trim(),

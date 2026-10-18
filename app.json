@@ -67,7 +67,13 @@
     },
     "platforms": [
       "ios",
-      "android"
-    ]
+      "android",
+      "web"
+    ],
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    }
   }
 }

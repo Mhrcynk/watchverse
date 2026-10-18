@@ -31,10 +31,12 @@
     "expo-web-browser": "~57.0.3",
     "fflate": "0.8.2",
     "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-svg": "15.15.4"
+    "react-native-svg": "15.15.4",
+    "react-native-web": "~0.21.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10",
@@ -57,7 +59,9 @@
     "test:database": "node scripts/test-database.mjs",
     "test:worker": "node --test scripts/test-worker.mjs",
     "test:product": "node --test scripts/test-product.cjs",
-    "measure:sync": "node scripts/measure-sync.cjs"
+    "measure:sync": "node scripts/measure-sync.cjs",
+    "web": "expo start --web",
+    "build:web": "expo export --platform web --output-dir dist && node scripts/pwa.mjs dist"
   },
   "private": true
 }

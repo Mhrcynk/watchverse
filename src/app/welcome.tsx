@@ -166,7 +166,7 @@ export default function Welcome() {
           {acc.enabled ? (
             last ? (
               <>
-                <Btn label="Apple ya da Google ile giriş yap" onPress={() => router.push('/account?from=welcome')} />
+                <Btn label={acc.appleAvailable ? 'Apple ya da Google ile giriş yap' : 'Google ile giriş yap'} onPress={() => router.push('/account?from=welcome')} />
                 <Press accessibilityRole="button" onPress={guest} hitSlop={8} style={{ alignSelf: 'center', marginTop: 16 }}>
                   <Small style={{ color: C.dim }}>Hesap açmadan devam et</Small>
                 </Press>
