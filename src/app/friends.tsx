@@ -88,7 +88,7 @@ export default function Friends() {
         <PageHeader bold="Arkadaşlar" />
         <Muted style={{ marginTop: 6, marginBottom: 16 }}>Önce bir ad seç; arkadaşların seni bu adla görecek.</Muted>
         <TextInput value={name} onChangeText={setName} autoFocus placeholder="Adın" placeholderTextColor={C.dim} maxLength={40} accessibilityLabel="Adın"
-          style={{ height: 50, borderRadius: R.md, backgroundColor: C.raised, color: C.text, paddingHorizontal: 14, fontFamily: F.regular, fontSize: 16, outlineStyle: 'none' } as never} />
+          style={{ height: 50, borderRadius: R.md, backgroundColor: C.raised, color: C.text, paddingHorizontal: 14, fontFamily: F.regular, fontSize: 16 } as never} />
         <Btn label="Devam" style={{ marginTop: 12 }} disabled={!name.trim()} onPress={() => store.setName(name.trim())} />
       </Screen>
     );

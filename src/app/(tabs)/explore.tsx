@@ -31,7 +31,7 @@ function SearchBox({ q, setQ, placeholder }: { q: string; setQ: (v: string) => v
       <TextInput value={q} onChangeText={setQ} placeholder={placeholder} placeholderTextColor={C.dim}
         accessibilityLabel={placeholder} autoCorrect={false} returnKeyType="search" clearButtonMode="while-editing"
         onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-        style={{ flex: 1, height: 48, color: C.text, fontFamily: F.regular, fontSize: 16, outlineStyle: 'none' } as any} />
+        style={{ flex: 1, height: 48, color: C.text, fontFamily: F.regular, fontSize: 16 } as any} />
       {!!q && Platform.OS !== 'ios' && (
         <Pressable accessibilityRole="button" accessibilityLabel="Aramayı temizle" hitSlop={10} onPress={() => setQ('')}>
           <Feather name="x" size={18} color={C.muted} />

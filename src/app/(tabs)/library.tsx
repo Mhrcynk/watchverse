@@ -71,7 +71,7 @@ export default function Library() {
         <View style={{ flex: 1, height: 42, borderRadius: 14, backgroundColor: C.card, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 }}>
           <Feather name="search" size={16} color={C.muted} />
           <TextInput value={q} onChangeText={setQ} placeholder="Kütüphanende ara" placeholderTextColor={C.dim} accessibilityLabel="Kütüphanende ara" returnKeyType="search"
-            style={{ flex: 1, height: 42, color: C.text, fontFamily: F.regular, fontSize: 16, outlineStyle: 'none' } as never} />
+            style={{ flex: 1, height: 42, color: C.text, fontFamily: F.regular, fontSize: 16 } as never} />
           {!!q && <Press accessibilityRole="button" accessibilityLabel="Aramayı temizle" onPress={() => setQ('')} hitSlop={8}><Feather name="x" size={16} color={C.muted} /></Press>}
         </View>
         <Press accessibilityRole="button" accessibilityLabel={`Sıralama: ${SORTS.find(([k]) => k === sort)![1]}`} onPress={() => setSort(SORTS[(SORTS.findIndex(([k]) => k === sort) + 1) % SORTS.length][0])} scaleTo={0.95}

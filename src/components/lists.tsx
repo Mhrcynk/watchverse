@@ -167,7 +167,7 @@ export function ListPickerProvider({ children }: { children: ReactNode }) {
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TextInput value={name} onChangeText={setName} autoFocus placeholder="Liste adı, örn. Hafta sonu" placeholderTextColor={C.dim} maxLength={60}
                       accessibilityLabel="Yeni liste adı" onSubmitEditing={create} returnKeyType="done"
-                      style={{ flex: 1, height: 46, borderRadius: R.md, backgroundColor: C.card, color: C.text, paddingHorizontal: 14, fontFamily: F.regular, fontSize: 16, outlineStyle: 'none' } as never} />
+                      style={{ flex: 1, height: 46, borderRadius: R.md, backgroundColor: C.card, color: C.text, paddingHorizontal: 14, fontFamily: F.regular, fontSize: 16 } as never} />
                     <Btn label="Oluştur" onPress={create} disabled={!name.trim()} />
                   </View>
                 ) : (

@@ -12,7 +12,7 @@ import { C, F, R } from '@/lib/theme';
 import { Backdrop, PageHeader } from '@/components/home';
 import { img } from '@/lib/tmdb';
 
-const inputStyle = { height: 50, borderRadius: R.md, backgroundColor: C.raised, color: C.text, paddingHorizontal: 14, fontFamily: F.semibold, fontSize: 18, outlineStyle: 'none' } as never;
+const inputStyle = { height: 50, borderRadius: R.md, backgroundColor: C.raised, color: C.text, paddingHorizontal: 14, fontFamily: F.semibold, fontSize: 18 } as never;
 
 export default function ListScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
