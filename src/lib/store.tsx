@@ -106,7 +106,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ref.current = next;
       setRawInner(next);
       setReady(true);
-    }).catch(() => { if (alive) setStorageError(true); });
+    }).catch((error) => { console.error('[watchverse] yerel kayıt açılamadı', error); if (alive) setStorageError(true); });
     return () => { alive = false; };
   }, []);
   useEffect(() => {
