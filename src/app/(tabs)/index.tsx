@@ -2,7 +2,8 @@ import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { Backdrop, ContinueItem, Greeting, ListHead, WeekItem } from '@/components/home';
 import { StarterCard } from '@/components/starter';
-import { Empty, Screen, useToast } from '@/components/ui';
+import { Empty, Screen, useLayout, useToast } from '@/components/ui';
+import { Row } from '@/components/rows';
 import { TBY, daysUntil, upcomingFor } from '@/lib/catalog';
 import { continueRow, type ContItem } from '@/lib/continue-row';
 import { routeOf } from '@/lib/library';
@@ -41,6 +42,9 @@ export default function Home() {
   const store = useStore();
   const { state } = store;
   const toast = useToast();
+  const { width, pad, tablet } = useLayout();
+  // Telefonda 2,5 kart görünür (yana kaydırıldığı anlaşılsın); geniş ekranda sabit genişlik
+  const cardW = tablet ? 168 : Math.round(Math.min(168, (width - pad * 2 - 16) / 2.5));
   const cont = useMemo(() => continueRow(state), [state]);
   const week = useMemo(() => thisWeek(state), [state]);
   const markNext = (x: ContItem) => {
@@ -61,13 +65,12 @@ export default function Home() {
     <Backdrop />
     <Greeting name={state.name} sub="Nerede kaldın? Sıradaki hikâyene dön." />
     <SaveStatus onlyProblems />
-    {cont.length ? <>
-      <ListHead title="İzlemeye devam et" onMore={cont.length > 4 ? () => router.push('/library') : undefined} />
-      {cont.slice(0, 4).map((x, i) => <ContinueItem key={x.key} index={i} title={x.title} poster={x.poster} sub={x.sub} badge={x.badge} pct={x.pct}
+    {cont.length ? <Row title="İzlemeye devam et" onMore={() => router.push('/library')}>
+      {cont.slice(0, 12).map((x, i) => <ContinueItem key={x.key} index={i} width={cardW} title={x.title} poster={x.poster} sub={x.sub} badge={x.badge} pct={x.pct}
         watchedLabel={x.m === 'tv' ? 'sıradaki bölümü izledim' : 'izledim'}
         onWatched={canMark(x) ? () => markNext(x) : undefined}
         onPress={() => router.push(x.route as never)} />)}
-    </> : <Empty icon="bookmark" title="İlk hikâyeni seç." text="Bir yapım kaydet veya izlediğin bölümleri işaretle; kaldığın yer burada görünsün." action="Yapım bul" onAction={() => router.push('/explore')} />}
+    </Row> :<Empty icon="bookmark" title="İlk hikâyeni seç." text="Bir yapım kaydet veya izlediğin bölümleri işaretle; kaldığın yer burada görünsün." action="Yapım bul" onAction={() => router.push('/explore')} />}
     {week.length > 0 && <>
       <ListHead title="Bu hafta" onMore={() => router.push('/calendar')} />
       {week.map((w) => <WeekItem key={w.key} when={whenOf(w.date)} title={w.title} what={w.what} soon={daysUntil(w.date) <= 1} onPress={() => router.push(w.route as never)} />)}
