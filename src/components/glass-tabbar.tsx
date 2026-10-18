@@ -3,9 +3,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Animated, Pressable, View } from 'react-native';
+import { Animated, Pressable, Text, View } from 'react-native';
 import { EASE_OUT, ND, useReducedMotion } from '@/lib/motion';
-import { C, M } from '@/lib/theme';
+import { alpha, C, F, M } from '@/lib/theme';
 import { useAccount } from '@/lib/account';
 import { useStore } from '@/lib/store';
 import { tap } from './ui';
@@ -21,7 +21,7 @@ export const TAB_ICONS: Record<string, [IconName, IconName]> = {
 /** Alt menünün kapladığı yükseklik (içerik bu kadar boşluk bırakır) */
 export const TABBAR_SPACE = 84;
 
-/** Sade alt menü: ince çizgili simgeler, seçilende dolu simge ve altında küçük nokta */
+/** Alt menü: simge + yazı; seçili sekmede dolu simge ve arkasında yumuşak kapsül */
 /** En son açık olan sekme: yapım sayfalarında alt menüde bu sekme seçili görünür */
 let lastTab = 'index';
 const TAB_LIST: { name: string; title: string; href: '/' | '/explore' | '/library' | '/universes' }[] = [
@@ -92,10 +92,12 @@ function TabButton({ focused, label, icon, onPress, onLongPress }: { focused: bo
   return (
     <Pressable accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: focused }} aria-selected={focused} onPress={onPress} onLongPress={onLongPress}
       onPressIn={() => to(0.86)} onPressOut={() => to(1)} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.View style={{ transform: [{ scale: s }] }}>
-        <Ionicons name={icon} size={24} color={focused ? C.text : C.dim} />
+      <Animated.View style={{ alignItems: 'center', transform: [{ scale: s }] }}>
+        <Animated.View style={{ position: 'absolute', top: -4, width: 52, height: 30, borderRadius: 15, backgroundColor: alpha(C.text, 0.1), opacity: dot }} />
+        <Ionicons name={icon} size={22} color={focused ? C.text : C.muted} />
+        <Text numberOfLines={1} maxFontSizeMultiplier={1.3}
+          style={{ marginTop: 5, fontFamily: focused ? F.semibold : F.medium, fontSize: 11, letterSpacing: 0.1, color: focused ? C.text : C.muted }}>{label}</Text>
       </Animated.View>
-      <Animated.View style={{ width: 5, height: 5, borderRadius: 3, marginTop: 6, backgroundColor: C.text, opacity: dot, transform: [{ scale: dot }] }} />
     </Pressable>
   );
 }

@@ -2,20 +2,19 @@ import { remoteSearchResults } from '@/lib/audit-logic';
 import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { memo, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { Image } from 'expo-image';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { scoreText, usePreview } from '@/components/preview';
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { usePreview } from '@/components/preview';
 import { PersonChip } from '@/components/people';
 import { Row, TItemTile } from '@/components/rows';
 import { MediaCard, PosterCard } from '@/components/media';
 import { Btn, Chip, Empty, Eyebrow, Grid, H1, Pills, Press, Screen, SectionHead, Small, useLayout, SkeletonGrid } from '@/components/ui';
-import { Backdrop, PageHeader, PickBanner } from '@/components/home';
-import { isEn } from '@/lib/i18n';
+import { Backdrop, PageHeader } from '@/components/home';
+import { DiscoverFeed } from '@/components/discover-feed';
 import { CATALOG, CATEGORIES, CATEGORY_TR, search as searchCatalog } from '@/lib/catalog';
 import { routeOf } from '@/lib/library';
 import { useStore } from '@/lib/store';
-import { C, F, R, alpha } from '@/lib/theme';
-import { GENRES, hasApi, img, searchAll, trending, type Person, type TItem } from '@/lib/tmdb';
+import { C, F, alpha } from '@/lib/theme';
+import { GENRES, hasApi, searchAll, type Person, type TItem } from '@/lib/tmdb';
 
 const PAGE = 48;
 
@@ -71,7 +70,7 @@ function Online() {
   return (
     <Screen>
       <Backdrop />
-      <View style={{ marginBottom: 18 }}><PageHeader bold="Keşfet" light={isEn ? undefined : 've bul'} sub="Tüm film ve diziler: ara, kategoriye göz at." /></View>
+      <View style={{ marginBottom: 16 }}><PageHeader bold="Keşfet" /></View>
       <SearchBox q={q} setQ={setQ} placeholder="Film, dizi ya da kişi ara" />
 
       {query.length >= 2 ? (
@@ -101,16 +100,7 @@ function Online() {
             ) : local.length ? null : <Empty icon="search" title="Sonuç bulunamadı." text="Farklı bir yazım dene; orijinal adıyla da arayabilirsin." />}
         </>
       ) : (
-        <>
-          <PickBanner style={{ marginTop: 18 }} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
-            <Btn kind="secondary" icon="layers" label="Koleksiyonlar ve seçkiler" onPress={() => router.push('/collections')} />
-            <Btn kind="secondary" icon="compass" label="Platformlar ve öneriler" onPress={() => router.push('/discover')} />
-          </View>
-          <CategoryStrip />
-          <PopularList />
-          <Btn kind="secondary" icon="globe" label={`Evrenlerdeki ${CATALOG.length} yapıma göz at`} style={{ marginTop: 30, alignSelf: 'flex-start' }} onPress={() => router.push('/universes')} />
-        </>
+        <DiscoverFeed footer={<CategoryStrip />} />
       )}
     </Screen>
   );
@@ -159,29 +149,6 @@ const ResultCard = memo(function ResultCard({ x, width }: { x: TItem; width: num
   const badge = r.startsWith('/title/') ? 'Evrende' : state.lib[x.key] ? 'Listende' : undefined;
   return <TItemTile x={x} width={width} badge={badge} />;
 });
-
-/** Netflix aramasındaki gibi: geniş görselli popüler yapımlar listesi */
-function PopularList() {
-  const { open } = usePreview();
-  const [items, setItems] = useState<TItem[] | null>(null);
-  useEffect(() => { let a = true; trending().then((r) => a && setItems(r.filter((x) => x.b).slice(0, 12))).catch(() => a && setItems([])); return () => { a = false; }; }, []);
-  if (items && !items.length) return null;
-  return (
-    <>
-      <Text accessibilityRole="header" style={{ marginTop: 28, marginBottom: 12, fontFamily: F.bold, fontSize: 18.5, color: C.text }}>Bu hafta en çok bakılanlar</Text>
-      {items === null ? <ActivityIndicator color={C.dim} /> : items.map((x) => (
-        <Press key={x.key} accessibilityRole="button" accessibilityLabel={x.title} onPress={() => open(x)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8, backgroundColor: C.card, borderRadius: R.sm, overflow: 'hidden' }}>
-          <View style={{ width: 132, aspectRatio: 16 / 9, backgroundColor: C.raised }}>{x.b && <Image source={{ uri: img(x.b, 'w342')! }} style={StyleSheet.absoluteFill} contentFit="cover" />}</View>
-          <View style={{ flex: 1 }}>
-            <Text numberOfLines={2} style={{ fontFamily: F.semibold, fontSize: 14.5, color: C.text }}>{x.title}</Text>
-            <Small style={{ marginTop: 2 }}>{[x.year, x.m === 'movie' ? 'Film' : 'Dizi', scoreText(x.vote, x.votes)].filter(Boolean).join(' · ')}</Small>
-          </View>
-          <Feather name="info" size={20} color={C.muted} style={{ marginRight: 14 }} />
-        </Press>
-      ))}
-    </>
-  );
-}
 
 type RailItem = { key: string; uri: string | null; title: string; sub: string; go: () => void; badge?: string };
 function Rail({ items }: { items: RailItem[] }) {

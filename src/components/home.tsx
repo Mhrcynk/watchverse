@@ -33,25 +33,6 @@ export function Greeting({ name, sub }: { name: string; sub: string }) {
   );
 }
 
-/** Arama kutusu görünümünde düğme: Keşfet'e götürür */
-export function SearchPill({ onFilter }: { onFilter?: () => void }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: 10 }}>
-      <Press accessibilityRole="search" accessibilityLabel="Film, dizi ya da evren ara" onPress={() => router.push('/explore')} scaleTo={0.98}
-        style={{ flex: 1, height: 52, borderRadius: 18, backgroundColor: C.card, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18 }}>
-        <Feather name="search" size={19} color={C.muted} />
-        <Text style={{ fontFamily: F.regular, fontSize: 15, color: C.dim }}>Film, dizi ya da evren ara</Text>
-      </Press>
-      {onFilter && (
-        <Press accessibilityRole="button" accessibilityLabel="Kategoriler" onPress={onFilter} scaleTo={0.94}
-          style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' }}>
-          <Feather name="sliders" size={19} color={C.text} />
-        </Press>
-      )}
-    </View>
-  );
-}
-
 const kindText = (x: TItem) => [x.m === 'movie' ? 'Film' : 'Dizi', x.year].filter(Boolean).join(' · ');
 
 /** Öne çıkanlar: ortadaki afiş büyük, yanlardakiler küçülüp hafifçe döner */
@@ -188,6 +169,67 @@ export function PickBanner({ style }: { style?: object }) {
         <Text numberOfLines={2} style={{ marginTop: 2, fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: C.muted }}>Platformunu ve vaktini seç, tek bir öneri al.</Text>
       </View>
       <Feather name="chevron-right" size={18} color={C.dim} />
+    </Press>
+  );
+}
+
+/** Dikey liste başlığı: solda başlık, sağda isteğe bağlı "Tümü" */
+export function ListHead({ title, onMore }: { title: string; onMore?: () => void }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 28, marginBottom: 10, gap: 10 }}>
+      <Text accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontFamily: F.bold, fontSize: 19, color: C.text, letterSpacing: -0.3 }}>{title}</Text>
+      {onMore && (
+        <Press accessibilityRole="button" accessibilityLabel={`${title}: tümünü gör`} onPress={onMore} hitSlop={10} style={{ flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 32 }}>
+          <Text style={{ fontFamily: F.medium, fontSize: 13.5, color: C.muted }}>Tümü</Text>
+          <Feather name="chevron-right" size={16} color={C.muted} />
+        </Press>
+      )}
+    </View>
+  );
+}
+
+/**
+ * İzlemeye devam et: tek satırlık sade kart. Solda küçük afiş, ortada ad ve sıradaki bölüm,
+ * sağda yuvarlak ✓ (sıradakini izledim). Kartın kendisine dokunmak yapım sayfasını açar.
+ */
+export function ContinueItem({ title, poster, sub, badge, pct, onPress, onWatched, watchedLabel, index = 0 }: {
+  title: string; poster: string | null; sub?: string; badge?: string; pct?: number; onPress: () => void; onWatched?: () => void; watchedLabel: string; index?: number;
+}) {
+  return (
+    <FadeIn index={index} from={6}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 8, borderRadius: R.md, backgroundColor: C.card, marginBottom: 8 }}>
+        <Press accessibilityRole="button" accessibilityLabel={[title, badge, sub].filter(Boolean).join(', ')} onPress={onPress} scaleTo={0.98}
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 44, aspectRatio: 2 / 3, borderRadius: 8, overflow: 'hidden', backgroundColor: C.raised }}>
+            {poster && <Image source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />}
+          </View>
+          <View style={{ flex: 1, gap: 3 }}>
+            <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 15, color: C.text }}>{title}</Text>
+            {!!(sub || badge) && <Text numberOfLines={1} style={{ fontFamily: F.regular, fontSize: 13, color: badge ? C.accentSoft : C.muted }}>{[badge, sub].filter(Boolean).join(' · ')}</Text>}
+            {pct != null && pct > 0 && <View style={{ marginTop: 4, width: '70%' }}><Bar pct={pct * 100} height={3} color={C.muted} /></View>}
+          </View>
+        </Press>
+        {onWatched && (
+          <Press accessibilityRole="button" accessibilityLabel={`${title}: ${watchedLabel}`} onPress={onWatched} hitSlop={6} scaleTo={0.9}
+            style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name="check" size={19} color={C.text} />
+          </Press>
+        )}
+      </View>
+    </FadeIn>
+  );
+}
+
+/** Bu hafta çıkacak bölümler/yapımlar: tarih + ad + ne çıkıyor; tek satır */
+export function WeekItem({ when, title, what, soon, onPress }: { when: string; title: string; what: string; soon: boolean; onPress: () => void }) {
+  return (
+    <Press accessibilityRole="button" accessibilityLabel={`${when}: ${title}, ${what}`} onPress={onPress} scaleTo={0.98}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingVertical: 4 }}>
+      <View style={{ width: 66, paddingVertical: 5, borderRadius: 99, alignItems: 'center', backgroundColor: soon ? alpha(C.accent, 0.18) : C.card }}>
+        <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 12, color: soon ? C.accentSoft : C.muted }}>{when}</Text>
+      </View>
+      <Text numberOfLines={1} style={{ flex: 1, fontFamily: F.medium, fontSize: 14.5, color: C.text }}>{title}</Text>
+      <Text numberOfLines={1} style={{ fontFamily: F.regular, fontSize: 13, color: C.muted }}>{what}</Text>
     </Press>
   );
 }
