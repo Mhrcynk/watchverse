@@ -37,8 +37,10 @@ const completed = { ...state, episodes: { [hawk.id]: Array.from({ length: hawk.e
 assert(isDone(completed, hawk)); assert.equal(remaining(completed, hawk), 0);
 for (const viewport of [320, 375, 390, 430, 768, 834, 1024, 1366]) {
   const content = viewport >= 768 ? Math.min(viewport - 208, 1120) - 64 : viewport - 40;
-  const { cols, cardWidth } = posterGrid(content, viewport >= 1200 ? 6 : viewport >= 768 ? 5 : 3);
-  assert(cardWidth >= (content < 360 ? 120 : 140) || cols === 1);
+  const maxCols = viewport >= 1200 ? 6 : viewport >= 768 ? 5 : 3;
+  const { cols, cardWidth } = posterGrid(content, maxCols);
+  assert(cardWidth >= (maxCols <= 3 ? 84 : 140) || cols === 1);
+  if (maxCols === 3) assert(cols === 3, `telefonda 3 sütun beklenir (${viewport}px)`);
   assert(cols * cardWidth + (cols - 1) * 14 <= content);
   console.log(`Grid ${viewport}px: ${cols} columns, ${cardWidth}px posters`);
 }

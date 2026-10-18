@@ -4,7 +4,7 @@ import { Backdrop, PageHeader } from '@/components/home';
 import { UniverseCard } from '@/components/media';
 import { Row } from '@/components/rows';
 import { FadeIn, Grid, Pills, Screen, Small, useLayout } from '@/components/ui';
-import { CATEGORIES, CATEGORY_TR, UNIVERSES, VIEW_TR } from '@/lib/catalog';
+import { CATEGORIES, CATEGORY_TR, UNIVERSES } from '@/lib/catalog';
 import { isEn } from '@/lib/i18n';
 import { universeProgress } from '@/lib/progress';
 import { useStore } from '@/lib/store';
@@ -40,7 +40,7 @@ export default function Universes() {
       </View>
       <Grid items={list} cols={cols} gap={14} keyOf={(u) => u.id} render={(u) => <FadeIn index={list.indexOf(u)}><UniverseCard u={u} state={state} /></FadeIn>} />
 
-      <Small style={{ marginTop: 24 }}>İlerleme, her evrenin ana rotasında “{VIEW_TR[state.view]}” görünümüne göre hesaplanır.</Small>
+      <Small style={{ marginTop: 24 }}>İlerleme, her evrenin ana rotasındaki ana hikâyeye göre hesaplanır; sıralama ilerlemeyi değiştirmez.</Small>
     </Screen>
   );
 }

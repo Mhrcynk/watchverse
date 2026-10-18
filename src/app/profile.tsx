@@ -11,7 +11,7 @@ import { BackLink, Btn, Chip, FadeIn, Press, Screen, Small, useToast } from '@/c
 import { backupSummary } from '@/lib/backup-code';
 import { SaveStatus } from '@/components/save-status';
 import { pickBackupFile, saveBackupFile } from '@/lib/backup-file';
-import { TBY, VIEWS, VIEW_TR } from '@/lib/catalog';
+import { TBY } from '@/lib/catalog';
 import { confirm } from '@/lib/confirm';
 import { useAccount } from '@/lib/account';
 import { isEn } from '@/lib/i18n';
@@ -127,9 +127,9 @@ export default function Profile() {
         <Item icon="eye-off" label="Spoiler koruması" sub="İzlemediklerinin devamını gizler" right={
           <Switch value={state.spoiler} onValueChange={store.setSpoiler} trackColor={{ true: C.accent, false: C.line }} thumbColor="#fff" {...({ activeThumbColor: '#fff' } as object)} accessibilityLabel="Spoiler koruması" />
         } />
-        <Item icon="list" label="Evren listelerinde göster" below={
-          <View accessibilityRole="radiogroup" accessibilityLabel="Liste görünümü" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {VIEWS.map((v) => <Chip key={v} label={VIEW_TR[v]} active={state.view === v} onPress={() => store.setView(v as ListView)} />)}
+        <Item icon="list" label="Evren sıralaması" sub="İlerleme ve kalan süre her zaman ana hikâyeden hesaplanır; bu seçim yalnızca sırayı değiştirir" below={
+          <View accessibilityRole="radiogroup" accessibilityLabel="Evren sıralaması" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {(['main', 'chrono'] as ListView[]).map((v) => <Chip key={v} label={v === 'chrono' ? 'Kronolojik' : 'Çıkış sırası'} active={(state.view === 'chrono') === (v === 'chrono')} onPress={() => store.setView(v)} />)}
           </View>
         } />
         {nativePushEnabled && <Item icon="bell" label="Bildirimler" sub={pushActive ? 'Açık: yeni bölüm ve yeni yapımlar' : 'Yeni bölüm çıkınca haber ver'}

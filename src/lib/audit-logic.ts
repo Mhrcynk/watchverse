@@ -3,7 +3,9 @@ import type { TItem } from './tmdb';
 
 /** Fit posters to the measured content area, including sidebar and safe-area padding. */
 export function posterGrid(width: number, maxCols: number, gap = 14) {
-  const cols = Math.max(1, Math.min(maxCols, Math.floor((width + gap) / ((width < 360 ? 120 : 140) + gap))));
+  // Telefonda (en çok 3 sütun) 3 sütunu koru; tablette afiş en az ~140 px olsun
+  const min = maxCols <= 3 ? 84 : 140;
+  const cols = Math.max(1, Math.min(maxCols, Math.floor((width + gap) / (min + gap))));
   return { cols, cardWidth: width > 0 ? Math.floor((width - gap * (cols - 1)) / cols) : 0 };
 }
 

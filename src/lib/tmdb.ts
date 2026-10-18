@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * TMDB'ye ara sunucu üzerinden erişim. Anahtar uygulamada yoktur; sunucu ekler.
  * Adres yayın sırasında EXPO_PUBLIC_API_URL ile verilir; tanımlı değilse varsayılan Worker adresi kullanılır.
  */
-const API = (process.env.EXPO_PUBLIC_API_URL || 'https://watchverse.mihracyanik.workers.dev').replace(/\/$/, '');
+const API = (process.env.EXPO_PUBLIC_API_URL || 'https://watchverse.mhrcynk.workers.dev').replace(/\/$/, '');
 export const hasApi = () => !!API;
 
 export type Media = 'movie' | 'tv';
