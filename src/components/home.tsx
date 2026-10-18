@@ -189,30 +189,40 @@ export function ListHead({ title, onMore }: { title: string; onMore?: () => void
 }
 
 /**
- * İzlemeye devam et: tek satırlık sade kart. Solda küçük afiş, ortada ad ve sıradaki bölüm,
- * sağda yuvarlak ✓ (sıradakini izledim). Kartın kendisine dokunmak yapım sayfasını açar.
+ * İzlemeye devam et: yana kayan afiş kartı. Afişin altında ince ilerleme çizgisi,
+ * altında ad + durum ve küçük yuvarlak ✓ (sıradakini izledim). Afişe dokunmak yapım sayfasını açar.
  */
-export function ContinueItem({ title, poster, sub, badge, pct, onPress, onWatched, watchedLabel, index = 0 }: {
-  title: string; poster: string | null; sub?: string; badge?: string; pct?: number; onPress: () => void; onWatched?: () => void; watchedLabel: string; index?: number;
+export function ContinueItem({ title, poster, sub, badge, pct, onPress, onWatched, watchedLabel, width, index = 0 }: {
+  title: string; poster: string | null; sub?: string; badge?: string; pct?: number; onPress: () => void; onWatched?: () => void; watchedLabel: string; width: number; index?: number;
 }) {
   return (
-    <FadeIn index={index} from={6}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 8, borderRadius: R.md, backgroundColor: C.card, marginBottom: 8 }}>
-        <Press accessibilityRole="button" accessibilityLabel={[title, badge, sub].filter(Boolean).join(', ')} onPress={onPress} scaleTo={0.98}
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 44, aspectRatio: 2 / 3, borderRadius: 8, overflow: 'hidden', backgroundColor: C.raised }}>
-            {poster && <Image source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />}
+    <FadeIn index={index} from={8}>
+      <View style={{ width, borderRadius: R.md, overflow: 'hidden', backgroundColor: C.card }}>
+        <Press accessibilityRole="button" accessibilityLabel={[title, badge, sub].filter(Boolean).join(', ')} onPress={onPress} scaleTo={0.97}>
+          <View style={{ width, aspectRatio: 2 / 3, backgroundColor: C.raised }}>
+            {poster ? <Image source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : (
+              <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', padding: 10 }]}>
+                <Text numberOfLines={3} style={{ fontFamily: F.bold, fontSize: 15, textAlign: 'center', color: C.muted }}>{title}</Text>
+              </View>
+            )}
+            {!!badge && (
+              <View style={{ position: 'absolute', left: 8, bottom: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 99, backgroundColor: C.accent }}>
+                <Text style={{ fontFamily: F.bold, fontSize: 11, color: C.onAccent }}>{badge}</Text>
+              </View>
+            )}
           </View>
-          <View style={{ flex: 1, gap: 3 }}>
-            <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 15, color: C.text }}>{title}</Text>
-            {!!(sub || badge) && <Text numberOfLines={1} style={{ fontFamily: F.regular, fontSize: 13, color: badge ? C.accentSoft : C.muted }}>{[badge, sub].filter(Boolean).join(' · ')}</Text>}
-            {pct != null && pct > 0 && <View style={{ marginTop: 4, width: '70%' }}><Bar pct={pct * 100} height={3} color={C.muted} /></View>}
+          <View style={{ height: 3, backgroundColor: C.line }}>
+            <View style={{ width: `${Math.round(Math.max(0, Math.min(1, pct || 0)) * 100)}%`, height: '100%', backgroundColor: C.accent }} />
+          </View>
+          <View style={{ paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 }}>
+            <Text numberOfLines={1} style={{ fontFamily: F.semibold, fontSize: 13.5, color: C.text }}>{title}</Text>
+            {!!sub && <Text numberOfLines={1} style={{ marginTop: 2, fontFamily: F.regular, fontSize: 12, color: C.muted }}>{sub}</Text>}
           </View>
         </Press>
         {onWatched && (
-          <Press accessibilityRole="button" accessibilityLabel={`${title}: ${watchedLabel}`} onPress={onWatched} hitSlop={6} scaleTo={0.9}
-            style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
-            <Feather name="check" size={19} color={C.text} />
+          <Press accessibilityRole="button" accessibilityLabel={`${title}: ${watchedLabel}`} onPress={onWatched} hitSlop={4} scaleTo={0.88}
+            style={{ position: 'absolute', top: 6, right: 6, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(15,16,21,0.72)', borderWidth: 1, borderColor: alpha('#FFFFFF', 0.22), alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name="check" size={18} color="#FFFFFF" />
           </Press>
         )}
       </View>
