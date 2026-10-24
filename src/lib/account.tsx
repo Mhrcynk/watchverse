@@ -138,12 +138,12 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     }
     const local = getState();
     const localDirty = hashOf(cloudPayload(local)) !== m.hash;
-    // Old clients did not persist a baseline. Never guess which missing records were deleted.
-    if (sameUser && !m.base && hashOf(cloudPayload(local)) !== hashOf(cloudPayload(remote))) {
-      throw new Error('Eski eşitleme kaydı: yerel ve bulut yedekleri karşılaştırılmadan otomatik birleştirme yapılamaz.');
-    }
+    // Eski sürümler karşılaştırma referansı saklamıyordu. Neyin silindiği tahmin edilmez:
+    // iki taraf hiçbir kayıt silinmeden birleştirilir (cihaz ilk kez bağlanıyormuş gibi).
+    const legacy = sameUser && !m.base && hashOf(cloudPayload(local)) !== hashOf(cloudPayload(remote));
     let next: State;
-    if (sameUser) next = localDirty ? mergeStates(local, remote, m.base || {}) : remote;
+    if (legacy) next = mergeStates(local, remote);
+    else if (sameUser) next = localDirty ? mergeStates(local, remote, m.base || {}) : remote;
     else if (!m.uid && hasData(local)) next = mergeStates(local, remote); // bu cihaz ilk kez bağlanıyor
     else next = remote; // başka bir hesap bu cihazdan çıkmış
     meta.current = { uid, rev: row.rev, hash: serverHash, base: cloudPayload(remote), at: Date.now() };
