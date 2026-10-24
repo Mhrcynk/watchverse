@@ -54,10 +54,14 @@ console.log('Veritabanı hazır.');
 // 2) Giriş ayarları
 // Web sitesi (kişisel kullanım) ve iOS uygulaması aynı giriş servisini kullanır; ikisinin dönüş adresi de izinli olmalı.
 const app = 'watchverse://auth/callback';
-const site = SITE_URL ? SITE_URL.replace(/\/?$/, '/') : app;
+// Tarayıcılar alan adını hep küçük harfle gönderir; giriş servisi ise harf farkını ayırt eder.
+// Bu yüzden adresler küçük harfe çevrilir (GitHub kullanıcı adı büyük harf içerebilir).
+const lowHost = (u) => { try { const x = new URL(u); x.hostname = x.hostname.toLowerCase(); return x.toString(); } catch { return u; } };
+const slash = (u) => lowHost(u).replace(/\/?$/, '/');
+const site = SITE_URL ? slash(SITE_URL) : app;
 const auth = {
   site_url: site,
-  uri_allow_list: [...new Set([SITE_URL ? site + '**' : '', OLD_SITE_URL ? OLD_SITE_URL.replace(/\/?$/, '/') + '**' : '', 'http://localhost:8081/**', app].filter(Boolean))].join(','),
+  uri_allow_list: [...new Set([SITE_URL ? site + '**' : '', OLD_SITE_URL ? slash(OLD_SITE_URL) + '**' : '', 'http://localhost:8081/**', app].filter(Boolean))].join(','),
   // Mail/şifre ayarına dokunulmaz: yeni arayüzde mail girişi yok, eski hesaplar kilitlenmesin.
   // Apple ile giriş uygulamanın içinde yapılır; Supabase yalnızca uygulamanın paket kimliğini doğrular (gizli anahtar gerekmez)
   external_apple_enabled: true,
